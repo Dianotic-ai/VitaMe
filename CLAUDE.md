@@ -44,3 +44,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 法规红线：不诊断疾病、不出医疗结论、不替代医嘱，每次输出必须包含免责声明
 
 问chatgpt的对话链接，其实llm已经做的很好了，那我们的差异点及区别是什么https://chatgpt.com/share/69e0dd18-d654-8331-8d24-08308d4b4649
+
+## 安全红线（健康类产品）
+
+- 定位"健康信息服务"，非"医疗服务"。小程序类目选"生活服务-营养查询"
+- 免责声明每次AI输出强制展示，不仅在条款中
+- 严重异常指标（如空腹血糖>7.0）硬编码触发"请立即就医"，不依赖LLM
+- 禁忌规则（~50条病史×成分交叉）硬编码，不可被Prompt覆盖
+- 措辞避免"治疗""治愈""药效"，使用"辅助""参考""营养补充"
+- 体检数据属于敏感个人信息，需单独授权+加密存储+数据最小化
+
+## Skill routing
+
+When the user's request matches an available skill, ALWAYS invoke it using the Skill
+tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
+The skill has specialized workflows that produce better results than ad-hoc answers.
+
+Key routing rules:
+- Product ideas, "is this worth building", brainstorming → invoke office-hours
+- Bugs, errors, "why is this broken", 500 errors → invoke investigate
+- Ship, deploy, push, create PR → invoke ship
+- QA, test the site, find bugs → invoke qa
+- Code review, check my diff → invoke review
+- Update docs after shipping → invoke document-release
+- Weekly retro → invoke retro
+- Design system, brand → invoke design-consultation
+- Visual audit, design polish → invoke design-review
+- Architecture review → invoke plan-eng-review
+- Save progress, checkpoint, resume → invoke checkpoint
+- Code quality, health check → invoke health
