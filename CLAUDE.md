@@ -4,54 +4,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概况
 
-**健康守护Agent** — AI驱动的亚健康人群健康管理微信小程序。核心叙事："提前3年发现你的健康拐点"。
+**健康守护Agent（VitaMe）** — AI驱动的家庭保健品安全管理微信小程序。
 
-串联"看懂体检→选对保健品→坚持吃"三个环节，市场上无同类产品。
+核心定位（尚未确定）：**"你给爸妈买的保健品，真的安全吗？"**
+- 核心功能：药物-保健品冲突检测 + 安全替代推荐
+- 目标用户：25-40岁成年子女（给50-70岁父母选购管理保健品）
+- 差异化：药物 × 保健品 × 病史 三角交叉安全校验（蓝海，无直接竞品）
 
-## 项目阶段
+价值链路：安全检测（建信任）→ 成分解析（展专业度）→ 替代推荐+比价（创经济价值）
 
-当前处于 BMAD Phase 1 分析阶段（已完成），尚未开始编码。目标：2026年4月底参加世界人工智能大会"超级个体创业黑客松"。
+## 背景
 
-## 产品结构
+2026年4月底参加 WAIC"超级个体创业黑客松"（创业赛道），需要可运行Demo。团队有医学检测博士和护士，匹配安全方向。
 
-1个统一Agent入口，3个底部Tab：
-- **Tab 1**: AI对话Agent（体检报告纵向趋势分析 + 症状融合推理 + 保健品成分级推荐）
-- **Tab 2**: 记录、打卡、吃药提醒
-- **Tab 3**: 选购建议 + 外部视频 + 图文内容
+## 当前阶段
 
-## 计划技术栈
+项目处于**产品规划阶段**，尚无代码实现。仓库内容全部是规划文档和调研材料。技术方向初定微信小程序 + DeepSeek-V3 + RAG。
 
-- 前端：uni-app (Vue3) → 微信小程序（后续App复用）
-- 后端：Python 3.11 + FastAPI
-- AI层：DeepSeek-V3 API（MVP）→ Hermes Agent框架（正式版）
-- 数据库：SQLite（MVP）→ PostgreSQL（正式）
-- 部署：腾讯云轻量应用服务器
+## 仓库结构
 
-## 关键文件结构
+- `0415内容准备/` — 最新产品规划文档（产品定位终稿、深度研究报告、product brief等）
+- `2024-4-14输出old/` — 旧版输出存档（含 BMAD 产出、gstack review、会话记录）
+- `_bmad/` — BMAD 方法论框架配置（v6.3.0），通过 `/bmad-*` slash command 调用
+- `背景信息.md` — 产品初始构想和创始人痛点描述
 
-```
-背景信息.md                          # 产品原始需求和背景
-_bmad/bmm/config.yaml               # BMAD方法论配置（中文、用户Sunny）
-_bmad-output/planning-artifacts/     # BMAD分析产出
-  prd.md                             # PRD（11个FR、6个NFR、3条用户旅程）
-  product-brief-health-agent.md      # 产品简报（三重审查后）
-  product-brief-health-agent-distillate.md  # 蒸馏详情包
-  research-prfaq.md                  # PRFAQ逆向验证（概念评分7/10）
-  research-technical.md              # 技术架构调研
-  research-commercialization.md      # 商业化分析
-```
+## BMAD 使用
 
-## BMAD 方法论
+项目集成了 BMAD 方法论（v6.3.0）。关键配置：
+- 用户：沟通语言和文档输出语言均为中文
+- 产出目录：`_bmad-output/planning-artifacts/`（规划阶段产物）
+- 可通过 `/bmad-*` skill 调用各角色（analyst, architect, pm, ux-designer 等）
 
-项目使用 BMAD (Breakthrough Method for Agile AI-Driven Development) v6.3.0 管理全生命周期。BMAD 技能已通过全局插件安装（`C:\Users\sunny\.claude\plugins\marketplaces\bmad-method`），项目本地技能在 `.claude/skills/` 下。
+## 关键决策记录
 
-BMAD 配置要求：通信语言和文档输出语言均为中文，用户名 Sunny。
+以下决策已在 `0415内容准备/健康守护Agent-产品定位终稿.md` 中确认：
+- 定位从"体检趋势分析"**转向**"保健品安全检测"
+- MVP 阶段不做 OCR、比价爬虫、穿戴设备、复杂打卡
+- 安全规则引擎中的禁忌规则需**硬编码**（非纯 LLM 生成）
+- 法规红线：不诊断疾病、不出医疗结论、不替代医嘱，每次输出必须包含免责声明
 
-## 安全红线（健康类产品）
-
-- 定位"健康信息服务"，非"医疗服务"。小程序类目选"生活服务-营养查询"
-- 免责声明每次AI输出强制展示，不仅在条款中
-- 严重异常指标（如空腹血糖>7.0）硬编码触发"请立即就医"，不依赖LLM
-- 禁忌规则（~50条病史×成分交叉）硬编码，不可被Prompt覆盖
-- 措辞避免"治疗""治愈""药效"，使用"辅助""参考""营养补充"
-- 体检数据属于敏感个人信息，需单独授权+加密存储+数据最小化
+问chatgpt的对话链接，其实llm已经做的很好了，那我们的差异点及区别是什么https://chatgpt.com/share/69e0dd18-d654-8331-8d24-08308d4b4649
