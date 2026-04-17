@@ -2,7 +2,7 @@
 title: "产品简报蒸馏包: 健康守护Agent"
 description: "产品简报蒸馏版，提炼核心叙事与关键信号。"
 doc_type: "brief"
-status: "reference"
+status: "superseded"
 created: "2026-04-13"
 updated: "2026-04-17"
 canonical: false
@@ -10,9 +10,14 @@ privacy: "internal"
 tags: ["strategy", "brief", "summary"]
 source_doc: "product-brief-health-agent.md"
 purpose: "Token-efficient context for downstream PRD creation"
+superseded_by: ["docs/product/VitaMe-补剂安全翻译Agent-定位.md", "docs/product/VitaMe-补剂安全翻译Agent-P0-PRD.md", "docs/decisions/VitaMe-技术选型-Anthropic-会诊-2026-04-17.md"]
 ---
 
 # 产品简报蒸馏包: 健康守护Agent
+
+> 状态：已过期。
+> 本文是早期产品简报的蒸馏稿，继承了“体检趋势分析 + 微信小程序”的旧前提，不再代表当前产品方向。
+> 请优先参考：`docs/product/VitaMe-补剂安全翻译Agent-定位.md`、`docs/product/VitaMe-补剂安全翻译Agent-P0-PRD.md`
 
 ## 竞品格局
 

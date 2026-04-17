@@ -29,3 +29,26 @@
   - `VitaMe-技术选型-Anthropic会诊-20260417.md` → `VitaMe-技术选型-Anthropic-会诊-2026-04-17.md`
 - 统一 `docs/*.md` 的 frontmatter 核心字段：`title`、`description`、`doc_type`、`status`、`created`、`updated`、`canonical`、`privacy`、`tags`
 - 在 `docs/README.md` 与 `AGENTS.md` 中补充文档命名和 frontmatter 约定
+
+### Superseded doc marking
+
+- 为仍以“微信小程序”或旧产品形态为当前方案的早期策略稿新增过期标记
+- 将以下文档的 `status` 从 `reference` 调整为 `superseded`，并补充替代文档说明：
+  - `docs/strategy/product-brief-health-agent.md`
+  - `docs/strategy/product-brief-health-agent-distillate.md`
+  - `docs/strategy/office-hours-design-20260413.md`
+  - `docs/strategy/research-hackathon-strategy.md`
+- 在 `docs/README.md` 与 `AGENTS.md` 中补充 `status: superseded` 和 `superseded_by` frontmatter 约定
+- 修正 `CLAUDE.md` 中过期的“小程序为当前产品形态”表述，统一为“手机 H5 / 微信内 WebView”
+
+### Agent routing guidance
+
+- 更新 `AGENTS.md`，补充基于上下文、用户意图和任务场景优先匹配现有 skill 的原则
+- 明确在 skill 路由不清晰、能力覆盖不完整或需要补充发现时，优先使用 `find-skills` 做精确补位
+
+### Product spec additions
+
+- 新增 `docs/product/VitaMe-补剂安全翻译Agent-Aha-Moment-Activation-Spec.md`，明确 P0 的 aha moment、激活定义、激活路径和激活指标
+- 新增 `docs/product/VitaMe-补剂安全翻译Agent-Retention-Loop-Growth-Flywheel.md`，明确当前版本的回访逻辑、留存闭环和增长飞轮
+- 新增 `docs/product/VitaMe-补剂安全翻译Agent-宏观设计.md`，作为页面级动线 spec 之前的上游设计文档
+- 更新 `docs/README.md` 的建议阅读顺序，纳入以上 3 份新文档

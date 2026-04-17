@@ -2,16 +2,21 @@
 title: "综合分析报告: 黑客松策略 + MVP市场选择"
 description: "黑客松策略研究，聚焦赛道、演示与 MVP 取舍。"
 doc_type: "strategy"
-status: "reference"
+status: "superseded"
 created: "2026-04-13"
 updated: "2026-04-17"
 canonical: false
 privacy: "internal"
 tags: ["strategy", "hackathon", "mvp"]
 external_sources: ["2026 WAIC Future Tech OPC 独立先锋挑战赛赛事信息"]
+superseded_by: ["docs/product/VitaMe-补剂安全翻译Agent-定位.md", "docs/product/VitaMe-补剂安全翻译Agent-P0-PRD.md", "docs/decisions/VitaMe-技术选型-Anthropic-会诊-2026-04-17.md"]
 ---
 
 # 综合分析报告：黑客松策略 + MVP市场选择
+
+> 状态：已过期。
+> 本文基于早期“体检趋势分析 + 推荐 + 小程序壳”的黑客松方案，不再代表当前 MVP。
+> 当前有效方案已收敛为：补剂安全翻译 Agent，手机 H5 / 微信内 WebView 优先。
 
 ## 一、赛事分析：2026 WAIC Future Tech OPC 独立先锋挑战赛
 

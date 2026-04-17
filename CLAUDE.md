@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概况
 
-**健康守护Agent（VitaMe）** — AI驱动的家庭保健品安全管理微信小程序。
+**健康守护Agent（VitaMe）** — AI驱动的补剂安全翻译产品，当前 MVP 形态为手机 H5 / 微信内 WebView。
 
 核心定位（尚未确定）：**"你给爸妈买的保健品，真的安全吗？"**
 - 核心功能：药物-保健品冲突检测 + 安全替代推荐
@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 当前阶段
 
-项目处于**产品规划阶段**，尚无代码实现。仓库内容全部是规划文档和调研材料。技术方向初定微信小程序 + DeepSeek-V3 + RAG。
+项目处于**产品规划阶段**，尚无代码实现。仓库内容全部是规划文档和调研材料。当前技术方向初定为手机 H5 + DeepSeek-V3 + 规则引擎 / RAG，后续再视情况迁移到微信小程序。
 
 ## 仓库结构
 
@@ -53,7 +53,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 安全红线（健康类产品）
 
-- 定位"健康信息服务"，非"医疗服务"。小程序类目选"生活服务-营养查询"
+- 定位"健康信息服务"，非"医疗服务"。当前按 Web 产品处理；若后续迁移微信小程序，预期类目为"生活服务-营养查询"
 - 免责声明每次AI输出强制展示，不仅在条款中
 - 严重异常指标（如空腹血糖>7.0）硬编码触发"请立即就医"，不依赖LLM
 - 禁忌规则（~50条病史×成分交叉）硬编码，不可被Prompt覆盖

@@ -2,16 +2,21 @@
 title: "产品简报: 健康守护Agent"
 description: "产品简报完整版，面向产品立项与团队对齐。"
 doc_type: "brief"
-status: "reference"
+status: "superseded"
 created: "2026-04-13"
 updated: "2026-04-17"
 canonical: false
 privacy: "internal"
 tags: ["strategy", "brief", "alignment"]
 source_docs: ["docs/context/背景信息.md", "市场竞品调研", "保健品领域调研", "怀疑者审查", "机会发现审查"]
+superseded_by: ["docs/product/VitaMe-补剂安全翻译Agent-定位.md", "docs/product/VitaMe-补剂安全翻译Agent-P0-PRD.md", "docs/decisions/VitaMe-技术选型-Anthropic-会诊-2026-04-17.md"]
 ---
 
 # 产品简报: 健康守护Agent
+
+> 状态：已过期。
+> 本文仍以“体检趋势分析 + 微信小程序”作为主路径，已被当前的“补剂安全翻译 Agent + 手机 H5 / 微信内 WebView”方案替代。
+> 请优先参考：`docs/product/VitaMe-补剂安全翻译Agent-定位.md`、`docs/product/VitaMe-补剂安全翻译Agent-P0-PRD.md`、`docs/decisions/VitaMe-技术选型-Anthropic-会诊-2026-04-17.md`
 
 ## 执行摘要
 

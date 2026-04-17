@@ -31,7 +31,7 @@ tags: ["docs", "index", "navigation"]
 title: "文档标题"
 description: "一句话说明文档用途"
 doc_type: "文档类型"
-status: "active | reference"
+status: "active | reference | superseded"
 created: "YYYY-MM-DD"
 updated: "YYYY-MM-DD"
 canonical: true
@@ -45,7 +45,7 @@ tags: ["tag-1", "tag-2"]
 - `title`：文档显示标题
 - `description`：供 agent 检索和路由使用的一句话摘要
 - `doc_type`：文档类型，如 `prd`、`positioning`、`research`
-- `status`：当前是否为现行文档，`active` 表示当前有效，`reference` 表示历史或参考材料
+- `status`：当前是否为现行文档，`active` 表示当前有效，`reference` 表示历史或参考材料，`superseded` 表示已被后续方案明确替代的过期文档
 - `created` / `updated`：文档创建时间与最近更新时间
 - `canonical`：是否为当前主参考文档
 - `privacy`：`internal` 为团队内部资料，`sensitive` 为涉及隐私或敏感背景的资料
@@ -56,6 +56,7 @@ tags: ["tag-1", "tag-2"]
 - `source_doc` / `source_docs`：文档依赖的上游输入
 - `external_sources`：外部来源或赛事信息
 - `purpose`：面向下游 agent 或文档链路的特殊用途说明
+- `superseded_by`：当前替代它的有效文档列表
 
 ## 文件命名规范
 
@@ -71,9 +72,12 @@ tags: ["tag-1", "tag-2"]
 1. `context/背景信息.md`
 2. `product/VitaMe-保健品安全检测-定位终稿.md`
 3. `product/VitaMe-补剂安全翻译Agent-定位.md`
-4. `product/VitaMe-补剂安全翻译Agent-P0-PRD.md`
-5. `product/VitaMe-补剂安全翻译Agent-User-Journey.md`
-6. `decisions/` 和 `research/` 中的补充文档
+4. `product/VitaMe-补剂安全翻译Agent-Aha-Moment-Activation-Spec.md`
+5. `product/VitaMe-补剂安全翻译Agent-Retention-Loop-Growth-Flywheel.md`
+6. `product/VitaMe-补剂安全翻译Agent-宏观设计.md`
+7. `product/VitaMe-补剂安全翻译Agent-P0-PRD.md`
+8. `product/VitaMe-补剂安全翻译Agent-User-Journey.md`
+9. `decisions/` 和 `research/` 中的补充文档
 
 ## 约定
 
