@@ -1,3 +1,15 @@
+---
+title: "VitaMe 产品路线图"
+description: "VitaMe 分阶段产品路线图，说明 P0、P1、P2 的目标与节奏。"
+doc_type: "roadmap"
+status: "active"
+created: "2026-04-16"
+updated: "2026-04-17"
+canonical: true
+privacy: "internal"
+tags: ["product", "roadmap", "planning"]
+---
+
 # VitaMe 产品路线图
 
 > 用户认知锚点："拍一下，查安全" | 战略终局：保健品全旅程闭环管理

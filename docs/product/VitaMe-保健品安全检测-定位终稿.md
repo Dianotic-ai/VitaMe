@@ -1,4 +1,16 @@
-# 健康守护Agent — 产品定位终稿
+---
+title: "VitaMe 保健品安全检测 定位终稿"
+description: "早期产品定位终稿，记录从体检趋势分析转向保健品安全的收敛过程。"
+doc_type: "positioning"
+status: "reference"
+created: "2026-04-15"
+updated: "2026-04-17"
+canonical: false
+privacy: "internal"
+tags: ["product", "positioning", "history"]
+---
+
+# VitaMe — 保健品安全检测定位终稿
 
 > 基于2026-04-15全天头脑风暴 ｜ WAIC黑客松冲刺用
 > 参与者：Sunny（产品）、Claude（分析）

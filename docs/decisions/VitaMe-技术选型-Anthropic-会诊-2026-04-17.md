@@ -1,3 +1,15 @@
+---
+title: "VitaMe 技术选型 Anthropic 会诊"
+description: "针对 VitaMe 技术路线、agent workflow 与 tool 设计的技术会诊记录。"
+doc_type: "technical_review"
+status: "reference"
+created: "2026-04-17"
+updated: "2026-04-17"
+canonical: false
+privacy: "internal"
+tags: ["architecture", "agent", "technical-review"]
+---
+
 # VitaMe 技术选型 — Anthropic 决策委员会会诊（2026-04-17）
 
 > 日期：2026-04-17

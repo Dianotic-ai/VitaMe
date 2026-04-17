@@ -1,9 +1,14 @@
 ---
 title: "产品简报: 健康守护Agent"
-status: "complete"
+description: "产品简报完整版，面向产品立项与团队对齐。"
+doc_type: "brief"
+status: "reference"
 created: "2026-04-13"
-updated: "2026-04-13"
-inputs: [docs/context/背景信息.md, 市场竞品调研, 保健品领域调研, 怀疑者审查, 机会发现审查]
+updated: "2026-04-17"
+canonical: false
+privacy: "internal"
+tags: ["strategy", "brief", "alignment"]
+source_docs: ["docs/context/背景信息.md", "市场竞品调研", "保健品领域调研", "怀疑者审查", "机会发现审查"]
 ---
 
 # 产品简报: 健康守护Agent

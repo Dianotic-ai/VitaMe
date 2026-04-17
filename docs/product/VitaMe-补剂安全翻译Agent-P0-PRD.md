@@ -1,8 +1,20 @@
+---
+title: "VitaMe 补剂安全翻译 Agent P0 PRD"
+description: "补剂安全翻译 Agent 的 P0 需求文档，定义范围、成功标准与约束。"
+doc_type: "prd"
+status: "active"
+created: "2026-04-17"
+updated: "2026-04-17"
+canonical: true
+privacy: "internal"
+tags: ["product", "prd", "p0"]
+---
+
 # VitaMe — 补剂安全翻译 Agent P0 PRD
 
 > 日期：2026-04-17
 > 状态：Draft
-> 基于：`VitaMe-补剂安全翻译Agent-定位文档-20260417.md`
+> 基于：`VitaMe-补剂安全翻译Agent-定位.md`
 > 目的：明确 P0 版本要解决的问题、范围、成功标准和需求边界
 
 ---

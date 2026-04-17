@@ -1,9 +1,14 @@
 ---
 title: "综合分析报告: 黑客松策略 + MVP市场选择"
+description: "黑客松策略研究，聚焦赛道、演示与 MVP 取舍。"
+doc_type: "strategy"
+status: "reference"
 created: "2026-04-13"
-type: hackathon-strategy
-sources:
-  - 2026 WAIC Future Tech OPC 独立先锋挑战赛赛事信息
+updated: "2026-04-17"
+canonical: false
+privacy: "internal"
+tags: ["strategy", "hackathon", "mvp"]
+external_sources: ["2026 WAIC Future Tech OPC 独立先锋挑战赛赛事信息"]
 ---
 
 # 综合分析报告：黑客松策略 + MVP市场选择
@@ -81,4 +86,3 @@ sources:
 | **P1** | CPS商品链接集成（京东联盟API） | Day 8-12 | 商业闭环证明 |
 | **P2** | 微信小程序壳 + 基础UI | Day 10-14 | 可展示的产品形态 |
 | **P2** | Demo录制 + PPT准备 | Day 14-17 | 参赛材料 |
-

@@ -1,3 +1,15 @@
+---
+title: "VitaMe 产品方案 v1"
+description: "VitaMe 第一版产品方案，定义早期产品形态与功能范围。"
+doc_type: "decision"
+status: "reference"
+created: "2026-04-16"
+updated: "2026-04-17"
+canonical: false
+privacy: "internal"
+tags: ["decision", "product", "v1"]
+---
+
 # VitaMe 产品方案
 
 > 版本：v1.0 | 日期：2026-04-16

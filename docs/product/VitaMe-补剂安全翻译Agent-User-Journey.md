@@ -1,8 +1,20 @@
+---
+title: "VitaMe 补剂安全翻译 Agent User Journey"
+description: "P0 核心使用路径与关键触点的用户旅程文档。"
+doc_type: "user_journey"
+status: "active"
+created: "2026-04-17"
+updated: "2026-04-17"
+canonical: true
+privacy: "internal"
+tags: ["product", "journey", "ux"]
+---
+
 # VitaMe — 补剂安全翻译 Agent User Journey
 
 > 日期：2026-04-17
 > 状态：Draft
-> 基于：`VitaMe-补剂安全翻译Agent-定位文档-20260417.md`
+> 基于：`VitaMe-补剂安全翻译Agent-定位.md`
 > 目的：明确 P0 版本的关键用户路径、触发时机、情绪变化和产品机会点
 
 ---

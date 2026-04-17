@@ -1,3 +1,15 @@
+---
+title: "VitaMe 产品方案 v1 反馈"
+description: "对 v1 方案的系统性反馈，聚焦用户、留存、增长和产品边界分歧。"
+doc_type: "decision"
+status: "reference"
+created: "2026-04-16"
+updated: "2026-04-17"
+canonical: false
+privacy: "internal"
+tags: ["decision", "feedback", "product"]
+---
+
 # VitaMe 产品方案 v1 — Kevin 反馈
 
 > 日期：2026-04-15

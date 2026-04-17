@@ -1,8 +1,14 @@
 ---
 title: "产品简报蒸馏包: 健康守护Agent"
-type: llm-distillate
-source: "product-brief-health-agent.md"
+description: "产品简报蒸馏版，提炼核心叙事与关键信号。"
+doc_type: "brief"
+status: "reference"
 created: "2026-04-13"
+updated: "2026-04-17"
+canonical: false
+privacy: "internal"
+tags: ["strategy", "brief", "summary"]
+source_doc: "product-brief-health-agent.md"
 purpose: "Token-efficient context for downstream PRD creation"
 ---
 

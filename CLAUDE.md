@@ -43,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 关键决策记录
 
-以下决策已在 `docs/product/健康守护Agent-产品定位终稿.md` 中确认：
+以下决策已在 `docs/product/VitaMe-保健品安全检测-定位终稿.md` 中确认：
 - 定位从"体检趋势分析"**转向**"保健品安全检测"
 - MVP 阶段不做 OCR、比价爬虫、穿戴设备、复杂打卡
 - 安全规则引擎中的禁忌规则需**硬编码**（非纯 LLM 生成）

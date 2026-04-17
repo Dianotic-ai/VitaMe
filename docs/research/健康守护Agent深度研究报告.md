@@ -1,3 +1,15 @@
+---
+title: "健康守护Agent 深度研究报告"
+description: "围绕市场、技术、合规与商业模式的综合深度研究报告。"
+doc_type: "research"
+status: "reference"
+created: "2026-04-15"
+updated: "2026-04-17"
+canonical: false
+privacy: "internal"
+tags: ["research", "market", "architecture"]
+---
+
 # 健康守护Agent 深度研究报告
 
 > 生成日期：2026-04-15 ｜ 为 WAIC 黑客松冲刺准备
