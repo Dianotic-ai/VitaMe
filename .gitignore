@@ -30,3 +30,6 @@ node_modules/
 
 # Claude Code local skills (BMAD plugin is large)
 .claude/skills/
+
+# Private health materials
+docs/research/gemini-health-consultation.md

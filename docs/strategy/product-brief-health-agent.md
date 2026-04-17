@@ -3,7 +3,7 @@ title: "产品简报: 健康守护Agent"
 status: "complete"
 created: "2026-04-13"
 updated: "2026-04-13"
-inputs: [背景信息.md, 市场竞品调研, 保健品领域调研, 怀疑者审查, 机会发现审查]
+inputs: [docs/context/背景信息.md, 市场竞品调研, 保健品领域调研, 怀疑者审查, 机会发现审查]
 ---
 
 # 产品简报: 健康守护Agent

@@ -23,10 +23,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 仓库结构
 
-- `0415内容准备/` — 最新产品规划文档（产品定位终稿、深度研究报告、product brief等）
-- `2024-4-14输出old/` — 旧版输出存档（含 BMAD 产出、gstack review、会话记录）
+- `docs/` — 人工维护的核心文档目录
+- `docs/context/` — 产品初始构想与创始人痛点
+- `docs/product/` — 当前定位、路线图、PRD、User Journey
+- `docs/decisions/` — 产品方案迭代和技术决策记录
+- `docs/research/` — 深度研究、竞品与外部资料
+- `docs/strategy/` — product brief、黑客松策略、office hours 输出
+- `gstack-output/` — gstack 评审输出，保留为历史产物
 - `_bmad/` — BMAD 方法论框架配置（v6.3.0），通过 `/bmad-*` slash command 调用
-- `背景信息.md` — 产品初始构想和创始人痛点描述
+- `_bmad-output/` — BMAD 产出目录
+- `sessions/` — 会话与快照记录
 
 ## BMAD 使用
 
@@ -37,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 关键决策记录
 
-以下决策已在 `0415内容准备/健康守护Agent-产品定位终稿.md` 中确认：
+以下决策已在 `docs/product/健康守护Agent-产品定位终稿.md` 中确认：
 - 定位从"体检趋势分析"**转向**"保健品安全检测"
 - MVP 阶段不做 OCR、比价爬虫、穿戴设备、复杂打卡
 - 安全规则引擎中的禁忌规则需**硬编码**（非纯 LLM 生成）
