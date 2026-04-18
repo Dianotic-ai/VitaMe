@@ -4,10 +4,10 @@ description: "VitaMe 文档目录总览与阅读入口。"
 doc_type: "index"
 status: "active"
 created: "2026-04-17"
-updated: "2026-04-17"
+updated: "2026-04-18"
 canonical: true
 privacy: "internal"
-tags: ["docs", "index", "navigation"]
+tags: ["docs", "index", "navigation", "superpowers"]
 ---
 
 # VitaMe Docs
@@ -21,6 +21,7 @@ tags: ["docs", "index", "navigation"]
 - `decisions/`：产品方案演进、反馈记录、技术决策
 - `research/`：深度研究、竞品调研、外部会诊与补充材料
 - `strategy/`：product brief、黑客松策略、早期 office hours 输出
+- `superpowers/`：P0 工程化规划包（plan + specs + Demo 验收 checklist），驱动 Claude Code 落地
 
 ## Frontmatter 标准
 
@@ -79,7 +80,34 @@ tags: ["tag-1", "tag-2"]
 8. `product/VitaMe-补剂安全翻译Agent-User-Journey.md`
 9. `decisions/` 和 `research/` 中的补充文档
 
+## Superpowers / P0 Engineering Plan（4-18 锁定）
+
+`docs/superpowers/` 是交给 Claude Code 执行的工程化规划包，围绕 2026-04-30 WAIC 初赛死线锁定 P0 范围。权威版本以 `plans/2026-04-18-vitame-p0-plan.md` 为准。
+
+### `plans/`
+
+- `2026-04-18-vitame-p0-plan.md`：P0 主实施计划（~96 任务 / 12 天时间表 / 5 收敛门 / 3 档 scope / 找药剂师审核清单）
+- `2026-04-18-vitame-数据接入与实现方案.md`：8 数据源离线烘焙与 LLM Adapter 实现方案
+- `2026-04-18-vitame-数据源盘点.md`：L1 / L2 / L3 三层数据源盘点与取舍
+
+### `specs/`
+
+- `2026-04-18-vitame-query-intake-design.md`：查询入口设计（文字 + 拍照 OCR 双入口 / DSLD 字典标准化）
+- `2026-04-18-vitame-safety-judgment-design.md`：安全判定设计（3 路并发 adapter / 规则引擎全离线）
+- `2026-04-18-vitame-safety-translation-design.md`：安全翻译设计（LLM Adapter 3 provider + 多模态 / 禁词 Guardrail）
+- `2026-04-18-vitame-compliance-design.md`：合规 5 层中间件设计（Evidence → Banned → Critical → Disclaimer → Audit）
+- `2026-04-18-vitame-archive-recheck-design.md`：家人档案与复查设计（LocalStorage + Zustand）
+- `2026-04-18-vitame-demo-acceptance-checklist.md`：Demo 验收 Checklist（11 条，6 必保 + 4 体验 + 1 主场景亮点）
+
+### 锁定要点
+
+- **LLM**：Minimax 默认（现有 token plan）/ DeepSeek 备选 / openclaw-gateway 本机复用；vision 固定 Minimax
+- **数据**：8 源全离线烘焙 + 50 条硬编码禁忌，运行时不联网（合规红线）
+- **部署**：硅谷云 2 核 4G / Nginx / pm2 / Cloudflare CDN / 域名 vitame.live（不走 ICP）
+- **主 Demo 场景**：OCR 拍照瓶子 → 结构化成分 → 红黄灰绿结果
+
 ## 约定
 
 - `gstack-output/`、`_bmad/`、`_bmad-output/`、`sessions/` 保持原样，视为工具或历史产物目录。
 - 后续新增产品文档优先放入 `docs/` 对应子目录，不再新建按日期命名的大目录。
+- `docs/superpowers/` 下的 plan / spec 一旦锁定（如 4-18 版本），更新时保留文件名中的锁定日期作为历史锚点。
