@@ -25,10 +25,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `docs/` — 人工维护的核心文档目录
 - `docs/context/` — 产品初始构想与创始人痛点
-- `docs/product/` — 当前定位、路线图、PRD、User Journey
+- `docs/product/` — 当前定位、路线图、PRD、User Journey 与 P0 收口文档
 - `docs/decisions/` — 产品方案迭代和技术决策记录
 - `docs/research/` — 深度研究、竞品与外部资料
 - `docs/strategy/` — product brief、黑客松策略、office hours 输出
+- `docs/superpowers/specs/` — 工程接口、测试矩阵、埋点规范等执行规格
 - `gstack-output/` — gstack 评审输出，保留为历史产物
 - `_bmad/` — BMAD 方法论框架配置（v6.3.0），通过 `/bmad-*` slash command 调用
 - `_bmad-output/` — BMAD 产出目录

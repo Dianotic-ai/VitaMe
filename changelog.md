@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-04-20
+
+### P0 gap-fill docs integration
+
+- 将 P0 收口文档正式整合进 canonical `docs/` 结构，不再只停留在 `docs/VitaMe-doc-gap-fill-complete/` 导入包目录
+- 新增 `docs/superpowers/specs/`，用于承载工程接口、测试矩阵和埋点规范
+- 将以下产品文档落库到 `docs/product/`：
+  - `VitaMe-P0-统一执行总纲.md`
+  - `VitaMe-P0-用户上下文分类法.md`
+  - `VitaMe-P0-风险判定矩阵.md`
+  - `VitaMe-P0-数据白名单.md`
+  - `VitaMe-P0-信任与Claims边界政策.md`
+  - `VitaMe-P0-文档索引-依赖关系图.md`
+- 将以下执行规格文档落库到 `docs/superpowers/specs/`：
+  - `2026-04-20-vitame-p0-api-contract.md`
+  - `2026-04-20-vitame-p0-test-matrix.md`
+  - `2026-04-20-vitame-p0-metrics-instrumentation.md`
+- 新增 `docs/README-落库说明.md`，明确 canonical 路径和后续维护规则
+- 更新 `docs/README.md`、`docs/README-总包说明.md` 以及导入包内说明文件，使其统一指向最新文档版本
+- 删除 `docs/VitaMe-doc-gap-fill-complete/` 下与根 `docs/` 说明重复的 `README-总包说明.md` 与 `README-落库说明.md`
+- 将 `VitaMe-P0-文档索引-依赖关系图.md` 移到 `docs/` 根目录，作为跨 `product/` 与 `superpowers/specs/` 的总入口，并删除导入包中的重复副本
+
 ## 2026-04-17
 
 ### Project folder restructure

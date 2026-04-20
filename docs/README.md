@@ -4,7 +4,7 @@ description: "VitaMe 文档目录总览与阅读入口。"
 doc_type: "index"
 status: "active"
 created: "2026-04-17"
-updated: "2026-04-18"
+updated: "2026-04-20"
 canonical: true
 privacy: "internal"
 tags: ["docs", "index", "navigation", "superpowers"]
@@ -17,11 +17,17 @@ tags: ["docs", "index", "navigation", "superpowers"]
 ## 目录
 
 - `context/`：项目原始背景、创始人痛点、问题起点
-- `product/`：当前有效的定位、路线图、PRD、User Journey
+- `product/`：当前有效的定位、路线图、PRD、User Journey 与 P0 收口文档
 - `decisions/`：产品方案演进、反馈记录、技术决策
 - `research/`：深度研究、竞品调研、外部会诊与补充材料
 - `strategy/`：product brief、黑客松策略、早期 office hours 输出
 - `superpowers/`：P0 工程化规划包（plan + specs + Demo 验收 checklist），驱动 Claude Code 落地
+
+## P0 收口文档入口
+
+- `README-总包说明.md`：当前 P0 收口文档组总览与文件清单
+- `README-落库说明.md`：这些文档在当前仓库中的 canonical 路径与维护约定
+- `VitaMe-P0-文档索引-依赖关系图.md`：8 份 P0 收口文档的阅读顺序、依赖关系与冻结顺序
 
 ## Frontmatter 标准
 
@@ -78,7 +84,9 @@ tags: ["tag-1", "tag-2"]
 6. `product/VitaMe-补剂安全翻译Agent-宏观设计.md`
 7. `product/VitaMe-补剂安全翻译Agent-P0-PRD.md`
 8. `product/VitaMe-补剂安全翻译Agent-User-Journey.md`
-9. `decisions/` 和 `research/` 中的补充文档
+9. `VitaMe-P0-文档索引-依赖关系图.md`
+10. `product/` 与 `superpowers/specs/` 中的 P0 收口文档
+11. `decisions/` 和 `research/` 中的补充文档
 
 ## Superpowers / P0 Engineering Plan（4-18 锁定）
 
