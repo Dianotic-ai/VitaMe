@@ -1,0 +1,764 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "retrievedAt": "2026-04-20",
+    "totalCount": 20
+  },
+  "seeds": [
+    {
+      "id": "S01",
+      "sourceQuestion": "我在吃华法林，最近想补鱼油保护心血管，可以吃吗？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "鱼油",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "fish-oil",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [
+          "warfarin"
+        ],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": []
+      },
+      "expectedRisks": [
+        {
+          "level": "red",
+          "ingredient": "fish-oil",
+          "medication": "warfarin",
+          "reasonCodeHint": null
+        }
+      ],
+      "expectedOverallLevel": "red",
+      "explanation": "鱼油 × 华法林 — 命中硬编码禁忌（抗凝增强致出血风险），reasonCodeHint 可留 null 若不确定具体 code"
+    },
+    {
+      "id": "S02",
+      "sourceQuestion": "我爸在吃降压药（氨氯地平），可以吃鱼油吗？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "鱼油",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "fish-oil",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [
+          "amlodipine"
+        ],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "yellow",
+          "ingredient": "fish-oil",
+          "medication": "amlodipine",
+          "reasonCodeHint": "bp_lowering_additive"
+        }
+      ],
+      "expectedOverallLevel": "yellow",
+      "explanation": "鱼油与降压药叠加可能导致低血压风险。"
+    },
+    {
+      "id": "S03",
+      "sourceQuestion": "吃他汀降脂药，还需要补辅酶 Q10 吗？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "辅酶 Q10",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "coenzyme-q10",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [
+          "statin"
+        ],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "green",
+          "ingredient": "coenzyme-q10",
+          "medication": "statin",
+          "reasonCodeHint": null
+        }
+      ],
+      "expectedOverallLevel": "green",
+      "explanation": "他汀类药物会耗损辅酶 Q10，建议适当补充。"
+    },
+    {
+      "id": "S04",
+      "sourceQuestion": "妈妈在吃华法林抗凝，她朋友推荐的辅酶 Q10 能吃吗？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "辅酶 Q10",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "coenzyme-q10",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [
+          "warfarin"
+        ],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "red",
+          "ingredient": "coenzyme-q10",
+          "medication": "warfarin",
+          "reasonCodeHint": "vitamin_k_like_effect"
+        }
+      ],
+      "expectedOverallLevel": "red",
+      "explanation": "辅酶 Q10 具有类维生素 K 作用，可能削弱华法林的抗凝作用。"
+    },
+    {
+      "id": "S05",
+      "sourceQuestion": "家里老人有肝炎+脂肪肝，apoe4 基因，可以吃鱼油吗？什么样的鱼油？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "鱼油",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "fish-oil",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [
+          "active-hepatitis",
+          "fatty-liver"
+        ],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": [
+          "apoe4"
+        ]
+      },
+      "expectedRisks": [
+        {
+          "level": "yellow",
+          "ingredient": "fish-oil",
+          "condition": "active-hepatitis",
+          "reasonCodeHint": "hepatic_monitoring_needed"
+        },
+        {
+          "level": "yellow",
+          "ingredient": "fish-oil",
+          "reasonCodeHint": "form_selection_gene_context"
+        }
+      ],
+      "expectedOverallLevel": "yellow",
+      "explanation": "肝病及基因背景下的鱼油补充建议。"
+    },
+    {
+      "id": "S06",
+      "sourceQuestion": "有肾结石，可以吃维 D 和钙片吗？维 C 呢？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "维 D",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "vitamin-d",
+            "confidence": 0.95
+          },
+          {
+            "raw": "钙片",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "calcium",
+            "confidence": 0.95
+          },
+          {
+            "raw": "维 C",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "vitamin-c",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [
+          "kidney-stone-history"
+        ],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "yellow",
+          "ingredient": "vitamin-d",
+          "condition": "kidney-stone-history",
+          "reasonCodeHint": "stone_risk_hypercalciuria"
+        },
+        {
+          "level": "yellow",
+          "ingredient": "calcium",
+          "condition": "kidney-stone-history",
+          "reasonCodeHint": "stone_risk_total_calcium_load"
+        },
+        {
+          "level": "yellow",
+          "ingredient": "vitamin-c",
+          "condition": "kidney-stone-history",
+          "reasonCodeHint": "oxalate_stone_risk"
+        }
+      ],
+      "expectedOverallLevel": "yellow",
+      "explanation": "结石病史患者的微量元素补充剂量控制。"
+    },
+    {
+      "id": "S07",
+      "sourceQuestion": "胃溃疡体质，听说镁能助眠但容易腹泻，吃什么形式的？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "氧化镁",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "magnesium",
+            "form": "oxide",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [
+          "gastric-ulcer",
+          "gastric-sensitivity"
+        ],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "yellow",
+          "ingredient": "magnesium",
+          "condition": "gastric-ulcer",
+          "reasonCodeHint": "poor_absorption_osmotic_diarrhea"
+        },
+        {
+          "level": "yellow",
+          "ingredient": "magnesium",
+          "condition": "gastric-sensitivity",
+          "reasonCodeHint": "gi_irritation_form_specific"
+        }
+      ],
+      "expectedOverallLevel": "yellow",
+      "explanation": "胃部敏感体质应避开特定形式的镁补充剂。"
+    },
+    {
+      "id": "S08",
+      "sourceQuestion": "高血压+糖尿病，在吃二甲双胍和降压药，可以吃铬和肉桂粉吗？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "铬",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "chromium",
+            "confidence": 0.95
+          },
+          {
+            "raw": "肉桂粉",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "cinnamon",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [
+          "metformin"
+        ],
+        "conditions": [
+          "diabetes"
+        ],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "yellow",
+          "ingredient": "chromium",
+          "medication": "metformin",
+          "reasonCodeHint": "glucose_lowering_additive"
+        },
+        {
+          "level": "yellow",
+          "ingredient": "cinnamon",
+          "medication": "metformin",
+          "reasonCodeHint": "glucose_lowering_additive"
+        }
+      ],
+      "expectedOverallLevel": "yellow",
+      "explanation": "多重慢病背景下的补充剂协同降糖风险。"
+    },
+    {
+      "id": "S09",
+      "sourceQuestion": "甲减在吃优甲乐，有人说不能和钙片一起吃？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "钙片",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "calcium",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [
+          "levothyroxine"
+        ],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "yellow",
+          "ingredient": "calcium",
+          "medication": "levothyroxine",
+          "reasonCodeHint": "reduced_absorption_levothyroxine"
+        }
+      ],
+      "expectedOverallLevel": "yellow",
+      "explanation": "钙片对特定药物吸收的影响。"
+    },
+    {
+      "id": "S10",
+      "sourceQuestion": "鱼油、维 D、D3、镁、益生菌、维 B、维 C 都吃，每天什么时间吃？需要间隔多久？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "鱼油",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "fish-oil",
+            "confidence": 0.95
+          },
+          {
+            "raw": "维 D",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "vitamin-d",
+            "confidence": 0.95
+          },
+          {
+            "raw": "镁",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "magnesium",
+            "confidence": 0.95
+          },
+          {
+            "raw": "益生菌",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "probiotic",
+            "confidence": 0.95
+          },
+          {
+            "raw": "维 B",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "vitamin-b-complex",
+            "confidence": 0.95
+          },
+          {
+            "raw": "维 C",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "vitamin-c",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "green",
+          "ingredient": "fish-oil",
+          "reasonCodeHint": null
+        }
+      ],
+      "expectedOverallLevel": "green",
+      "explanation": "多种补充剂组合的服用时序建议。"
+    },
+    {
+      "id": "S11",
+      "sourceQuestion": "一天吃 6 种补剂，分几次吃合适？能不能一把全吃？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "6 种补充剂",
+            "normalized": false,
+            "kind": "unknown",
+            "confidence": 0.5
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "gray",
+          "ingredient": "unknown",
+          "reasonCodeHint": null
+        }
+      ],
+      "expectedOverallLevel": "gray",
+      "explanation": "一次性大剂量服用的吸收效率讨论。"
+    },
+    {
+      "id": "S12",
+      "sourceQuestion": "补剂要不要一起补？还是先补一种看效果再加下一种？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "补充方案",
+            "normalized": false,
+            "kind": "unknown",
+            "confidence": 0.5
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "gray",
+          "ingredient": "unknown",
+          "reasonCodeHint": null
+        }
+      ],
+      "expectedOverallLevel": "gray",
+      "explanation": "分步开启新补充方案的建议。"
+    },
+    {
+      "id": "S13",
+      "sourceQuestion": "早餐必喝咖啡，会影响随餐吃的补剂吸收吗？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "咖啡",
+            "normalized": false,
+            "kind": "unknown",
+            "confidence": 0.5
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "yellow",
+          "ingredient": "calcium",
+          "reasonCodeHint": "coffee_reduces_calcium_absorption"
+        }
+      ],
+      "expectedOverallLevel": "yellow",
+      "explanation": "咖啡因对矿物质吸收的干扰。"
+    },
+    {
+      "id": "S14",
+      "sourceQuestion": "钙片可以和牛奶一起吃吗？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "钙片",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "calcium",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "yellow",
+          "ingredient": "calcium",
+          "reasonCodeHint": "single_dose_absorption_drop"
+        }
+      ],
+      "expectedOverallLevel": "yellow",
+      "explanation": "单次钙负荷对吸收率的影响。"
+    },
+    {
+      "id": "S15",
+      "sourceQuestion": "绿茶和铁剂可以一起吃吗？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "铁剂",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "iron",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "yellow",
+          "ingredient": "iron",
+          "reasonCodeHint": "tea_polyphenol_reduces_iron"
+        }
+      ],
+      "expectedOverallLevel": "yellow",
+      "explanation": "茶多酚对非血红素铁吸收的阻碍。"
+    },
+    {
+      "id": "S16",
+      "sourceQuestion": "甘氨酸镁、苏糖酸镁、氧化镁、柠檬酸镁，到底选哪个？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "镁",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "magnesium",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "green",
+          "ingredient": "magnesium",
+          "reasonCodeHint": null
+        }
+      ],
+      "expectedOverallLevel": "green",
+      "explanation": "不同镁形式的适用场景解析。"
+    },
+    {
+      "id": "S17",
+      "sourceQuestion": "鱼油 EPA 和 DHA 比例怎么看？买哪种？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "鱼油",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "fish-oil",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "green",
+          "ingredient": "fish-oil",
+          "reasonCodeHint": null
+        }
+      ],
+      "expectedOverallLevel": "green",
+      "explanation": "鱼油比例选择的科普建议。"
+    },
+    {
+      "id": "S18",
+      "sourceQuestion": "孕期维 D 要和非孕期一样剂量吗？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "维 D",
+            "normalized": true,
+            "kind": "ingredient",
+            "ingredientId": "vitamin-d",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [
+          "pregnancy"
+        ],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "yellow",
+          "ingredient": "vitamin-d",
+          "reasonCodeHint": "pregnancy_requires_medical_confirmation"
+        }
+      ],
+      "expectedOverallLevel": "yellow",
+      "explanation": "特殊生理期补充剂剂量的谨慎原则。"
+    },
+    {
+      "id": "S19",
+      "sourceQuestion": "这些补剂都可以一直吃吗？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "补充剂",
+            "normalized": false,
+            "kind": "unknown",
+            "confidence": 0.5
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "gray",
+          "ingredient": "unknown",
+          "reasonCodeHint": null
+        }
+      ],
+      "expectedOverallLevel": "gray",
+      "explanation": "脂溶性成分长期摄入的风险提示。"
+    },
+    {
+      "id": "S20",
+      "sourceQuestion": "感觉全都要吃🥲，到底从哪个开始补？",
+      "input": {
+        "source": "text",
+        "tokens": [
+          {
+            "raw": "全部补充",
+            "normalized": false,
+            "kind": "unknown",
+            "confidence": 0.5
+          }
+        ]
+      },
+      "context": {
+        "medications": [],
+        "conditions": [],
+        "allergies": [],
+        "specialGroups": [],
+        "genes": []
+      },
+      "expectedRisks": [
+        {
+          "level": "green",
+          "ingredient": "unknown",
+          "reasonCodeHint": null
+        }
+      ],
+      "expectedOverallLevel": "green",
+      "explanation": "引导用户建立优先级补充意识。"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Node
+node_modules/
+.DS_Store
+
+# Next.js
+.next/
+next-env.d.ts
+
+# TypeScript
+tsconfig.tsbuildinfo
+
+# VitaMe audit logs (local only)
+var/
+
+# 本地过程记录（不推 github）
+9999过程记录不pushgh/
+
+# IDE
+.vscode/
+.idea/
+
+# GStack local
+.gstack/
+
+# Claude Code local skills (BMAD plugin is large)
+.claude/skills/
+
+# Claude Code local user config
+.claude/

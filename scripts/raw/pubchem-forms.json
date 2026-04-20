@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "sourceText": "PubChem PUG REST — compound/name/<query>/cids/JSON",
+    "sourceUrl": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/",
+    "retrievedAt": "2026-04-19",
+    "note": "手工策划 — 覆盖 50 条禁忌 + 30 成分中最常命中的化学形式；每条 (ingredientId, formNameEn) 唯一。"
+  },
+  "forms": [
+    { "ingredientId": "magnesium",      "formNameEn": "Magnesium Oxide",            "formNameZh": "氧化镁" },
+    { "ingredientId": "magnesium",      "formNameEn": "Magnesium Citrate",          "formNameZh": "柠檬酸镁" },
+    { "ingredientId": "magnesium",      "formNameEn": "Magnesium Glycinate",        "formNameZh": "甘氨酸镁" },
+    { "ingredientId": "magnesium",      "formNameEn": "Magnesium L-Threonate",      "formNameZh": "L-苏糖酸镁" },
+    { "ingredientId": "vitamin-d",      "formNameEn": "Cholecalciferol",            "formNameZh": "胆钙化醇 (维 D3)" },
+    { "ingredientId": "vitamin-d",      "formNameEn": "Ergocalciferol",             "formNameZh": "麦角钙化醇 (维 D2)" },
+    { "ingredientId": "vitamin-a",      "formNameEn": "Retinol",                    "formNameZh": "视黄醇" },
+    { "ingredientId": "vitamin-a",      "formNameEn": "Retinyl Palmitate",          "formNameZh": "棕榈酸视黄酯" },
+    { "ingredientId": "vitamin-a",      "formNameEn": "Beta-Carotene",              "formNameZh": "β-胡萝卜素" },
+    { "ingredientId": "coenzyme-q10",   "formNameEn": "Ubiquinone",                 "formNameZh": "泛醌" },
+    { "ingredientId": "coenzyme-q10",   "formNameEn": "Ubiquinol",                  "formNameZh": "泛醇" },
+    { "ingredientId": "iron",           "formNameEn": "Ferrous Sulfate",            "formNameZh": "硫酸亚铁" },
+    { "ingredientId": "iron",           "formNameEn": "Ferrous Bisglycinate",       "formNameZh": "甘氨酸亚铁" },
+    { "ingredientId": "calcium",        "formNameEn": "Calcium Carbonate",          "formNameZh": "碳酸钙" },
+    { "ingredientId": "calcium",        "formNameEn": "Calcium Citrate",            "formNameZh": "柠檬酸钙" },
+    { "ingredientId": "zinc",           "formNameEn": "Zinc Gluconate",             "formNameZh": "葡萄糖酸锌" },
+    { "ingredientId": "zinc",           "formNameEn": "Zinc Picolinate",            "formNameZh": "吡啶甲酸锌" },
+    { "ingredientId": "fish-oil",       "formNameEn": "Icosapent",                  "formNameZh": "EPA (二十碳五烯酸)" },
+    { "ingredientId": "fish-oil",       "formNameEn": "Docosahexaenoic acid",       "formNameZh": "DHA (二十二碳六烯酸)" },
+    { "ingredientId": "vitamin-b12",    "formNameEn": "Methylcobalamin",            "formNameZh": "甲钴胺" },
+    { "ingredientId": "vitamin-b12",    "formNameEn": "Cyanocobalamin",             "formNameZh": "氰钴胺" },
+    { "ingredientId": "folate",         "formNameEn": "Folic acid",                 "formNameZh": "叶酸" },
+    { "ingredientId": "folate",         "formNameEn": "Levomefolic acid",           "formNameZh": "L-5-甲基四氢叶酸" },
+    { "ingredientId": "vitamin-c",      "formNameEn": "Ascorbic acid",              "formNameZh": "抗坏血酸" },
+    { "ingredientId": "vitamin-c",      "formNameEn": "Sodium ascorbate",           "formNameZh": "抗坏血酸钠" },
+    { "ingredientId": "vitamin-e",      "formNameEn": "Alpha-Tocopherol",           "formNameZh": "α-生育酚" },
+    { "ingredientId": "vitamin-b6",     "formNameEn": "Pyridoxine",                 "formNameZh": "吡哆醇" },
+    { "ingredientId": "vitamin-b6",     "formNameEn": "Pyridoxal phosphate",        "formNameZh": "5-磷酸吡哆醛 (P5P)" },
+    { "ingredientId": "selenium",       "formNameEn": "Selenomethionine",           "formNameZh": "硒甲硫氨酸" },
+    { "ingredientId": "curcumin",       "formNameEn": "Curcumin",                   "formNameZh": "姜黄素" },
+    { "ingredientId": "melatonin",      "formNameEn": "Melatonin",                  "formNameZh": "褪黑素" }
+  ]
+}
