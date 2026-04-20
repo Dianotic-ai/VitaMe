@@ -7,10 +7,10 @@
 ---
 
 ## 最后更新
-**2026-04-19（D2 / 12，深夜）** — bakeSuppai ✅ 完成（8070 pair → 5243 有证据条目 → evidence≥3 过滤后 **1349 条 / 735.6 KB**）；CLAUDE.md 升 **v2.3**：§9.3 坑 4 阈值改为 evidence≥3 + 单 TS <1.5 MB + `import 'server-only'` 三条可验证规则（原 top-50×top-100 白名单废除）；db 全部文件加 `server-only` 守卫，vitest alias 打桩避免 runtime guard 影响测试；47/47 tests green + typecheck 0 error
+**2026-04-20（D3 / 12，晚）** — Wave 1 外包（Gemini CLI + Codex CLI 并行 5 TASK）全部合入主仓并验收通过：TASK-1/2 LPI 烘焙（30 成分 / 27.7 KB）、TASK-3 20 条 seed fixtures、TASK-4 L3 兜底模板（28/39 reasonCode）、TASK-5 3 个 UI 组件。代码 push 到 `github.com/Dianotic-ai/VitaMe` 分支 **`vitame-dev-v0.1`**（单 commit，80 files / 43313 insertions，敏感 key 已隔离）
 
 ## 当前 Sprint 阶段
-**Phase 0 — 工程基建 + 数据烘焙前置**
+**Phase 0 → Phase 1 过渡 — Wave 1 外包交付完成，准备 Wave 2**
 
 - Sprint: 12 天 P0（2026-04-18 → 2026-04-29）
 - 初赛截止: 2026-04-30（WAIC 超级个体黑客松）
@@ -18,6 +18,28 @@
 ---
 
 ## ✅ 刚完成
+
+### Wave 1 外包（2026-04-20 / D3，Gemini + Codex 并行 5 TASK）✅
+**模式**：主 CC 做 orchestrator（拆 brief / 两轮验收 / 合仓 typecheck），Gemini CLI + Codex CLI 并行执行 TASK。每 TASK 结构：`brief.md` + `reference/` + `output/`，交付物 PR 式验收。
+- **TASK-1**（Gemini，LPI raw）：`scripts/raw/lpi-manual.json` — 30 成分 / 31,851 bytes，schema pass、0 banned word
+- **TASK-2**（Codex，bakeLpi）：`scripts/bakeLpi.ts`（128 行）→ `src/lib/db/lpi-values.ts`（27.7 KB / 30 条，md5 幂等）。主仓 typecheck 暴露 `noUncheckedIndexedAccess` TS2532（外包环境 tsconfig 不同）→ 改 `Set<string>` 去重取代 `rows[i-1].id` 越界访问
+- **TASK-3**（Gemini，seed fixtures）：`tests/fixtures/seeds.json` — 20 条（red=2 / yellow=10 / gray=3 / green=5），3 轮验收：R1 3 处缺失 → R2 S04 "药效" 违 §11.2 → R3 Gemini 自补 green placeholder risks 满足 Zod `expectedRisks.min(1)`（validate-raw.ts:86 我规划时漏看）
+- **TASK-4**（Codex，L3 兜底模板）：`src/lib/capabilities/safetyTranslation/templates.ts`（163 行）— 28/39 reasonCode + 4 level default 分支，纯函数无依赖，0 banned word，所有字符串在 headline≤30 / body≤150 / actionHint≤50 限内
+- **TASK-5**（Codex，UI 组件）：`src/components/{RiskBadge,DisclaimerBlock,DemoBanner}.tsx`，主仓 typecheck + build pass
+
+**外包流程 learnings**（写入反思）：
+- 两轮验收基本够用（R1 发现 + R2 修复）；R3 只在 schema 解读有分歧时才需要
+- Brief 必须把主仓 tsconfig 严格规则（`noUncheckedIndexedAccess` 等）明写，否则外包 typecheck 在外包 repo 通过但合仓失败
+- 规划 TASK-3 时 CC 未读 `scripts/validate-raw.ts` schema 细节（`.min(1)` 要求），让 Gemini 在 R1/R2 多走一轮 — 教训：brief 产出前必须把校验脚本先读一遍
+- 新增 feedback 记忆 `feedback_verify_before_propose.md`：共享配置（package.json / tsconfig）改动前必 Read/Grep 现状，禁把 brief "应有" 当 "实际有"
+
+### Git 仓库重建（2026-04-20 / D3 晚）✅
+原本地 `.git` 在用户清理历史资料时被一起删（项目文件夹层级删除）。现状：
+- 本地重新 `git init` + 建分支 `vitame-dev-v0.1`
+- Remote `dianotic` = `https://github.com/Dianotic-ai/VitaMe.git`
+- 单 commit：80 files / 43,313 insertions（覆盖 scaffold + 8 types + L1 数据 + L2 引擎 + L3 模板 + 3 UI + 20 seeds + bake 脚本 + unit 测试 + CLAUDE.md v2.3 + DESIGN.md + 6 design spec + 3 plan）
+- 敏感隔离：`.env.local` 已按 `.gitignore` 排除；`.env.local.example` 模板值空；源码/docs 仅引用变量名，无硬编码 key
+- PR 入口：`https://github.com/Dianotic-ai/VitaMe/pull/new/vitame-dev-v0.1`
 
 ### Batch 1 + Batch 2 — 脚手架 + 8 份 type 契约 ✅
 - `package.json`（next@14.2.15 / react@18.3.1 / zod@3.23.8 / tailwind@3.4.14 / vitest@2.1.3 / playwright@1.48.0 / tsx / cheerio）+ `tsconfig.json`（strict + noUncheckedIndexedAccess）+ `next.config.mjs` + `tailwind.config.ts`（4 risk token 对齐 DESIGN.md §2.1）+ `.env.local.example`（`NEXT_PUBLIC_DEMO_MODE=1`）
@@ -92,40 +114,23 @@
 
 ---
 
-## ⏳ 未完成
+## ⏳ 未完成（Wave 2 候选）
 
-### Batch 3 — L1/L2 数据烘焙（本会话接下来做）
-顺序：bakeNih → bakeLpi → bakeCnDri → bakePubchem → bakeSuppai → contraindications.ts（手写）→ bakeDsld。
-产出落到 `src/lib/db/*.ts`，每个文件每个 export 必须有非空 `sourceRefs`（§9.3 坑 2）。
-
-### Batch 4+ — 能力层 + API + UI
-受 Batch 3 阻塞。
+- **L3 SafetyTranslation LLM Adapter**（从 openclaw 抽取 chat + vision，待用户给 openclaw 路径）
+- **suppaiAdapter 激活**（当前 `partialData:true` 空桩，1349 条 suppai-interactions 已就位，消费即可闭环）
+- **API 路由**：`app/api/{query-intake,safety-judgment,safety-translation,archive-recheck}/route.ts`
+- **UI 页面**：`app/{query,intake,result,archive,recheck}/page.tsx`（3 个组件已就位，页面壳还没写）
+- **bakeNih + bakePubchem CID 填充**：本地 VPN 劫持无解，推迟到 SV 部署后在服务器重跑
+- **bakeDsld / bakeTga / bakeJp / bakeBluehat**：🟡🟢 层，D7+ 再说
 
 ---
 
-## 👉 下一步（本会话 / 压缩后续会话）
+## 👉 下一步
 
-**状态**：L2 判断层闭环跑绿（47/47）+ bakeSuppai ✅ + CLAUDE.md v2.3 阈值合理化完成。下一批方向可选：
-- **A**：激活 `suppaiAdapter.partialData=false`（消费 1349 条 suppai-interactions + 补 L2 测试）
-- **B**：bakeLpi（lpi.oregonstate.edu 可达 226KB）+ 手工 `ingredients.ts` 落 30 成分骨架（不依赖 NIH VPN）
-- **C**：L3 SafetyTranslation（LLM Adapter 从 openclaw 抽取）+ 合规 6 层 — 待用户给 openclaw 路径
-
-### Batch 3 —  烘焙（ChatGPT §6 风险排序）
-1. ~~`contraindications.ts`（非 bake，50 条）~~ ✅ 本会话
-2. ~~`bakeCnDri.ts` → `cn-dri-values.ts`（23 条）~~ ✅ 本会话
-3. `bakeNih.ts` → `src/lib/db/ingredients.ts`（~30 成分，NIH ODS 深度段）⏳ 需 MINIMAX_API_KEY
-4. `bakeLpi.ts` → 合并到 ingredients.ts（LPI 补充段）⏳ 需 MINIMAX_API_KEY
-5. ~~`bakePubchem.ts` → `src/lib/db/pubchem-cids.ts`~~ ✅（结构 OK，CID 全 null，SV 重跑填充）
-6. ~~`bakeSuppai.ts` → `src/lib/db/suppai-interactions.ts`~~ ✅ 1349 条 / 735.6 KB（evidence≥3 过滤）
-7. `bakeDsld.ts` → `src/lib/db/dsld-ingredients.ts`（top-500 字典化）⏳ D1 验证后
-8. `bakeTga.ts` / `bakeJp.ts` / `bakeBluehat.ts` — D7+ 🟡🟢 层
-
-## 📌 待用户确认
-
-- **LLM Adapter 来源**：用户提到"llm Adapter 的逻辑从 open claw 代码中提取即可"。
-  - 需确认：openclaw 代码在哪个路径/仓库？是本机已有项目还是要从某个地址拉？
-  - 用途：L3 SafetyTranslation 的 LLM 调用（factory 支持 minimax / deepseek / openclaw 三家）
-- **方向选择**：A（继续烘焙）vs B（切 L3 翻译层）vs 其它。
+**状态**：Wave 1 全部交付 + 推到 github `vitame-dev-v0.1`。方向三选（待用户拍板）：
+- **A**：L3 翻译层 — 用户给 openclaw 路径后从中抽 LLM Adapter，接上已就位的 `templates.ts` 兜底
+- **B**：L2 数据闭环 — 激活 `suppaiAdapter.partialData=false`（消费 1349 条）+ 补测试
+- **C**：Wave 2 外包 — 主 CC 再拆一批 TASK 给 Gemini/Codex 并行跑（候选：API 路由 / bakeDsld / ingredients.ts NIH 段在 SV 跑好后的合并脚本 / 5 个 UI 页面壳）
 
 ---
 
@@ -144,17 +149,17 @@
 
 ## 📋 决策日志（新 → 旧）
 
-- **2026-04-19（D2, 深夜, 阈值合理化）** — CLAUDE.md v2.2→v2.3：§9.3 坑 4 从 top-50×top-100 白名单（planning-time 估值、不可运行时验证）改为 3 条可验证规则（evidence≥3 + <1.5 MB + `server-only`）。bakeSuppai 产出从 2854 KB 缩到 735 KB；用 `filterSuppaiOneShot.mjs` 避免 100 min 重跑
-- **2026-04-19（D2, 深夜, server-only 守卫）** — 所有 `src/lib/db/*.ts` 首行 `import 'server-only';` 阻止 client bundle 泄漏；vitest 用 alias 打桩到空模块（Next.js build 时仍由真包守卫）
-- **2026-04-19（D2, 夜间, SUPP.AI 纯元素 CUI 回退）** — calcium (C0006675) / iron (C0302583) / zinc (C0043481) 纯元素 CUI 在 SUPP.AI 返 404，通过 search API 评分改用 supplement 形式：Calcium Carbonate (C0006681) / Iron Dietary (C0376520) / Zinc Cation (C2346521)
-- **2026-04-19（D2, 夜间, 烘焙策略）** — NIH/PubChem VPN 阻塞无解，推迟到 SV 部署重跑；本地先推 suppai + lpi（两者均可达）。SUPP.AI 纯元素 CUI 无 interaction 页，改用探测评分最高的 supplement 形式（calcium → Calcium Carbonate；iron → Iron, Dietary；zinc → Zinc Cation）
-- **2026-04-19（D2, 夜间, SUPP.AI CDN 坑）** — 两个独立坑：(1) gzip 返 33KB SPA 壳，必须 `Accept-Encoding: identity` 才拿完整 SSR；(2) `?p=0` 被 CDN 当 SPA 路由缓存，分页必须 1-indexed
-- **2026-04-19（D2, L2 跑绿）** — 先做 contraindications + cn-dri（无外部依赖），然后用 Tier 3 严格 TDD 闭环 L2：adapter 契约 → 3 路 adapter → merger → engine，47/47 tests green + typecheck 0 error
-- **2026-04-19（D2, 烘焙顺序调整）** — ChatGPT 把 contraindications 放 #6，CC 前置到 #1（零外部依赖 + Demo 价值最高）；bakeNih/Lpi/Suppai 推迟到 MINIMAX_API_KEY 到位
-- **2026-04-19（D2, LLM Adapter 来源）** — 用户指示"从 open claw 代码中提取"，CC 待用户给出 openclaw 代码路径后再启动 L3 翻译层
-- **2026-04-19（D2, Batch 1 跑绿）** — 脚手架 8 文件 + 占位 UI 3 文件全写完；install/typecheck/build 三连通过
-- **2026-04-19（D2, 用户授权）** — 本地可逆命令（install/build/test/bake/typecheck）CC 直接跑，无需逐条确认；远端/共享状态操作仍需先问（存入 feedback memory）
-- **更早的决策**已归档至 `docs/session-state-history.md`（含方案审后 5 条、文档回填、UI 延后、Superpowers 精简装、产品 pivot 等）
+- **2026-04-20（D3, 晚, Git 重建 + GitHub 推送）** — 用户删项目历史资料时把 `.git` 一起删了；重新 `git init` + 单 commit + 推 `vitame-dev-v0.1` 到 `dianotic` (Dianotic-ai/VitaMe)。不动 GitHub main，让 main 作为项目 pivot 前的历史留档
+- **2026-04-20（D3, 晚, 外包两轮验收）** — Wave 1 五个 TASK 全部两轮验收完成（TASK-3 走了三轮，Zod `.min(1)` schema 规划时漏读，让 Gemini 在 R1/R2 多走一轮）；外包 brief 必须前置读 `validate-raw.ts` 校验规则 + 主仓 tsconfig 严格规则，写入 brief 才不会合仓失败
+- **2026-04-20（D3, 晚, 共享配置先读再动）** — TASK-2 合流程 CC 根据 brief "应加 bake:lpi" 提议改 package.json，实际 `scripts` 段早已有该条；新增 feedback 记忆 `feedback_verify_before_propose.md`：package.json / tsconfig / CLAUDE.md 等改动前必 Read/Grep 现状
+- **2026-04-20（D3, 晚, Wave 1 外包模式验证）** — Gemini CLI（raw 数据 / 文本密集型）+ Codex CLI（代码生成）+ 主 CC（orchestrator）三机分工跑通；原计划 MINIMAX_API_KEY 烘焙 NIH/LPI → 改用 Gemini 直接手录 LPI（绕过 VPN）+ Codex 写 bake 脚本，链路更短
+- **2026-04-19（D2, 深夜, 阈值合理化）** — CLAUDE.md v2.2→v2.3：§9.3 坑 4 从 top-50×top-100 白名单改 3 条可验证规则（evidence≥3 + <1.5 MB + `server-only`）。bakeSuppai 从 2854 KB 缩到 735 KB
+- **2026-04-19（D2, 夜间, SUPP.AI 纯元素 CUI 回退）** — calcium/iron/zinc 纯元素 CUI 在 SUPP.AI 返 404，改用 supplement 形式（Calcium Carbonate / Iron Dietary / Zinc Cation）
+- **2026-04-19（D2, 夜间, SUPP.AI CDN 坑）** — (1) gzip 返 33KB SPA 壳 → `Accept-Encoding: identity`；(2) `?p=0` 是 SPA 路由壳 → 分页 1-indexed
+- **2026-04-19（D2, L2 跑绿）** — Tier 3 严格 TDD 闭环：adapter 契约 → 3 路 adapter → merger → engine，47/47 tests green
+- **2026-04-19（D2, LLM Adapter 来源）** — 用户指示"从 open claw 代码中提取"，待用户给 openclaw 路径后启动 L3
+- **2026-04-19（D2, 用户授权）** — 本地可逆命令（install/build/test/bake/typecheck）CC 直接跑；远端/共享状态操作仍需先问
+- **更早的决策**已归档至 `docs/session-state-history.md`
 
 ---
 
