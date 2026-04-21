@@ -7,10 +7,10 @@
 ---
 
 ## 最后更新
-**2026-04-20（D3 / 12，晚）** — Wave 1 外包（Gemini CLI + Codex CLI 并行 5 TASK）全部合入主仓并验收通过：TASK-1/2 LPI 烘焙（30 成分 / 27.7 KB）、TASK-3 20 条 seed fixtures、TASK-4 L3 兜底模板（28/39 reasonCode）、TASK-5 3 个 UI 组件。代码 push 到 `github.com/Dianotic-ai/VitaMe` 分支 **`vitame-dev-v0.1`**（单 commit，80 files / 43313 insertions，敏感 key 已隔离）
+**2026-04-21（D4 / 12，晚）** — D4 跨分支对齐（Kevin D3 在 `codex/spec-hardening` 提交 8 份 P0 specs vs 我们 Wave 1 代码）：代码侧新增 `dimension` + `cta` 字段到 Risk schema + 扩 `EvidenceSourceType`('none') / `EvidenceConfidence`('unknown')，新增 `riskDefaults.ts` 共享映射；修掉 Codex 审出的 `partialReason` 泄漏 adapter 诊断串的契约漏洞。84 unit tests green。文档侧 PR #1（`docs/align-risk-schema` → `codex/spec-hardening`）开给 Kevin review。CLAUDE.md v2.3 → v2.4（§11 红线 11→12，§9.4 checklist 加 Risk dimension/cta 项）。
 
 ## 当前 Sprint 阶段
-**Phase 0 → Phase 1 过渡 — Wave 1 外包交付完成，准备 Wave 2**
+**Phase 1 — 代码/文档跨分支对齐完成，等 Kevin review PR #1，主干继续在 `vitame-dev-v0.1` 开发**
 
 - Sprint: 12 天 P0（2026-04-18 → 2026-04-29）
 - 初赛截止: 2026-04-30（WAIC 超级个体黑客松）
@@ -18,6 +18,43 @@
 ---
 
 ## ✅ 刚完成
+
+### D4 跨分支对齐（2026-04-21 / D4，Kevin specs × Wave 1 代码）✅
+**触发**：Kevin 在 `codex/spec-hardening` D3 提交的 8 份 P0 specs（api-contract / risk-matrix / context-taxonomy / metrics-instrumentation / test-matrix / 统一执行总纲 等）里的 TS schema 与我们 Wave 1 落的代码（`src/lib/types/risk.ts` 等）命名风格 + 结构层面存在冲突。
+
+**3 条命名约定锁定（用户 D4 拍板）**：
+1. **TS 字段名 camelCase / 枚举值字符串保留 snake_case**（例：`reasonCode: 'drug_interaction'`）
+2. **`disclaimer` 顶层 1 份**（`TranslationResult.disclaimer`，不重复贴到每条 `TranslatedRisk`；合规红线 §11.1 由顶层 `<DisclaimerBlock>` 组件强制渲染即可）
+3. **Risk 保留 `ingredient / condition? / medication?` 结构化溯源**（不合并成 `sourceRefs: string[]`，代码说了算）
+
+**代码侧（commits on `vitame-dev-v0.1`，已 push dianotic 远端）**：
+- `4868883` feat(L2) Risk schema 对齐：
+  - `src/lib/types/risk.ts` 新增 `RiskDimension` 6 值 + `RiskCta` 5 值，`dimension + cta` 改为 Risk 必填
+  - `EvidenceSourceType` 扩 `'none'` / `EvidenceConfidence` 扩 `'unknown'`（用于 no_data gray 兜底）
+  - `JudgmentResult` 新增可选 `partialReason?: string | null`
+  - 新增 `src/lib/capabilities/safetyJudgment/riskDefaults.ts` — `dimensionForSubstanceKind` / `ctaForLevel` 共享映射（避免 adapter 各自硬写）
+  - `hardcodedAdapter` / `judgmentEngine.buildNoDataRisk` 走 helper 取默认 dimension/cta
+  - `riskLevelMerger.SOURCE_RANK` 加 `none: 0`
+- `371e16e` fix(L2) Codex review 修复：
+  - `judgmentEngine.ts:57-62` `partialReason` 改为白名单码（`hardcoded_partial / suppai_partial / ddinter_partial`），不再透出 `LookupResponse.error` 诊断串（合规契约锁死，`adapter.ts:45` 约定 error 只进 audit 不进 UI）
+  - `judgmentEngine.spec.ts` 补白名单断言
+  - `riskLevelMerger.mergeBucket:66-71` 加 Wave 2 TODO 注释：同 bucket 次值 dimension/cta 目前被丢，P0 不咬（同 `SubstanceKind` → 同 dimension），suppai 激活后需加 `conflictingDimensions / conflictingCtas`
+
+**验证**：`npm run test:unit` = 84/84 green；`npm run typecheck` = 0 error。
+
+**文档侧**：
+- PR #1 `docs/align-risk-schema` → `codex/spec-hardening`：6 files / 159+/130-，覆盖 `api-contract.md` §1.6 全部 schema（Risk / TranslatedRisk / TranslationResult / QueryContext / QuerySession / Person / IngredientRef / MedicationEntry）+ `risk-matrix.md` + `context-taxonomy.md` + `metrics-instrumentation.md` + `test-matrix.md` + `统一执行总纲.md`
+- 命名约定三原则落到 docs 里：snake_case TS 字段全转 camelCase（`reason_code → reasonCode`, `evidence_type → evidenceType`, ...），枚举值字面量全部保留原 snake_case 不动
+- `TranslatedRisk.disclaimer` 字段移除，新增顶层 `TranslationResult` 类型承载
+- Risk 加回 `ingredient / condition? / medication?` 字段（Kevin 原稿把这层塞进 `sourceRefs`）
+- Metrics 边界决策：schema 派生属性（`reasonCode / evidenceType`）改 camelCase；Mixpanel/Amplitude 惯例属性（`overall_level / input_type / cta_variant / fallback_type`）保留 snake_case（业内惯例）
+- commit `f412170` 推了 `docs/2026-04-21-kevin-review-handoff.md`（给 Kevin 的 review 指南：3 件要确认事 + metrics 命名边界 + Wave 2+ TODO），PR #1 加了 issue comment 指向该文档
+
+**CLAUDE.md v2.3 → v2.4**（本会话回填）：
+- §11 红线 11→12：新增第 12 条「`partialReason` 只能输出白名单码，`LookupResponse.error` 不进 UI」（锁死 `371e16e` 修的契约）
+- §9.4 pre-output checklist 加「新 Risk 必须含 `dimension` + `cta`，默认映射走 `riskDefaults.ts`」
+- §19 加 v2.4 change log 条目
+- 头部 Version 行 v2.3 → v2.4，日期更新到 2026-04-21 (D4)
 
 ### Wave 1 外包（2026-04-20 / D3，Gemini + Codex 并行 5 TASK）✅
 **模式**：主 CC 做 orchestrator（拆 brief / 两轮验收 / 合仓 typecheck），Gemini CLI + Codex CLI 并行执行 TASK。每 TASK 结构：`brief.md` + `reference/` + `output/`，交付物 PR 式验收。
@@ -127,9 +164,9 @@
 
 ## 👉 下一步
 
-**状态**：Wave 1 全部交付 + 推到 github `vitame-dev-v0.1`。方向三选（待用户拍板）：
+**状态**：D4 跨分支对齐 + CLAUDE.md v2.4 已回填。PR #1 等 Kevin review（不阻塞主干开发，Kevin review 完后决定是否合进 `codex/spec-hardening`；我们继续在 `vitame-dev-v0.1` 上推进）。方向三选（待用户拍板）：
 - **A**：L3 翻译层 — 用户给 openclaw 路径后从中抽 LLM Adapter，接上已就位的 `templates.ts` 兜底
-- **B**：L2 数据闭环 — 激活 `suppaiAdapter.partialData=false`（消费 1349 条）+ 补测试
+- **B**：L2 数据闭环 — 激活 `suppaiAdapter.partialData=false`（消费 1349 条 suppai-interactions）+ 补测试
 - **C**：Wave 2 外包 — 主 CC 再拆一批 TASK 给 Gemini/Codex 并行跑（候选：API 路由 / bakeDsld / ingredients.ts NIH 段在 SV 跑好后的合并脚本 / 5 个 UI 页面壳）
 
 ---
@@ -149,17 +186,11 @@
 
 ## 📋 决策日志（新 → 旧）
 
-- **2026-04-20（D3, 晚, Git 重建 + GitHub 推送）** — 用户删项目历史资料时把 `.git` 一起删了；重新 `git init` + 单 commit + 推 `vitame-dev-v0.1` 到 `dianotic` (Dianotic-ai/VitaMe)。不动 GitHub main，让 main 作为项目 pivot 前的历史留档
-- **2026-04-20（D3, 晚, 外包两轮验收）** — Wave 1 五个 TASK 全部两轮验收完成（TASK-3 走了三轮，Zod `.min(1)` schema 规划时漏读，让 Gemini 在 R1/R2 多走一轮）；外包 brief 必须前置读 `validate-raw.ts` 校验规则 + 主仓 tsconfig 严格规则，写入 brief 才不会合仓失败
-- **2026-04-20（D3, 晚, 共享配置先读再动）** — TASK-2 合流程 CC 根据 brief "应加 bake:lpi" 提议改 package.json，实际 `scripts` 段早已有该条；新增 feedback 记忆 `feedback_verify_before_propose.md`：package.json / tsconfig / CLAUDE.md 等改动前必 Read/Grep 现状
-- **2026-04-20（D3, 晚, Wave 1 外包模式验证）** — Gemini CLI（raw 数据 / 文本密集型）+ Codex CLI（代码生成）+ 主 CC（orchestrator）三机分工跑通；原计划 MINIMAX_API_KEY 烘焙 NIH/LPI → 改用 Gemini 直接手录 LPI（绕过 VPN）+ Codex 写 bake 脚本，链路更短
-- **2026-04-19（D2, 深夜, 阈值合理化）** — CLAUDE.md v2.2→v2.3：§9.3 坑 4 从 top-50×top-100 白名单改 3 条可验证规则（evidence≥3 + <1.5 MB + `server-only`）。bakeSuppai 从 2854 KB 缩到 735 KB
-- **2026-04-19（D2, 夜间, SUPP.AI 纯元素 CUI 回退）** — calcium/iron/zinc 纯元素 CUI 在 SUPP.AI 返 404，改用 supplement 形式（Calcium Carbonate / Iron Dietary / Zinc Cation）
-- **2026-04-19（D2, 夜间, SUPP.AI CDN 坑）** — (1) gzip 返 33KB SPA 壳 → `Accept-Encoding: identity`；(2) `?p=0` 是 SPA 路由壳 → 分页 1-indexed
-- **2026-04-19（D2, L2 跑绿）** — Tier 3 严格 TDD 闭环：adapter 契约 → 3 路 adapter → merger → engine，47/47 tests green
-- **2026-04-19（D2, LLM Adapter 来源）** — 用户指示"从 open claw 代码中提取"，待用户给 openclaw 路径后启动 L3
-- **2026-04-19（D2, 用户授权）** — 本地可逆命令（install/build/test/bake/typecheck）CC 直接跑；远端/共享状态操作仍需先问
-- **更早的决策**已归档至 `docs/session-state-history.md`
+- **2026-04-21（D4, 晚, CLAUDE.md v2.4）** — 用户拍板只在 `vitame-dev-v0.1` 本分支同步 3 条对齐约定的影响（§11 红线 12 条、§9.4 checklist Risk dimension/cta、§19 v2.4 change log、SESSION-STATE 更新）；暂不合 `codex/spec-hardening`，继续单分支开发直到 Kevin review 完 PR #1
+- **2026-04-21（D4, 晚, Kevin handoff）** — 创建 `docs/2026-04-21-kevin-review-handoff.md`（128 行，7 section）+ PR #1 issue comment 指向它；让 Kevin 先读 handoff 再看 diff
+- **2026-04-21（D4, 晚, Codex review 补丁）** — `371e16e`：`partialReason` 只出固定白名单码，不再透 `adapter.error`（合规契约锁死）；merger dimension/cta 冲突先加 TODO，Wave 2 再加 `conflictingDimensions / conflictingCtas`
+- **2026-04-21（D4, 白天, 跨分支 3 条命名约定）** — 锁定：(1) TS 字段 camelCase / 枚举值 snake_case；(2) disclaimer 顶层 1 份；(3) Risk 保留 ingredient/condition/medication 结构化溯源。代码侧 Plan B（增量加 dimension + cta）落到 `4868883`；文档侧 PR #1 同步改 Kevin 的 8 份 specs
+- **D3 及更早的决策**已归档至 `docs/session-state-history.md`（2026-04-20 Wave 1 外包 + Git 重建；2026-04-19 D2 SUPP.AI 坑 + 阈值合理化 + L2 跑绿 + 用户授权）
 
 ---
 

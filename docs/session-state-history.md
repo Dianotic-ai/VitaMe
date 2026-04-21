@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-04-20（D3, 晚 / Wave 1 外包 + Git 重建）
+
+- **Git 重建 + GitHub 推送** — 用户删项目历史资料时把 `.git` 一起删了；重新 `git init` + 单 commit + 推 `vitame-dev-v0.1` 到 `dianotic` (Dianotic-ai/VitaMe)。不动 GitHub main，让 main 作为项目 pivot 前的历史留档
+- **外包两轮验收** — Wave 1 五个 TASK 全部两轮验收完成（TASK-3 走了三轮，Zod `.min(1)` schema 规划时漏读，让 Gemini 在 R1/R2 多走一轮）；外包 brief 必须前置读 `validate-raw.ts` 校验规则 + 主仓 tsconfig 严格规则，写入 brief 才不会合仓失败
+- **共享配置先读再动** — TASK-2 合流程 CC 根据 brief "应加 bake:lpi" 提议改 package.json，实际 `scripts` 段早已有该条；新增 feedback 记忆 `feedback_verify_before_propose.md`：package.json / tsconfig / CLAUDE.md 等改动前必 Read/Grep 现状
+- **Wave 1 外包模式验证** — Gemini CLI（raw 数据 / 文本密集型）+ Codex CLI（代码生成）+ 主 CC（orchestrator）三机分工跑通；原计划 MINIMAX_API_KEY 烘焙 NIH/LPI → 改用 Gemini 直接手录 LPI（绕过 VPN）+ Codex 写 bake 脚本，链路更短
+
+## 2026-04-19（D2, 深夜 / 阈值 + SUPP.AI 坑）
+
+- **阈值合理化** — CLAUDE.md v2.2→v2.3：§9.3 坑 4 从 top-50×top-100 白名单改 3 条可验证规则（evidence≥3 + <1.5 MB + `server-only`）。bakeSuppai 从 2854 KB 缩到 735 KB
+- **SUPP.AI 纯元素 CUI 回退** — calcium/iron/zinc 纯元素 CUI 在 SUPP.AI 返 404，改用 supplement 形式（Calcium Carbonate / Iron Dietary / Zinc Cation）
+- **SUPP.AI CDN 坑** — (1) gzip 返 33KB SPA 壳 → `Accept-Encoding: identity`；(2) `?p=0` 是 SPA 路由壳 → 分页 1-indexed
+- **L2 跑绿** — Tier 3 严格 TDD 闭环：adapter 契约 → 3 路 adapter → merger → engine，47/47 tests green
+- **LLM Adapter 来源** — 用户指示"从 open claw 代码中提取"，待用户给 openclaw 路径后启动 L3
+- **用户授权** — 本地可逆命令（install/build/test/bake/typecheck）CC 直接跑；远端/共享状态操作仍需先问
+
 ## 2026-04-19（D2, 方案审后 / 基建期）
 
 - **方案审后（批）**：

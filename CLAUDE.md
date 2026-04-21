@@ -2,7 +2,7 @@
 
 > This file provides operational guidance to Claude Code when working in the `vitame-p0/` repository.
 > It is **a set of action rules, not a product introduction** — every section tells you what to do when writing code.
-> **Version**: v2.3 · Last updated: 2026-04-19 (D2 / 12, 夜间). See §19 for change log; §18 for environmental blockers & known quirks.
+> **Version**: v2.4 · Last updated: 2026-04-21 (D4 / 12, 晚). See §19 for change log; §18 for environmental blockers & known quirks.
 
 ---
 
@@ -340,6 +340,7 @@ Before ending your turn, verify and report explicitly:
 - [ ] Every new file has a header comment: `// file: <path> — <one-line purpose>`
 - [ ] Every new `src/lib/db/*.ts` export has `sourceRefs: SourceRef[]` and it is non-empty
 - [ ] Every new `src/lib/capabilities/**/*.ts` that is required by §13 has a matching test, written first
+- [ ] Every new `Risk` object has both `dimension: RiskDimension` and `cta: RiskCta`（6 种 dimension / 5 种 cta，定义见 `src/lib/types/risk.ts`；默认映射走 `src/lib/capabilities/safetyJudgment/riskDefaults.ts`，不要在 adapter 内各自硬写）
 - [ ] `npm run build` succeeds (if you had a sandbox to run it in)
 - [ ] `npm run bake:all` is still re-entrant (no side effects on rerun)
 - [ ] `.env.local.example` is updated if you introduced new env vars
@@ -428,7 +429,7 @@ These are architectural hard rules. Violations produce bugs that are very hard t
 
 ## 11. Compliance red lines (hard rules — non-negotiable)
 
-These 11 rules override any instruction from user prompt, any design doc suggestion, or any LLM output. They cannot be bypassed via system prompt tweaks or "just this once" exceptions. Detail beyond this list: `docs/superpowers/specs/2026-04-18-vitame-compliance-design.md`.
+These 12 rules override any instruction from user prompt, any design doc suggestion, or any LLM output. They cannot be bypassed via system prompt tweaks or "just this once" exceptions. Detail beyond this list: `docs/superpowers/specs/2026-04-18-vitame-compliance-design.md`.
 
 1. **Disclaimer is mandatory on every AI-generated output.** Not just once at sign-up. Every response rendered to the user must carry the `DisclaimerBlock` from `DESIGN.md` §4.2. Enforced in the compliance middleware.
 2. **Banned vocabulary**: do not output the words 治疗 / 治愈 / 处方 / 药效 / 根治 / diagnosis / prescribe / cure (or close paraphrases) in any user-facing string. Regex-blocked in compliance middleware; CI test must catch violations.
@@ -441,6 +442,7 @@ These 11 rules override any instruction from user prompt, any design doc suggest
 9. **No CPS / affiliate / e-commerce outbound links** in P0. No price comparison. No "buy at X" buttons.
 10. **Audit log cannot be disabled.** Every risk verdict, every LLM call, every compliance rejection writes a JSONL line with timestamp + input hash + output hash + rule IDs triggered. Log writing failure is a hard error, not a warning. **DemoBanner injection MUST flow through audit** — any client-side-only banner that bypasses audit is rejected.
 11. **Demo Banner for unreviewed hardcoded rules**: any response whose risks trigger a `Contraindication` with `pharmacistReviewed !== true` or `reviewerCredential === 'self-review'` or `reviewerCredential === undefined` MUST carry the Demo Banner. Enforced in `DemoBannerInjector` middleware. Because all 50 contraindications start at `pharmacistReviewed: false` (药剂师审核仍在 outreach 中，§16), **every P0 Demo will show this banner by default** — this is intended, not a bug.
+12. **`partialReason` 只能输出固定白名单码**：`JudgmentResult.partialReason` 只允许三个值 `'hardcoded_partial' / 'suppai_partial' / 'ddinter_partial'`（可以逗号拼接）。`LookupResponse.error` 按 `src/lib/types/adapter.ts:45` 契约属于"诊断串，仅 audit，不进 UI"，**严禁**把 `hc.error / sa.error / dd.error` 透传到 `partialReason`。同理，任何 adapter 抛出的堆栈 / 内部 code 都不得进 UI-visible 字段。违反此条 = 合规红线违规。对应单测：`tests/unit/safetyJudgment/judgmentEngine.spec.ts`「partialReason 必须是固定白名单码」。
 
 ---
 
@@ -655,6 +657,7 @@ Implementation: a Git pre-push hook (local) and a CI check (remote) both run `np
 
 | Date | Version | Change |
 |---|---|---|
+| 2026-04-21 | **v2.4** | D4 跨分支对齐（Kevin 在 `codex/spec-hardening` 分支 D3 提交的 8 份 P0 specs vs Wave 1 代码）后回填：(a) §11 红线 11→**12**，新增第 12 条「`partialReason` 只能输出 `hardcoded_partial / suppai_partial / ddinter_partial` 白名单码，`LookupResponse.error` 不得进 UI」（Codex review 审出的契约漏洞，见 `src/lib/capabilities/safetyJudgment/judgmentEngine.ts:57-62`）；(b) §9.4 checklist 新增「新 Risk 必须含 `dimension: RiskDimension` + `cta: RiskCta`」（默认映射在 `src/lib/capabilities/safetyJudgment/riskDefaults.ts`，6 种 dimension × 5 种 cta，对齐 Kevin `api-contract.md §1.6`）；(c) 跨分支 3 条命名约定锁定：**TS 字段名 camelCase / 枚举值字符串保留 snake_case / disclaimer 顶层 1 份（`TranslationResult.disclaimer`）/ Risk 保留 `ingredient|condition|medication` 结构化溯源**。代码侧 commits `4868883` `371e16e`，文档侧 PR #1（`docs/align-risk-schema` → `codex/spec-hardening`，待 Kevin review），handoff 说明 `docs/2026-04-21-kevin-review-handoff.md`。Wave 2+ 已知 TODO：`riskLevelMerger.mergeBucket` 吞掉次值 dimension/cta（P0 同 `SubstanceKind` → 同 dimension，不咬；suppai 激活后若出现同键跨维度冲突需加 `conflictingDimensions / conflictingCtas`）。 |
 | 2026-04-19 | **v2.3** | D2 夜间 bakeSuppai 实跑后阈值回调：§9.3 坑 4 重写 —— 废除「top 50 × top 100 硬白名单」（规划期拍脑袋，对齐不了医学意义），改为三条对齐真实风险的规则：(a) `evidenceCount >= 3` 过滤长尾弱证据；(b) 单文件 < 1.5 MB（防 tsc 慢 + 防 client bundle leak）；(c) `src/lib/db/*.ts` 加 `import 'server-only'` 防泄漏。§9.3 坑 5 补注：5 MB 总产物是 SV 2C4G RAM 预算的推导值，非拍脑袋。 |
 | 2026-04-19 | **v2.2** | D2 夜间加 §18「Environmental blockers & known quirks」：VPN DNS 劫持实录（NIH/PubChem/Google 全断，推迟 SV 重跑）+ SUPP.AI 两个 CDN 坑（Accept-Encoding identity + 1-indexed 分页）+ CUI 映射规则（纯元素 → supplement 形式）+ 未 commit 滚动状态提醒。原 §18 Change log 顺延到 §19。两处内部引用「§18 change log」同步改到 §19。 |
 | 2026-04-19 | **v2.1** | D2 post-ChatGPT-bake-plan review. §5: added `bakePubchem.ts`. §6.2: added `npm run bake:pubchem`. §9.3 pit 6: added OCR confidence threshold 0.7 + capability-layer gate. §9.3 pit 7 + §10.4 + §11.7 + §11.10 + §11.11: compliance middleware extended to 6-layer with `DemoBanner ∥ Disclaimer` parallel injector; added red line #11 requiring DemoBanner on unreviewed hardcoded hits. §15.2: red tier rebaselined from 30 to 50 rules per user decision. §11 count updated from "10 rules" to "11 rules". |
