@@ -8,10 +8,38 @@ export type RiskLevel = 'red' | 'yellow' | 'gray' | 'green';
 
 /**
  * EvidenceSourceType = 证据的"层级"（高于具体 source）。
- * 给 UI 一个简单的徽章维度（hardcoded=药剂师审核 / database=SUPP.AI 类 / literature=文献 / limited=缺源兜底）。
+ * 给 UI 一个简单的徽章维度。
+ * - hardcoded = 药剂师审核 / database = SUPP.AI 类 / literature = 文献
+ * - limited   = 弱证据兜底（数据存在但不充分）
+ * - none      = 无数据兜底（任何源都未命中，coverage_gap 走这条）
  */
-export type EvidenceSourceType = 'hardcoded' | 'database' | 'literature' | 'limited';
-export type EvidenceConfidence = 'high' | 'medium' | 'low';
+export type EvidenceSourceType = 'hardcoded' | 'database' | 'literature' | 'limited' | 'none';
+/** 'unknown' 用于 coverage_gap / 数据不足场景，不要与 'low'（低质证据）混淆 */
+export type EvidenceConfidence = 'high' | 'medium' | 'low' | 'unknown';
+
+/**
+ * RiskDimension = Risk 的分类维度（前端 RiskCard 顶部的分类标签）。
+ * Kevin spec（kevin-risk-matrix.md §5）。映射规则见 safetyJudgment/riskDefaults.ts。
+ */
+export type RiskDimension =
+  | 'drug_interaction'      // 补剂×药 / 补剂×补剂 相互作用
+  | 'condition_contra'      // 病史/体质禁忌
+  | 'population_caution'    // 特殊人群（孕期、APOE4 基因等）
+  | 'dose_caution'          // 剂量 / 时序 / 长期使用
+  | 'form_difference'       // 成分形式差异（甘氨酸镁 vs 氧化镁）
+  | 'coverage_gap';         // 数据未覆盖（gray no_data 兜底）
+
+/**
+ * RiskCta = "下一步动作"标准化按钮（前端 RiskCard 底部）。
+ * Kevin spec（kevin-api-contract.md §1.6）。默认映射见 safetyJudgment/riskDefaults.ts，
+ * adapter 可针对特定规则覆盖（例如 form_difference 维度的 yellow 不强制 consult）。
+ */
+export type RiskCta =
+  | 'stop_and_consult'             // 红：停用并就医
+  | 'consult_if_needed'            // 黄：必要时与医生沟通
+  | 'recheck_with_more_context'    // 灰：补充信息后重查
+  | 'proceed_with_caution'         // 黄/灰可选：继续使用但谨慎
+  | 'basic_ok';                    // 绿：可正常使用
 
 /**
  * Evidence = 每条 Risk 带一份给用户看的"凭什么"摘要。
@@ -31,6 +59,10 @@ export interface Evidence {
  */
 export interface Risk {
   level: RiskLevel;
+  /** 风险分类维度（前端分类标签 + reason 模板路由） */
+  dimension: RiskDimension;
+  /** 标准化"下一步动作"，前端 RiskCard 按此渲染 CTA 按钮 */
+  cta: RiskCta;
   /** 命中的成分 id，与 Ingredient.id 一致 */
   ingredient: string;
   /** 与之冲突的病史 id（hardcoded 规则场景） */
@@ -79,6 +111,8 @@ export interface JudgmentResult {
   risks: Risk[];
   /** 任一 adapter 超时/降级 → true；前端需标注"数据源降级" */
   partialData: boolean;
+  /** partialData=true 时给出原因（'suppai_not_baked' / 'ddinter_timeout' 等），供前端细粒度提示 */
+  partialReason?: string | null;
 }
 
 /**

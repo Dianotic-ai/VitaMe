@@ -47,7 +47,10 @@ describe('judgmentEngine — 3 路并发 + 合并 + overallLevel', () => {
     expect(res.risks).toHaveLength(1);
     expect(res.risks[0]!.level).toBe('gray');
     expect(res.risks[0]!.reasonCode).toBe('no_data');
-    expect(res.risks[0]!.evidence.sourceType).toBe('limited');
+    expect(res.risks[0]!.evidence.sourceType).toBe('none');
+    expect(res.risks[0]!.evidence.confidence).toBe('unknown');
+    expect(res.risks[0]!.dimension).toBe('coverage_gap');
+    expect(res.risks[0]!.cta).toBe('recheck_with_more_context');
   });
 
   it('空 ingredients → overallLevel=green，risks=[]', async () => {
@@ -69,6 +72,9 @@ describe('judgmentEngine — 3 路并发 + 合并 + overallLevel', () => {
     });
     expect(res.partialData).toBe(true);
     expect(res.overallLevel).toBe('red');
+    // partialReason 透出降级源 code，供前端细粒度提示
+    expect(res.partialReason).toBeTruthy();
+    expect(res.partialReason).toContain('suppai');
   });
 
   it('sessionId 原样透传到 JudgmentResult', async () => {

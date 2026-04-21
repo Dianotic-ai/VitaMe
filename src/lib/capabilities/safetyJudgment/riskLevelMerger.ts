@@ -11,10 +11,11 @@ import type { Risk, RiskLevel } from '@/lib/types/risk';
 
 const LEVEL_RANK: Record<RiskLevel, number> = { red: 3, yellow: 2, gray: 1, green: 0 };
 const SOURCE_RANK: Record<Risk['evidence']['sourceType'], number> = {
-  hardcoded: 3,
-  database: 2,
-  literature: 1,
-  limited: 0,
+  hardcoded: 4,
+  database: 3,
+  literature: 2,
+  limited: 1,
+  none: 0,
 };
 
 export function pickOverallLevel(risks: readonly Risk[]): RiskLevel {

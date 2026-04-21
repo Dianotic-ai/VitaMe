@@ -10,10 +10,13 @@ import type { LookupRequest, LookupResponse, SafetyAdapter } from '@/lib/types/a
 import type { Risk } from '@/lib/types/risk';
 import type { Contraindication, Substance } from '@/lib/types/interaction';
 import { CONTRAINDICATION_BY_PAIR } from '@/lib/db/contraindications';
+import { ctaForLevel, dimensionForSubstanceKind } from '@/lib/capabilities/safetyJudgment/riskDefaults';
 
 function contraindicationToRisk(rule: Contraindication): Risk {
   const risk: Risk = {
     level: rule.severity,
+    dimension: dimensionForSubstanceKind(rule.substanceB.kind),
+    cta: ctaForLevel(rule.severity),
     ingredient: rule.substanceA.id,
     reasonCode: rule.reasonCode,
     reasonShort: rule.reason,

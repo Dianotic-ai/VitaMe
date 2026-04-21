@@ -40,6 +40,9 @@ describe('hardcodedAdapter — 50 条禁忌规则 SafetyAdapter', () => {
     expect(r.evidence.sourceType).toBe('hardcoded');
     expect(r.evidence.sourceRef).toContain('vm-rule-coq10-warfarin');
     expect(r.evidence.confidence).toBe('high');
+    // 新字段：drug × supplement → drug_interaction；red → stop_and_consult
+    expect(r.dimension).toBe('drug_interaction');
+    expect(r.cta).toBe('stop_and_consult');
   });
 
   it('场景 2 / Q1 —— 鱼油 + 维 B6 × SSRI → 2 条 yellow', async () => {
@@ -97,6 +100,8 @@ describe('hardcodedAdapter — 50 条禁忌规则 SafetyAdapter', () => {
     expect(red).toBeDefined();
     expect(red!.reasonCode).toBe('retinol_pregnancy_teratogenicity');
     expect(red!.condition).toBe('pregnancy');
+    // pregnancy 是 specialGroup → population_caution 维度
+    expect(red!.dimension).toBe('population_caution');
   });
 
   it('Q13 —— 铁 × 咖啡窗口 → 1 条 yellow（usageTiming 路径）', async () => {
@@ -110,6 +115,8 @@ describe('hardcodedAdapter — 50 条禁忌规则 SafetyAdapter', () => {
     const r = res.risks[0]!;
     expect(r.level).toBe('yellow');
     expect(r.reasonCode).toBe('coffee_reduces_iron_absorption');
+    // usageTiming → dose_caution 维度
+    expect(r.dimension).toBe('dose_caution');
   });
 
   it('Q19 —— 铁 × 长期高剂量 → 1 条 yellow（usageStrategy 路径）', async () => {

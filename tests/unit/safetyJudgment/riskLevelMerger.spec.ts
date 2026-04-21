@@ -9,6 +9,8 @@ import type { Risk } from '@/lib/types/risk';
 function mkRisk(partial: Partial<Risk> & Pick<Risk, 'level' | 'ingredient' | 'reasonCode'>): Risk {
   return {
     reasonShort: partial.reasonShort ?? 'test reason',
+    dimension: partial.dimension ?? 'drug_interaction',
+    cta: partial.cta ?? 'consult_if_needed',
     evidence: partial.evidence ?? {
       sourceType: 'hardcoded',
       sourceRef: 'vm-rule-test',

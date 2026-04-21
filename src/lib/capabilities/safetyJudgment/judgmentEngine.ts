@@ -17,13 +17,15 @@ import { mergeRisks, pickOverallLevel } from './riskLevelMerger';
 function buildNoDataRisk(ingredientId: string): Risk {
   return {
     level: 'gray',
+    dimension: 'coverage_gap',
+    cta: 'recheck_with_more_context',
     ingredient: ingredientId,
     reasonCode: 'no_data',
     reasonShort: '未在已烘焙数据源中命中，证据有限',
     evidence: {
-      sourceType: 'limited',
+      sourceType: 'none',
       sourceRef: `no-data:${ingredientId}`,
-      confidence: 'low',
+      confidence: 'unknown',
     },
   };
 }
@@ -49,10 +51,19 @@ export async function judge(sessionId: string, req: LookupRequest): Promise<Judg
   const overallLevel = pickOverallLevel(risks);
   const partialData = hc.partialData || sa.partialData || dd.partialData;
 
+  // partialReason：把降级源的 error code 拼起来，供前端做"哪一路降级了"细粒度提示
+  const downgradedReasons = [
+    hc.partialData ? hc.error ?? 'hardcoded_partial' : null,
+    sa.partialData ? sa.error ?? 'suppai_partial' : null,
+    dd.partialData ? dd.error ?? 'ddinter_partial' : null,
+  ].filter((x): x is string => x !== null);
+  const partialReason = downgradedReasons.length > 0 ? downgradedReasons.join(',') : null;
+
   return {
     sessionId,
     overallLevel,
     risks,
     partialData,
+    partialReason,
   };
 }
