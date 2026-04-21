@@ -51,11 +51,13 @@ export async function judge(sessionId: string, req: LookupRequest): Promise<Judg
   const overallLevel = pickOverallLevel(risks);
   const partialData = hc.partialData || sa.partialData || dd.partialData;
 
-  // partialReason：把降级源的 error code 拼起来，供前端做"哪一路降级了"细粒度提示
+  // partialReason：固定白名单码（UI 可见），供前端做"哪一路降级了"细粒度提示。
+  // 契约：adapter.ts:45 规定 LookupResponse.error 是诊断串，不进 UI。因此这里**不**透出
+  // hc.error / sa.error / dd.error，后者只进 audit log（AuditLogger 另行消费）。
   const downgradedReasons = [
-    hc.partialData ? hc.error ?? 'hardcoded_partial' : null,
-    sa.partialData ? sa.error ?? 'suppai_partial' : null,
-    dd.partialData ? dd.error ?? 'ddinter_partial' : null,
+    hc.partialData ? 'hardcoded_partial' : null,
+    sa.partialData ? 'suppai_partial' : null,
+    dd.partialData ? 'ddinter_partial' : null,
   ].filter((x): x is string => x !== null);
   const partialReason = downgradedReasons.length > 0 ? downgradedReasons.join(',') : null;
 

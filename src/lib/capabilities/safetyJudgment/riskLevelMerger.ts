@@ -63,6 +63,12 @@ function mergeBucket(bucket: Risk[]): Risk {
   const primary: Risk = { ...sorted[0]! };
   const rest = sorted.slice(1);
 
+  // TODO(P1, Wave 2+): primary 的 dimension/cta 会**吞掉**次值，只保留 evidence 进 secondaryEvidence。
+  // P0 不咬：同 bucket 的 dimension 由 SubstanceKind 决定（同 medication/condition → 同 kind → 同
+  // dimension），所以现有 3 路 adapter 不会产生冲突 dimension。未来 suppai 激活后，如果出现
+  // "suppai drug_interaction vs hardcoded dose_caution" 这类同键跨维度冲突，需要加
+  // conflictingDimensions / conflictingCtas 字段；否则策略/埋点会漏掉次维度。seed 测试若开始
+  // 挂掉，先查是不是这里。
   const seenRefs = new Set<string>([primary.evidence.sourceRef]);
   const secondary: Risk['evidence'][] = [];
   const conflicting: string[] = [];

@@ -74,7 +74,14 @@ describe('judgmentEngine — 3 路并发 + 合并 + overallLevel', () => {
     expect(res.overallLevel).toBe('red');
     // partialReason 透出降级源 code，供前端细粒度提示
     expect(res.partialReason).toBeTruthy();
-    expect(res.partialReason).toContain('suppai');
+    expect(res.partialReason).toContain('suppai_partial');
+    // 合规：partialReason 必须是固定白名单码，不得含 adapter.ts:45 的诊断串
+    // （adapter.error 约定"不进 UI"；此断言锁死"仅白名单"契约）
+    const ALLOWED_CODES = ['hardcoded_partial', 'suppai_partial', 'ddinter_partial'];
+    const codes = res.partialReason!.split(',');
+    for (const code of codes) {
+      expect(ALLOWED_CODES).toContain(code);
+    }
   });
 
   it('sessionId 原样透传到 JudgmentResult', async () => {
