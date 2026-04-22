@@ -2,7 +2,7 @@
 
 > This file provides operational guidance to Claude Code when working in the `vitame-p0/` repository.
 > It is **a set of action rules, not a product introduction** — every section tells you what to do when writing code.
-> **Version**: v2.4 · Last updated: 2026-04-21 (D4 / 12, 晚). See §19 for change log; §18 for environmental blockers & known quirks.
+> **Version**: v2.5 · Last updated: 2026-04-21 (D4 / 12, 晚). Change log → `docs/CLAUDE.md-changelog.md`.
 
 ---
 
@@ -13,6 +13,17 @@
 - If your task touches LLM calls, OCR, compliance filters, or any user-visible output → you must also read §10, §11, and §13 before writing code.
 - If you find any conflict between this file and another doc in `docs/`, **this file wins**. Flag the conflict in your response and keep going.
 - When in doubt, stop and ask the user (see §9.6).
+
+### 0.1 按需读文档清单（CC 启动时**不读**，下列触发条件来时才读）
+
+| 文档 | 何时读 |
+|---|---|
+| `docs/SESSION-STATE.md` | 每次新会话开头都读（"我现在在哪")，是唯一跨会话进度锚点 |
+| `docs/known-blockers.md` | fetch 失败 / SUPP.AI 抓空 / SSL 错 / VPN 节点切换无效 → 先来这里查 |
+| `docs/glossary.md` | 遇到不认识的术语（DSLD / SUPP.AI / 蓝帽子 / SourceRef / ...） |
+| `docs/superpowers-workflow.md` | 接到非 trivial 任务、要拆 plan 时 |
+| `docs/compression-rules.md` | 会话即将被自动压缩 / 压缩后第一时间恢复 |
+| `docs/CLAUDE.md-changelog.md` | "为什么会变成这样"考古时 |
 
 ---
 
@@ -117,56 +128,19 @@ See §10 for detail. In short: L1 has no imports from `adapters/`; L2 returns JS
 
 ## 5. Repository structure
 
+核心路径（细节自己 `ls` / `glob`）：
+
 ```
-vitame-p0/
-├── CLAUDE.md                        # this file (engineering rules)
-├── DESIGN.md                        # visual design system
-├── README.md
-├── package.json
-├── tsconfig.json                    # "strict": true, no any escape hatches
-├── next.config.mjs
-├── tailwind.config.ts               # references DESIGN.md §10 tokens
-├── .env.local.example               # document every env var here, no exceptions
-├── scripts/                         # offline baking — NOT bundled
-│   ├── bakeNih.ts                   # NIH ODS fact sheets → ingredients.ts
-│   ├── bakeLpi.ts                   # Linus Pauling Institute → ingredients.ts
-│   ├── bakeCnDri.ts                 # 中国营养学会 DRIs → ingredients.ts
-│   ├── bakePubchem.ts               # PubChem PUG REST → fills IngredientForm.pubchemCid (D2 新增)
-│   ├── bakeDsld.ts                  # DSLD ingredient dictionary (NOT products)
-│   ├── bakeSuppai.ts                # SUPP.AI → suppai-interactions.ts
-│   ├── bakeTga.ts                   # Australia TGA ARTG → tga-products.ts
-│   ├── bakeKinoseihyouji.ts         # Japan 機能性表示食品 → jp-products.ts
-│   └── bakeBluehat.ts               # China 蓝帽子 manual list → cn-bluehat-products.ts
-├── src/
-│   ├── app/                         # Next.js App Router pages
-│   │   ├── page.tsx                 # landing / hero
-│   │   ├── query/page.tsx           # input page
-│   │   ├── intake/page.tsx          # key-context questions
-│   │   ├── result/page.tsx          # red/yellow/gray/green verdict
-│   │   ├── archive/page.tsx         # saved results
-│   │   ├── recheck/page.tsx         # quick recheck from archive
-│   │   └── api/
-│   │       ├── query-intake/route.ts
-│   │       ├── safety-judgment/route.ts
-│   │       ├── safety-translation/route.ts
-│   │       └── archive-recheck/route.ts
-│   ├── lib/
-│   │   ├── db/                      # L1 — baked data, static imports only
-│   │   ├── adapters/                # LLM / OCR / input-normalizer factories
-│   │   ├── capabilities/            # 5 capabilities, 1 folder each
-│   │   │   ├── queryIntake/
-│   │   │   ├── safetyJudgment/
-│   │   │   ├── safetyTranslation/
-│   │   │   ├── archiveRecheck/
-│   │   │   └── compliance/
-│   │   ├── types/                   # global TS types — Risk, Reason, SourceRef, etc.
-│   │   └── audit/                   # JSONL writer
-│   └── components/                  # UI components (follow DESIGN.md)
-├── tests/
-│   ├── seed-questions.spec.ts       # 20 seed questions end-to-end (§14)
-│   ├── compliance-audit.spec.ts     # compliance red-line regression
-│   └── unit/                        # adapter + capability unit tests
-└── docs/                            # design docs (mirror of project knowledge)
+src/lib/db/              L1 — baked data, static imports only, 每个文件首行 'server-only'
+src/lib/adapters/        LLM / OCR / input-normalizer factories
+src/lib/capabilities/    5 capabilities — queryIntake / safetyJudgment / safetyTranslation / archiveRecheck / compliance
+src/lib/types/           global TS types — Risk / Reason / SourceRef / Person / ...
+src/app/api/             Next.js API routes — query-intake / safety-judgment / safety-translation / archive-recheck
+src/components/          UI components (follow DESIGN.md)
+scripts/bake*.ts         offline baking, 9 个 source —— NIH / LPI / CnDri / PubChem / DSLD / SUPP.AI / TGA / JP / Bluehat (见 §6.2)
+tests/unit/              adapter + capability unit tests (§13.1 强 TDD)
+tests/seed-questions.spec.ts  20 seed E2E (§14, merge gate)
+docs/                    design docs (5 份 spec + plan + acceptance + 按需读 5 份, 见 §0)
 ```
 
 ---
@@ -184,36 +158,24 @@ NEXT_PUBLIC_APP_ENV=dev       # dev | staging | prod
 AUDIT_LOG_DIR=./var/audit
 ```
 
-### 6.2 Commands (copy-paste ready)
+### 6.2 Commands
 
 ```bash
-# dev
+# dev / build
 npm run dev                      # localhost:3000
+npm run build && npm run start
 
-# build & start
-npm run build
-npm run start
-
-# tests — see §13 for which code is required to have tests
+# tests — §13 决定哪些代码需要测；test:seed 100% 是 merge gate (§14)
 npm run test:unit
-npm run test:seed                # 20 seed questions; threshold 100%, required before any PR merge
-npm run test:compliance          # compliance red-line regression; threshold 100%
+npm run test:seed
+npm run test:compliance
 
-# baking — re-entrant, safe to rerun
-npm run bake:nih
-npm run bake:lpi
-npm run bake:cndri
-npm run bake:pubchem
-npm run bake:dsld
-npm run bake:suppai
-npm run bake:tga
-npm run bake:jp
-npm run bake:bluehat
-npm run bake:all                 # runs all of the above in order
+# baking — 全部 re-entrant，可重复跑
+npm run bake:{nih,lpi,cndri,pubchem,dsld,suppai,tga,jp,bluehat}
+npm run bake:all
 
-# deploy — local build, then rsync to cloud. NEVER npm install on the box (2GB RAM will OOM).
-npm run build
-npm run deploy:rsync             # wraps rsync + pm2 reload
+# deploy — 本地 build 后 rsync；千万别在 SV box 上 npm install（2GB RAM 会 OOM）
+npm run deploy:rsync
 ```
 
 ### 6.3 What to check after each bake
@@ -248,53 +210,20 @@ All design docs live in `docs/`. Pick the narrowest one before reading the broad
 
 ## 8. Superpowers integration
 
-This project uses [obra/superpowers](https://github.com/obra/superpowers) for agentic workflow, installed via the Claude Code official plugin marketplace:
+精简装 [obra/superpowers](https://github.com/obra/superpowers)（`/plugin install superpowers@claude-plugins-official`），**只启用 4 个 skill**：
 
-```
-/plugin install superpowers@claude-plugins-official
-```
-
-### 8.1 Enabled skills (the "lean install")
-
-Only these four Superpowers skills are in use. Others should be considered **off**:
-
-1. **`writing-plans`** — break work into 2–5 minute tasks with exact file paths, code, and verification steps
-2. **`subagent-driven-development`** — dispatch a fresh subagent per task with two-stage review (spec compliance, then code quality)
-3. **`test-driven-development`** — RED-GREEN-REFACTOR cycle (**but see §13 for which code this applies to — it is not universal**)
-4. **`requesting-code-review`** — pre-merge review against the plan
-
-### 8.2 Deliberately NOT enabled, and why
-
-| Skill | Why we skip it |
+| Skill | 用途 |
 |---|---|
-| `brainstorming` | Our P0 spec is already locked: see `docs/VitaMe-*-P0-PRD.md` and the five `*-design.md` files. Re-brainstorming wastes sprint time. |
-| `using-git-worktrees` | 2-person team; worktrees are overhead for us. A single branch per feature is fine. |
-| `executing-plans` (batched) | We prefer `subagent-driven-development` for isolation. |
-| `dispatching-parallel-agents` | 2-person team; no parallel subagent load. |
-| `finishing-a-development-branch` | We don't want automated merge/PR decisions during a 12-day sprint — Sunny approves merges. |
+| `writing-plans` | 把工作拆成 2–5 分钟人审 task |
+| `subagent-driven-development` | 每 task 一个新 subagent + 两轮 review |
+| `test-driven-development` | RED-GREEN-REFACTOR，仅对 §13.1 列的代码 |
+| `requesting-code-review` | merge 前对照 plan review |
 
-### 8.3 Precedence when Superpowers and this file conflict
+其余 7 个 skill（`brainstorming` / `using-git-worktrees` / `executing-plans` / `dispatching-parallel-agents` / `finishing-a-development-branch` 等）一律**关闭**。
 
-**`CLAUDE.md` and `DESIGN.md` always win** over Superpowers default behavior. Specifically:
+### 8.1 优先级
 
-- If `test-driven-development` says "test every line" but §13 below says "skip TDD for bake scripts" → **follow §13**.
-- If a plan from `writing-plans` would violate a compliance red line in §11 → **abandon the plan, raise the conflict**.
-- If `requesting-code-review` passes code that fails `npm run test:seed` → **the seed test wins; revert**.
-
-### 8.4 Standard workflow order (for non-trivial tasks)
-
-```
-user task
-  └→ writing-plans         (produce a bite-sized plan,
-                            reference §13 for which tasks need TDD)
-      └→ subagent-driven-development   (execute plan, one subagent per task)
-          └→ test-driven-development   (RED-GREEN-REFACTOR on §13-required code)
-              └→ requesting-code-review (against the plan)
-                  └→ npm run test:seed (MANDATORY before merge, §14)
-                      └→ Sunny approves merge
-```
-
-Trivial tasks (typo fix, dependency bump, env.example tweak) may skip `writing-plans` and `subagent-driven-development` — but the seed test still runs before merge.
+`CLAUDE.md` + `DESIGN.md` 永远覆盖 Superpowers 默认行为：§13 > `test-driven-development`，§11 红线 > 任何 plan，§14 seed test > `requesting-code-review` 通过判断。完整工作流见 `docs/superpowers-workflow.md`。
 
 ---
 
@@ -373,24 +302,11 @@ Stop immediately — do not guess — if any of these occur:
 8. A DESIGN.md visual rule would need to be broken (e.g. a new color added).
 
 **Ask by stating the situation plainly and proposing 2–3 concrete options.** Do not ask open-ended questions.
-  9.7.3 禁止的压缩行为
 
-    - 🚫 不要在跑 TDD 的 RED-GREEN 中途压缩（失败的测试 + 未写的实现一起丢，极其危险）
-    - 🚫 不要在 compliance middleware 调试中途压缩（6 层顺序一乱就违规）
-    - 🚫 不要在 bake 脚本输出未核对前压缩（体积/条数 console.log 是验证锚，丢了要重跑）
-    - 🚫 不要在用户刚给新指令 / 新约束后立刻压缩（新约束容易被视作"老上下文"砍掉）
+### 9.7 上下文压缩
 
-    如遇到自动压缩触发在上述时刻，先完成当前 atomic step 再让它压。
+何时禁止压缩、压缩后如何恢复 → 见 `docs/compression-rules.md`。仅在「会话即将被自动压缩」或「压缩后第一时间恢复」时读。
 
-    9.7.4 压缩后恢复的检查项（新会话开头 checklist）
-
-    每次新会话启动（尤其是压缩后续）必须先做：
-
-    - 读 docs/session-anchors/ 里最新一份
-    - 读 CLAUDE.md §0 → §7（路径索引） → 当前阶段对应的 design doc
-    - git log --oneline -10 对齐最近 commits
-    - git status 看有没有未提交的遗留
-    - 向用户确认锚点里的 next action 是否仍有效
 ---
 
 ## 10. Layer discipline — forbidden cross-layer patterns
@@ -557,112 +473,27 @@ Implementation: a Git pre-push hook (local) and a CI check (remote) both run `np
 
 ---
 
-## 16. Risk fallback matrix (triggers → degraded plan)
+## 16. Risk fallback matrix
 
-| Risk | Trigger signal | Fallback |
-|---|---|---|
-| DSLD dump is free-text, unparseable | D1 validation shows irregular fields | Drop `dsld-ingredients.ts`, use PubChem as dictionary |
-| SUPP.AI filtered set < 500 entries | D3 bake output | Supplement with hardcoded contraindications up to 100 rules |
-| Minimax multimodal OCR unstable | D4 integration | Drop OCR, text input only; OCR becomes P1 |
-| Minimax text quality poor | D6 results look off | Switch provider to DeepSeek or openclaw |
-| 蓝帽子 anti-scrape blocks us | D5 scrape fails | Manual input 30 brands (list already prepared) |
-| SV cloud 2C4G can't run SSR | D9 deploy load test fails | Static export + API on Vercel / Cloudflare Workers |
-| WeChat WebView blocks the page | D10 on-device test | Record video demo, pitch with video instead of live demo |
-| No pharmacist reviewer secured | D12 still unreviewed | UI shows prominent "Demo prototype, not clinically validated" disclaimer |
-| One team member sick | any day | 🔴 tier unaffected; drop all 🟡 / 🟢 |
+→ 见 `docs/superpowers/plans/2026-04-18-vitame-p0-plan.md` §"Risk fallback matrix"。是 plan-time 的"如果某个风险触发，就退到这个降级方案"清单。
 
 ---
 
 ## 17. Glossary
 
-| Term | Meaning |
-|---|---|
-| **DSLD** | Dietary Supplement Label Database, NIH / ODS. Used as an ingredient-name dictionary, not a product DB. |
-| **SUPP.AI** | Allen AI's supplement × drug interaction dataset (~59K pairs, filtered to ~1500 for us). |
-| **DDInter** | Drug × drug interaction database. Chinese academic source. |
-| **TGA / ARTG** | Therapeutic Goods Administration (Australia) / Australian Register of Therapeutic Goods. |
-| **蓝帽子 (Blue Hat)** | China's official health-food (保健食品) registration mark. |
-| **NIH ODS** | Office of Dietary Supplements at the US National Institutes of Health. |
-| **LPI** | Linus Pauling Institute at Oregon State. Micronutrient information center. |
-| **DRIs** | Dietary Reference Intakes. Chinese version from 中国营养学会. |
-| **機能性表示食品** | Japan's "Food with Function Claims" system. |
-| **L1 / L2 / L3** | Internal layer naming: knowledge dict / judgment engine / translation layer. See §3. |
-| **SSR** | Server-Side Rendering (Next.js mode we use). |
-| **OCR** | Optical Character Recognition. Minimax multimodal for bottle reading. |
-| **CPS** | Cost-Per-Sale affiliate commission. **Not** in scope for P0. |
-| **WAIC** | World Artificial Intelligence Conference. Hackathon host. |
-| **Superpowers** | [obra/superpowers](https://github.com/obra/superpowers) Claude Code plugin. See §8. |
-| **SourceRef** | Mandatory evidence-origin tag on every data entry. See §12.2. |
-| **TemplateFallback** | When LLM output fails Zod validation, we emit a pre-written template string instead. |
-| **Tier 3 TDD** | Our selective TDD + seed E2E safety net approach. See §13. |
+→ 见 `docs/glossary.md`。遇到不认识的术语再查。
 
 ---
 
 ## 18. Environmental blockers & known quirks — 阻塞实况速查
 
-> 实际踩坑后回填的工程侧实况，与 §16 风险矩阵互补：§16 是**未发生**的风险 × 触发信号 × fallback；本节是**已发生**的阻塞 × 现象 × 当前解法。遇到相同症状先查这里。
-
-### 18.1 本地 VPN/DNS 劫持（D2 夜间发现）
-
-**现象**：Clash Verge 全局 / TUN / 换节点均无效，以下域名解析被劫持到 fake-IP 保留段 `198.18.0.0/15`，fetch 报 `fetch failed` 或 SSL handshake 失败：
-
-- `*.nih.gov` — 影响 `bakeNih.ts`
-- `*.ncbi.nlm.nih.gov` / `pubchem.ncbi.nlm.nih.gov` — 影响 `bakePubchem.ts`
-- `google.com` / `googleapis.com`
-
-**不受影响 / 已验证可达**：
-- `supp.ai` ✓（SSR HTML + JSON API 均正常）
-- `lpi.oregonstate.edu` ✓（226KB HTML）
-- `dri.cn` ✓（已通过 cn-dri 手录方式规避）
-
-**解法**：
-- 推迟 `bakeNih` + `bakePubchem` 到 SV 部署后（D9 阶段）在服务器上重跑（SV 2C4G 不在 GFW 内，无此阻塞）
-- `bakePubchem.ts` 产物结构在 VPN 环境下仍能生成（所有 `pubchemCid: null`），SV 重跑时只需 overwrite 产物即可
-- `ingredients.ts` 需在本地通过 LPI（可达）+ 手工补齐骨架，避开 NIH 深度段直到 SV 阶段
-
-**不要做**：重复试 VPN 节点；这不是节点问题，是服务商级域名黑名单。
-
-### 18.2 SUPP.AI CDN 两坑（D2 夜间发现）
-
-**坑 1**：`/a/<slug>/<cui>` 默认 gzip 返回 **33KB SPA 壳**（前端渲染用），不含 SSR 注入的 `/i/<pair>` 链接，解析后 0 条结果。
-
-- **解法**：请求头必须 `Accept-Encoding: identity` + `User-Agent: curl/8.0`，强制 CDN 回源拿完整 SSR HTML（~1MB/页，含 50 条 `/i/` 链接）
-
-**坑 2**：`?p=0` 被 CDN 当成 SPA 路由的默认首页缓存，返 33KB 空壳；真正的分页从 `?p=1` 开始（1-indexed）。无参数的根路径等同于 `?p=1`。
-
-- **解法**：分页循环 `for (p=1; p<=MAX; p++)`，不要从 0 起
-- **测试**：`curl -H 'Accept-Encoding: identity' https://supp.ai/a/magnesium/C0024467?p=1 | grep -oE '/i/[a-z0-9-]+/C[0-9]+-C[0-9]+' | wc -l` 应返 ≥ 40
-
-### 18.3 SUPP.AI CUI 映射坑（D2 夜间发现）
-
-**现象**：纯元素级 CUI（`C0006675` Calcium / `C0302583` Iron / `C0043481` Zinc）在 SUPP.AI agent API 上返 404，无 interaction 图谱，listing 阶段 0 条。
-
-**原因**：SUPP.AI 只为 **supplement 形式**（盐型、离子、膳食形式）建图，不为纯元素建图。
-
-**解法**（已落到 `scripts/raw/suppai-ingredient-map.json`）：
-- `calcium` → `C0006681`（Calcium Carbonate，ic=110）
-- `iron` → `C0376520`（Iron, Dietary，ic=559）
-- `zinc` → `C2346521`（Zinc Cation，ic=163）
-- `vitamin-d` → `C0042866`（Vitamin D 顶层，而非 `C0255545` 无交互子类）
-
-未来新增 ingredient 时遵此模式：优先选 `interacts_with_count` 最高的 supplement 形式 CUI，验证方法见 `scripts/raw/suppai-cui-probe.mjs`。
-
-### 18.4 Git 未 commit 滚动状态提醒
-
-截至 D2 晚，Batch 1/2/3 所有产物（脚手架 + types + contraindications + cn-dri + pubchem + bakeSuppai 脚本 + L2 能力层）**均在工作区未提交**。压缩/崩溃风险下会损失；CC 不得擅自 `git commit`（CLAUDE.md §9.6），由 Sunny 决定 commit 节奏。SESSION-STATE.md 是唯一跨会话锚点。
+→ 见 `docs/known-blockers.md`。**遇到对应症状（fetch 失败 / SUPP.AI 抓空 / SSL 错 / 节点切换无效）先来这里查**，再去开新 issue 或试 fallback。与 §16 风险矩阵互补：§16 是**未发生**的风险 × 触发信号 × fallback；本节是**已发生**的阻塞 × 现象 × 解法。
 
 ---
 
 ## 19. Change log
 
-| Date | Version | Change |
-|---|---|---|
-| 2026-04-21 | **v2.4** | D4 跨分支对齐（Kevin 在 `codex/spec-hardening` 分支 D3 提交的 8 份 P0 specs vs Wave 1 代码）后回填：(a) §11 红线 11→**12**，新增第 12 条「`partialReason` 只能输出 `hardcoded_partial / suppai_partial / ddinter_partial` 白名单码，`LookupResponse.error` 不得进 UI」（Codex review 审出的契约漏洞，见 `src/lib/capabilities/safetyJudgment/judgmentEngine.ts:57-62`）；(b) §9.4 checklist 新增「新 Risk 必须含 `dimension: RiskDimension` + `cta: RiskCta`」（默认映射在 `src/lib/capabilities/safetyJudgment/riskDefaults.ts`，6 种 dimension × 5 种 cta，对齐 Kevin `api-contract.md §1.6`）；(c) 跨分支 3 条命名约定锁定：**TS 字段名 camelCase / 枚举值字符串保留 snake_case / disclaimer 顶层 1 份（`TranslationResult.disclaimer`）/ Risk 保留 `ingredient|condition|medication` 结构化溯源**。代码侧 commits `4868883` `371e16e`，文档侧 PR #1（`docs/align-risk-schema` → `codex/spec-hardening`，待 Kevin review），handoff 说明 `docs/2026-04-21-kevin-review-handoff.md`。Wave 2+ 已知 TODO：`riskLevelMerger.mergeBucket` 吞掉次值 dimension/cta（P0 同 `SubstanceKind` → 同 dimension，不咬；suppai 激活后若出现同键跨维度冲突需加 `conflictingDimensions / conflictingCtas`）。 |
-| 2026-04-19 | **v2.3** | D2 夜间 bakeSuppai 实跑后阈值回调：§9.3 坑 4 重写 —— 废除「top 50 × top 100 硬白名单」（规划期拍脑袋，对齐不了医学意义），改为三条对齐真实风险的规则：(a) `evidenceCount >= 3` 过滤长尾弱证据；(b) 单文件 < 1.5 MB（防 tsc 慢 + 防 client bundle leak）；(c) `src/lib/db/*.ts` 加 `import 'server-only'` 防泄漏。§9.3 坑 5 补注：5 MB 总产物是 SV 2C4G RAM 预算的推导值，非拍脑袋。 |
-| 2026-04-19 | **v2.2** | D2 夜间加 §18「Environmental blockers & known quirks」：VPN DNS 劫持实录（NIH/PubChem/Google 全断，推迟 SV 重跑）+ SUPP.AI 两个 CDN 坑（Accept-Encoding identity + 1-indexed 分页）+ CUI 映射规则（纯元素 → supplement 形式）+ 未 commit 滚动状态提醒。原 §18 Change log 顺延到 §19。两处内部引用「§18 change log」同步改到 §19。 |
-| 2026-04-19 | **v2.1** | D2 post-ChatGPT-bake-plan review. §5: added `bakePubchem.ts`. §6.2: added `npm run bake:pubchem`. §9.3 pit 6: added OCR confidence threshold 0.7 + capability-layer gate. §9.3 pit 7 + §10.4 + §11.7 + §11.10 + §11.11: compliance middleware extended to 6-layer with `DemoBanner ∥ Disclaimer` parallel injector; added red line #11 requiring DemoBanner on unreviewed hardcoded hits. §15.2: red tier rebaselined from 30 to 50 rules per user decision. §11 count updated from "10 rules" to "11 rules". |
-| 2026-04-19 | **v2** | Added §8 Superpowers integration (lean install, 4 skills). Added §13 TDD execution policy (Tier 3 — selective TDD + seed E2E safety net). Added `DESIGN.md` references in §0, §7, §9.5. Removed v1's "Phase mode vs Task mode" subsection (superseded by Superpowers `writing-plans`). Removed v1's "Role split (PM ↔ engineer)" section (moved to other docs). |
-| 2026-04-19 | v1 | Initial version. Rewritten from scratch after product re-positioning from "Health Guardian Agent" to "VitaMe Supplement-Safety Translation Agent" on 2026-04-17. |
+→ 见 `docs/CLAUDE.md-changelog.md`。仅在「为什么会变成这样」考古时读。新版本回填时，在该文件表格顶部加一行；本文件头部 Version 同步改。
 
 ---
 

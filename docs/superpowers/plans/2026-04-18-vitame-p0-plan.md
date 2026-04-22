@@ -456,6 +456,22 @@ vitame-p0/
 - Phase 4 验证:在浏览器里保存"妈妈"档案 → 新增钙片 → 复查不重复问既有病史
 - Phase 5 验证:20 条种子问题 E2E 通过率 100% + compliance-audit 通过
 
+## Risk fallback matrix (triggers → degraded plan)
+
+> 从 `CLAUDE.md` §16 拆过来。是 plan-time 的"如果某个风险触发，就退到这个降级方案"清单，不是 action-time 的硬规则。
+
+| Risk | Trigger signal | Fallback |
+|---|---|---|
+| DSLD dump is free-text, unparseable | D1 validation shows irregular fields | Drop `dsld-ingredients.ts`, use PubChem as dictionary |
+| SUPP.AI filtered set < 500 entries | D3 bake output | Supplement with hardcoded contraindications up to 100 rules |
+| Minimax multimodal OCR unstable | D4 integration | Drop OCR, text input only; OCR becomes P1 |
+| Minimax text quality poor | D6 results look off | Switch provider to DeepSeek or openclaw |
+| 蓝帽子 anti-scrape blocks us | D5 scrape fails | Manual input 30 brands (list already prepared) |
+| SV cloud 2C4G can't run SSR | D9 deploy load test fails | Static export + API on Vercel / Cloudflare Workers |
+| WeChat WebView blocks the page | D10 on-device test | Record video demo, pitch with video instead of live demo |
+| No pharmacist reviewer secured | D12 still unreviewed | UI shows prominent "Demo prototype, not clinically validated" disclaimer |
+| One team member sick | any day | 🔴 tier unaffected; drop all 🟡 / 🟢 |
+
 ## Dependencies Summary
 
 ```
