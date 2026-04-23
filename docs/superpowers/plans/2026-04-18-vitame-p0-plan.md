@@ -4,7 +4,7 @@ description: "补剂安全翻译 Agent P0 MVP 的工程落地执行计划:Bite-S
 doc_type: "plan"
 status: "active"
 created: "2026-04-18"
-updated: "2026-04-19"
+updated: "2026-04-22"
 canonical: true
 privacy: "internal"
 tags: ["engineering", "p0", "superpowers", "p0-plan"]
@@ -13,6 +13,8 @@ tags: ["engineering", "p0", "superpowers", "p0-plan"]
 # VitaMe P0 Implementation Plan
 
 > **📌 2026-04-19（D2 晚）进度回填**：Batch 1 脚手架 + Batch 2 类型契约 + Batch 3 部分烘焙 + L2 判断层全部跑绿。标记说明：✅ 已完成 / ⏳ 进行中 / 🚫 阻塞 / 💀 已删除或合并 / 无标记 = 未开始。路径变更见下方「路径修正总表」。
+>
+> **📌 2026-04-22（D5）架构升级**：v2.8 引入 L0 Query Intake 层（取代 v2 关键词 4 题固定问答）+ L2 grading 语义对齐（no-data → gray、known + no-rule → green）+ 时间目标 30s → 60s + 症状→成分推荐作为 P0 例外（带二次安全核查）。新增任务簇：Phase 1.5 (L0 意图层 ~10 task)、Phase 2.5 (L2 grading fix ~3 task)、Phase 3.5 (L0 意图层 UI ~3 task)。预估额外工作量 35–43h / 5–6 天。详见 §"v2.8 任务簇" 与 `docs/CLAUDE.md-changelog.md`。
 
 ## 路径修正总表（实际代码与原 plan 不一致处）
 
@@ -313,6 +315,21 @@ vitame-p0/
 - [ ] **T-1.17** 更新 `/api/query/route.ts`:入参扩展 `{input?, imageBase64?, personRef?}`;若 imageBase64 → 先走 ocrAdapter 拿 ingredients,再走 inputNormalizer 标准化
 - [ ] **T-1.18** 在 `src/app/page.tsx` 增加 OCR 成功后显示识别卡片(brand + product_name + ingredients 列表 + 低置信度时的"手动补正"编辑入口)
 
+### Phase 1.5:L0 Query Intent（v2.8 新增 — 取代 v2 关键词 4 题固定问答）
+
+> 对应 spec：`docs/superpowers/specs/2026-04-18-vitame-query-intake-design.md` v3。CLAUDE.md §10.0 + §11.13 约束。
+
+- [ ] **T-1.5.1** 写测试 `tests/unit/queryIntake/parseIntent.spec.ts`：覆盖 7 intent 各 1 case + Zod `.strict()` 拒绝额外字段（level/safe/dangerous）+ 超时降级走 parseIntentFallback + LLM 输出残缺时 missingSlots 正确填充
+- [ ] **T-1.5.2** 实现 `src/lib/capabilities/queryIntake/parseIntent.ts`：调 `LLMClient` (Anthropic Messages 协议) + `IntentResultSchema.strict()` 校验；失败 → `parseIntentFallback`。**禁止**输出 risk level 字段（红线 §11.13）(depends on T-1.5.1)
+- [ ] **T-1.5.3** 实现 `src/lib/capabilities/queryIntake/parseIntentFallback.ts`：3 条固定文案（"我没听懂" / "请补充背景" / "我们暂不支持这类问题"）+ 固定 `intent='unclear'` + 空 mentions
+- [ ] **T-1.5.4** 写测试 `tests/unit/queryIntake/groundMentions.spec.ts`：别名命中 (Coq10 → coenzyme_q10) + 模糊命中 (CoQ → 候选列表) + 全 miss → 不新建 slug
+- [ ] **T-1.5.5** 实现 `src/lib/capabilities/queryIntake/groundMentions.ts`：纯确定性，查 L1 alias 字典 + Levenshtein < 2 模糊；不调 LLM(depends on T-1.5.4)
+- [ ] **T-1.5.6** 写测试 `tests/unit/queryIntake/slotResolver.spec.ts`：4 个 clarify topic 决策表（缺成分 / 缺人群 / 缺当前服药 / 多 ingredient 优先级）+ 已满足时返回 `clarifyNeeded:false`
+- [ ] **T-1.5.7** 实现 `src/lib/capabilities/queryIntake/slotResolver.ts`：业务规则决定 WHEN/WHAT clarify；choices 由本组件提供（≤4），LLM 只 phrase（depends on T-1.5.6）
+- [ ] **T-1.5.8** 实现 `src/lib/capabilities/queryIntake/clarifyOrchestrator.ts`：编排 parseIntent → groundMentions → slotResolver → clarify 循环（≤2 轮，第 3 轮强制 fallback）
+- [ ] **T-1.5.9** 实现 `src/app/api/intent/route.ts`：`POST {text, sessionId}` → `IntentResult | ClarifyPrompt | FallbackForm`(depends on T-1.5.8)
+- [ ] **T-1.5.10** 写 P0 4-handler 路由：`product_safety_check` → 接 Phase 2；`symptom_goal_query` → 接 Phase 3.5 候选；`ingredient_translation` → 接 Phase 3 翻译；`unclear` → IntentFallbackForm。其他 3 intent → "礼貌告知不支持"
+
 ### Phase 2:SafetyJudgment(对应 design 2) — **L2 核心闭环 ✅ 47/47 TDD green**
 
 - [x] 💀 **T-2.1** ~~ruleRegistry.test.ts~~ — **已合并**：hardcodedAdapter 直接查 `CONTRAINDICATION_BY_PAIR` Map，无需单独建 registry 层（见 `src/lib/adapters/hardcodedAdapter.ts` 11 tests）
@@ -330,6 +347,30 @@ vitame-p0/
 - [ ] **T-2.11** 实现 `src/app/api/judgment/route.ts` — 未开始，等 Phase 1 `sessionId` 契约就位
 
 - [x] ✅ **新增 T-2.0** 定义 `src/lib/types/adapter.ts`:`SafetyAdapter` / `LookupRequest` / `LookupResponse` 契约（plan 原未单列，TDD 过程中发现需要）
+
+### Phase 2.5:L2 grading 语义 root fix（v2.8 新增 — CLAUDE.md §10.2）
+
+> **修 buggy 语义**：现 `judgmentEngine.ts:17-31` 把"未在 KB 命中"和"已知但无规则"都填灰，违反 §10.2。
+
+- [ ] **T-2.5.1** 写测试 `tests/unit/safetyJudgment/knowledgeBaseLookup.spec.ts`：覆盖 4 库（ingredients / cn-dri / lpi / pubchem）任一命中 → true，全 miss → false
+- [ ] **T-2.5.2** 实现 `src/lib/capabilities/safetyJudgment/knowledgeBaseLookup.ts`：导出 `isInKnowledgeBase(slug: string): boolean`，OR 查 4 个 L1 数据源(depends on T-2.5.1)
+- [ ] **T-2.5.3** 写测试 `tests/unit/safetyJudgment/judgmentEngine.spec.ts`（增量）：场景 5a 冷成分 → gray (`coverage_gap`) / 场景 5b 已收录 + 无 context → green (`no_known_risk`) / 场景 5c 已收录 + condition + 无 rule → green
+- [ ] **T-2.5.4** 重构 `judgmentEngine.ts`：拆 `buildNoDataRisk` → `buildNoDataRisk` + `buildNoKnownRiskRisk`；line 44-48 逻辑改为查 `isInKnowledgeBase` 决定填 gray 或 green(depends on T-2.5.2, T-2.5.3)
+
+### Phase 3.5:症状 → 成分推荐（v2.8 P0 例外 — CLAUDE.md §11.14）
+
+> 解锁 `intent === 'symptom_goal_query'` handler。要求带显式 disclaimer + 用户必须二次点击触发 `product_safety_check`。
+
+- [ ] **T-3.5.1** 写 `scripts/raw/symptom-ingredients-manual.json`：~30 条 `(symptomZh, candidateIngredientSlug[], evidenceNote)` 手工策划清单
+- [ ] **T-3.5.2** 写 `scripts/bakeSymptomIngredients.ts` → `src/lib/db/symptom-ingredients.ts`（🟡 档，超 5MB 时砍）
+- [ ] **T-3.5.3** 写测试 `tests/unit/queryIntake/symptomCandidates.spec.ts`：「想睡好」→ 镁/褪黑素/L-茶氨酸 候选 + 每条带 sourceRefs
+- [ ] **T-3.5.4** 实现 `src/lib/capabilities/queryIntake/symptomCandidates.ts`：消费 `symptom-ingredients.ts`，输出 ≤5 条候选(depends on T-3.5.2, T-3.5.3)
+
+### Phase 3.6:L0 意图层 UI 组件（v2.8 — DESIGN.md §4.7-4.9）
+
+- [ ] **T-3.6.1** 实现 `src/components/ClarifyBubble.tsx`：DESIGN §4.7 — choice button + "其他" 入口 + "为什么问？" 注脚
+- [ ] **T-3.6.2** 实现 `src/components/IntentFallbackForm.tsx`：DESIGN §4.8 — 3 条引导例句 + 输入框
+- [ ] **T-3.6.3** 实现 `src/components/SymptomCandidateList.tsx`：DESIGN §4.9 — 候选卡片 + 二次安全核查入口（必带 §11.14 disclaimer）
 
 ### Phase 3:SafetyTranslation + Compliance(对应 design 3, 5)
 
@@ -404,9 +445,9 @@ vitame-p0/
 | **4-19 周日** | D2 | 跑 bakeNih + bakeLpi + 审核 | T-0.10~0.17 基建收尾 + LlmAdapter + MultimodalProvider | ⚠️ **D2 L1 落地门未达**：NIH/PubChem VPN 阻塞 → ingredients.ts 空；但 contraindications.ts 50 + cn-dri × 23 + pubchem(form 结构) + L2 全链 47/47 green + bakeSuppai 运行中（提前消化 D3 工作） |
 | **4-20 周一** | D3 | bakeCnDri + bakePubchem + contraindications 50 条初稿 | bakeDsld(字典版) + bakeSuppai + 3 路 adapter | D3 末:L2/L1 db 全落地 — **建议调整**：改为 bakeLpi 本地跑 + 手工补 ingredients.ts 20~30 条骨架 + 启动 LLM Adapter（等用户给 openclaw 路径） |
 | **4-21 周二** | D4 | contraindications 审校 + 开始 Demo 脚本 | Query Intake + **OCR 联调**(Minimax 多模态) | D4 末:L3 入口通 |
-| **4-22 周三** | D5 | bakeTga + bakeKinoseihyouji + bakeBluehat | SafetyJudgment 全链路 + /api/judgment | **🚪 D5 主链路门**(文字 + 拍照输入 → 判断) |
-| **4-23 周四** | D6 | 20 条种子问题回归 + 药剂师审核对接 | SafetyTranslation + Compliance 5 层中间件 | **🚪 D6 翻译门**(LLM 结构化 JSON 稳定) |
-| **4-24 周五** | D7 | Demo 脚本定稿 + 录演练 | Archive & Recheck(含家人档案 + 复查) | D7 末:完整闭环跑通(保底档完成) |
+| **4-22 周三** | D5 | **v2.8 决策回填 8 文档**（CLAUDE/spec/DESIGN/plan/acceptance/SESSION-STATE/changelog） | Phase 1.5 T-1.5.1~5（parseIntent + groundMentions TDD） + Phase 2.5 T-2.5.1~4（L2 grading fix） | **🚪 D5 决策门**：v2.8 文档 + L2 grading green |
+| **4-23 周四** | D6 | symptom-ingredients 手工清单 + 20 条种子复跑（适配 v2.8） | Phase 1.5 T-1.5.6~10（slotResolver + clarify + /api/intent） + Phase 3.5 T-3.5.1~4（症状候选） | **🚪 D6 L0 主链路门**：text → intent → ground → clarify → handler |
+| **4-24 周五** | D7 | Demo 脚本（v2.8 流程） + UI 验收 | Phase 3.6 UI（ClarifyBubble + IntentFallbackForm + SymptomCandidateList）+ SafetyTranslation + Compliance 5 层 | **🚪 D7 翻译门 + 完整闭环**（保底档 + L0 完成） |
 | **4-25 周六** | D8 | 20 条再跑 + Demo 视觉优化 | UI 打磨 + 性能优化(端到端 <10s) | D8 末:亮点档完成,Demo 可拍 |
 | **4-26 周日** | D9 | Demo 90s 视频初版 | 硅谷云部署 + vitame.live 上线 | **🚪 D9 部署门**(生产可访问) |
 | **4-27 周一** | D10 | Demo 视频打磨 + PPT | 微信 WebView 真机测试 + bug 修 | D10 末:Demo 就绪 |
@@ -420,17 +461,18 @@ vitame-p0/
 |---|---|---|---|
 | 🚪 D1 数据验证 | D1 晚 | DSLD + SUPP.AI 结构符合预期 | 立即砍国际(TGA/JP),只做美国 |
 | 🚪 D2 L1 落地 | D2 晚 | ingredients.ts 含 30+ 成分完整字段 | 砍到保底档 |
-| 🚪 D5 主链路 | D5 晚 | 文字输入 → 判断 能跑通 | 砍 OCR,纯文字 Demo |
-| 🚪 D6 翻译 | D6 晚 | LLM 能稳定产出结构化 JSON | 切 Template Fallback,不用 LLM |
+| 🚪 D5 决策（v2.8） | D5 晚 | 8 文档锁定 + Phase 2.5 L2 grading 全 green | 退回 v2.7 关键词路径，但保留 L2 fix |
+| 🚪 D6 L0 主链路 | D6 晚 | text → intent → ground → clarify → handler 跑通 | 砍 symptom_goal_query handler，只保留 product_safety_check + unclear |
+| 🚪 D7 翻译 | D7 晚 | LLM 能稳定产出结构化 JSON | 切 Template Fallback,不用 LLM |
 | 🚪 D9 部署 | D9 晚 | vitame.live 能访问 | 切本地 Demo,录制视频代替 |
 
 ### 3 档 scope(按信心度分)
 
 | 档 | 必做(D7 前) | 增强(D7-D9) | 应急可砍 |
 |---|---|---|---|
-| 🔴 **保底** | ingredients.ts(30 成分)+ contraindications.ts(30 条)+ suppai-interactions.ts + **文字输入** + SafetyJudgment + SafetyTranslation + Disclaimer + 部署 | | |
-| 🟡 **亮点** | + **OCR 拍照**(Minimax 多模态)+ ingredients.ts 扩到 50 成分 + dsld-ingredients.ts 字典 + Archive & Recheck + LPI/TGA/JP | | |
-| 🟢 **加分** | | + 蓝帽子 + DDInter + 复查页动效 | 国际产品库 / DDInter / 蓝帽子 |
+| 🔴 **保底** | ingredients.ts(30 成分)+ contraindications.ts(50 条)+ suppai-interactions.ts + **L0 意图层（v2.8 — parseIntent + groundMentions + slotResolver + clarify, 4 handler）** + **L2 grading fix（v2.8 KnowledgeBaseLookup）** + 文字输入 + SafetyJudgment + SafetyTranslation + DemoBanner + Disclaimer + 部署 | | |
+| 🟡 **亮点** | + **OCR 拍照**(Minimax 多模态)+ ingredients.ts 扩到 50 成分 + dsld-ingredients.ts 字典 + Archive & Recheck + LPI/TGA/JP + **symptom-ingredients.ts（v2.8 P0 例外，§11.14）** | | |
+| 🟢 **加分** | | + 蓝帽子 + DDInter + 复查页动效 | 国际产品库 / DDInter / 蓝帽子 / symptom-ingredients |
 
 **口诀**:**D7 保保底,D9 要亮点,D11 冲加分**。任何一档卡住,往上退一档,不死磕。
 

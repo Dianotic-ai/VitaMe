@@ -2,7 +2,7 @@
 
 > VitaMe's visual design system for coding agents.
 > Based on the [Notion DESIGN.md](https://github.com/VoltAgent/awesome-design-md/tree/main/design-md/notion) (warm minimalism), adapted for VitaMe's supplement-safety domain.
-> Last updated: 2026-04-19.
+> Last updated: 2026-04-22 (D5).
 
 ---
 
@@ -11,6 +11,7 @@
 - When the task involves rendering anything the user will see — page, component, layout, color, copy — read this file first.
 - When the task is pure logic (baking, adapters, judgment rules) — you do **not** need to read this file.
 - This file pairs with `CLAUDE.md`. `CLAUDE.md` governs engineering rules; this file governs visual rules. When they overlap (e.g. §4 `DisclaimerBlock` references `CLAUDE.md` §10.1), **`CLAUDE.md` wins on behavior, this file wins on appearance**.
+- Generating or selecting illustrations / hero art / page-decoration bands → §11 (metaphor + layered system) + §12 (AI prompts) + §13 (review rubric). Reference assets live in `docs/assets/brand-*`.
 
 ---
 
@@ -143,7 +144,8 @@ Exactly one `RiskBadge` per ingredient, shown on every result card.
 |---|---|---|
 | Critical | 严重 | Critical |
 | Caution | 注意 | Caution |
-| Insufficient | 证据不足 | Insufficient |
+| Insufficient (no_data) | 未收录 | Not in KB |
+| Insufficient (legacy) | 证据不足 | Insufficient |
 | Clear | 未见风险 | Clear |
 
 ### 4.2 `DisclaimerBlock` — compliance-mandated
@@ -194,6 +196,69 @@ Shadow: elevation-1 only (`0 1px 2px rgba(43, 42, 39, 0.04)`). Never heavier on 
 - Font size: **16px minimum** (below 16px triggers iOS Safari auto-zoom on focus — never do this)
 - Border: 1px `border-subtle`, 10px radius
 - Focus: border changes to `vita-brown`. **Suppress** the default blue system halo.
+- Placeholder（v2.8 重写）：自然语言引导，例 "问我吧，比如：我妈在吃华法林，能吃辅酶 Q10 吗？"。**不**用"输入成分名"这类工程师导向措辞。
+
+### 4.7 `ClarifyBubble` — 意图识别澄清气泡（v2.8 新增）
+
+L0 `parseIntent` 触发 `clarify_needed` 时渲染。替代了 v2 的 `/intake` 4 道固定问答页。
+
+**结构**：
+- 左对齐"VitaMe"头像（不画脸，用 16px 圆形 `vita-brown` 色块 + 一个白色对勾 SVG）
+- 气泡 bg `surface`，1px `border-subtle`，12px radius，padding 12px 14px
+- 文字 `body`（14px），`text-primary`，line-height 1.6
+- 气泡下方一行 button row：≤4 个 choice button + 永远追加一个 "其他（自己说）" 文本输入入口
+
+**Choice button 状态**：
+- Default：1px `border-strong`，`text-primary`，48px 高（tap target），padding 0 14px，999px radius
+- Hover/focused：bg `bg-warm`，border `vita-brown`
+- Selected（点击后）：bg `vita-brown`，white text，**立即转换为右对齐用户气泡**（"我选了 X"）保留在对话流里
+- Disabled（提交后整个 group 锁死）：`text-disabled`，border `border-subtle`
+
+**"其他" 输入入口**：
+- 默认收起，显示为 ghost button "都不是？告诉我具体情况"
+- 点开后展开为单行 input + "发送"按钮，input 高度 48px，font 16px
+
+**clarify 气泡 schema 约束**（DESIGN ↔ spec 对齐）：
+- `question.length` ≤40 字（移动端单屏可读）
+- `choices.length` 在 [2, 4]，不能 0、不能 5+
+- 每个 choice 文案 ≤8 字（按钮可读 + 等宽对齐）
+- 同时必须显示一句小字注脚（`caption` / 12px / `text-secondary`）："为什么问？" 点开 sheet 解释这条 clarify 是基于哪条业务规则。**不**是装饰，是合规可解释性要求。
+
+**严禁**：
+- 自动跳到下一题（必须用户点了才进）
+- 多 clarify 同时出现（只显示当前一题）
+- 在气泡里画风险色块（这是 L2 的事，clarify 阶段还没判风险）
+
+### 4.8 `IntentFallbackForm` — 意图识别兜底（v2.8 新增）
+
+`parseIntent` 失败 / clarify 已 2 轮仍 unclear 时显示。
+
+**结构**：
+- 一句安抚文案（`body` / `text-primary`）："我没听懂你的问题，能换个说法吗？"
+- 三条引导例句（卡片状，1px `border-subtle`，可点击直接填入输入框）：
+  - "我妈在吃华法林，能吃辅酶 Q10 吗？"
+  - "孕期能吃维生素 D 吗？"
+  - "我胃溃疡，吃什么形式的镁？"
+- 输入框（同 §4.6 Query Input）+ "发送" primary button
+
+**严禁**：
+- 显示报错栈、`intent_llm_timeout` 等技术信息
+- 显示 raw LLM 输出（合规红线 §11.6 / §11.13）
+
+### 4.9 `SymptomCandidateList` — 症状候选成分（v2.8 新增，对应 §11.14）
+
+`intent === 'symptom_goal_query'` 且查到候选时显示。
+
+**结构**：
+- 顶部一句注脚（`caption` / 12px / `text-secondary`）："以下成分常被关联到这类需求，**不构成医疗建议**。点击任一项做安全核查。"
+- 卡片列表（最多 5 条）：
+  - 每张卡片：成分中文名 (`h4`) + 一句简介 (`body-sm`) + `EvidenceSource` chip（§4.3）+ 右下角 ghost button "查这个安不安全 →"
+  - 点击 → 自动以该 ingredient 起 `product_safety_check` 子查询
+
+**严禁**：
+- 给品牌/产品推荐（§11.9 不做电商）
+- 给"建议吃 X mg"剂量建议（§11.5 LLM 不创规则）
+- 显示按"评分"排序（这不是评测）
 
 ---
 
@@ -329,7 +394,11 @@ Disclaimer-bg #F5F1E8  Disclaimer-b #C9AE7B   Disclaimer-t #6B5332
 
 - [ ] `DisclaimerBlock` is visible, not collapsed
 - [ ] `RiskBadge` uses text + color (not icon-only)
+- [ ] `RiskBadge` 区分 `no_data`（"未收录"）与 legacy `证据不足`（v2.8 起）
 - [ ] Risk-related colors use the 4 risk tokens; never pure red/yellow/green
+- [ ] `ClarifyBubble` 单 clarify 显示、≤4 choices + 永远附 "其他" 入口、必带 "为什么问？" 注脚（v2.8）
+- [ ] `IntentFallbackForm` 不漏出 raw LLM / 错误栈（合规 §11.6 / §11.13）
+- [ ] `SymptomCandidateList` 不出现品牌推荐 / mg 剂量 / "评分排序"（§11.5 / §11.9 / §11.14）
 - [ ] Tap targets ≥ 44px
 - [ ] Input fonts ≥ 16px
 - [ ] No e-commerce patterns (price, stars, scarcity)
@@ -378,14 +447,121 @@ Disclaimer-bg #F5F1E8  Disclaimer-b #C9AE7B   Disclaimer-t #6B5332
 
 ---
 
-## 11. Provenance
+## 11. Brand illustration & metaphor
+
+### 11.1 Core metaphor — 种子发芽（seed sprouting）
+
+A seed cracking open, sending up two leaves and a fine root system. This is **the** brand symbol — not just a hero decoration. It maps to VitaMe's promise: *discernment before growth, every body has its own answer*.
+
+Four growth stages map 1:1 to product moments:
+
+| Stage | Visual | Maps to |
+|---|---|---|
+| 种子 (seed) | Whole, intact seed | Onboarding / first visit |
+| 发芽 (sprout) | Cracked husk + first leaves | Insight / first verdict shown |
+| 开花 (bloom) | Stem with flower | Growth / repeat user, archive built |
+| 结果 (fruit) | Branch with fruit | Outcome / habits formed |
+
+These four icons should be used as a coherent set whenever a sequence is shown (e.g. landing-page value props, onboarding flow). Do not invent fifth/sixth stages for variety.
+
+### 11.2 Layered illustration system — 主角安静 + 配角有层次
+
+VitaMe uses **two illustration registers in the same page**, kept coherent through shared color palette:
+
+| Register | Where | Style | Reference |
+|---|---|---|---|
+| **Hero / icon** (主角) | Hero focal art, four-stage icons, empty states | Single fine line, Klee-influenced, generous white around it, ≤3 visual elements. Quiet. | `docs/assets/brand-seed-sprout-hero.jpg` |
+| **Page background / decorative band** (配角) | Hero周围淡景、底部装饰带、CTA section、分隔区 | Layered fine-line botanicals (远景柏树/山形/水波/根系), faint watercolor wash, editorial density | `docs/assets/brand-page-layered-A.png` `docs/assets/brand-page-layered-B.png` |
+
+**Rules**:
+- 主角永远只有一个视觉中心；配角永远不抢主角。
+- 同色系：暖米背景 (`#FAF7F2`) + 鼠尾绿 (`#2D5A3D`) + 种子棕 (`#8B6B4A`) + 极少量溪水蓝点缀 (`#4A90B8`)。装饰带可以多元素，但**色彩必须 ≤4 种**。
+- 装饰带（配角）不可使用：写实植物堆叠、强阴影、强渐变、噪点纹理、卡通拟人。
+- 任何一页内：主角 1 个 + 配角带 ≤2 处。超过则砍。
+
+### 11.3 Style keywords
+
+**Must satisfy**: organic, minimal, quiet, gentle, thoughtful, airy, human, warm, editorial, hand-drawn
+
+**Must avoid**: cyberpunk, over-decorated, SaaS dashboard, neon gradient, overly commercial, cute/cartoonish, luxury fashion arrogance, wellness cliché
+
+### 11.4 Reference assets
+
+- `docs/assets/brand-seed-sprout-hero.jpg` — canonical hero / icon-set style anchor
+- `docs/assets/brand-page-layered-A.png` — page-decoration density reference (preferred)
+- `docs/assets/brand-page-layered-B.png` — alternate page-decoration density (more lush; use sparingly)
+
+---
+
+## 12. AI image prompts
+
+For when an asset doesn't exist and needs to be generated. **Always run output through §13 review rubric before shipping.**
+
+### 12.1 Hero / icon prompt (主角 register)
+
+```
+Design a single-subject botanical illustration in an Anthropic-inspired
+editorial minimal style with organic hand-drawn elements.
+Subject: a seed beginning to sprout — cracked husk, two delicate leaves,
+fine root system reaching into soft soil. Symbolizes discernment, inner
+growth, quiet strength, life emerging from fragility.
+Style: fine single line, soft warm background (#FAF7F2), accents of deep
+forest green (#2D5A3D) and seed brown (#8B6B4A). Generous whitespace.
+Inspired by Paul Klee, Saul Steinberg, contemporary minimalist plant sketches.
+Feel: calm, intelligent, airy, human-centered, premium, quietly alive.
+```
+
+### 12.2 Page decoration prompt (配角 register)
+
+```
+Design a page-background decorative band in editorial minimal style.
+Composition: layered fine-line botanicals — distant cypress trees, gentle
+hill silhouettes, water ripples, fine root systems — with faint watercolor
+wash. Multiple elements but ≤4 colors total: warm cream (#FAF7F2),
+forest green (#2D5A3D), seed brown (#8B6B4A), tiny accent of water blue
+(#4A90B8). Hand-drawn feeling, editorial density, never busy.
+Avoid: photorealism, cartoon, dashboard graphics, strong shadows, gradients.
+Feel: like the margin illustration of a thoughtful botanical journal.
+```
+
+### 12.3 Negative prompts (always include)
+
+```
+cyberpunk, neon gradient, glossy 3D, startup cliché, overly futuristic,
+busy layout, childish illustration, cartoon UI, high-saturation tech blue,
+dashboard overload, e-commerce promotional style, stock photo wellness,
+emoji, drop shadows, lens flare, particle effects.
+```
+
+---
+
+## 13. Review rubric — 10 项视觉评审
+
+Run this before any UI/illustration ships. Pass requires 9/10 yes.
+
+1. 第一眼是否像"安静、高级、有生命力"的品牌，而不是"工具网站"？
+2. 是否保留了足够留白（页面 ≥60% 浅色 / 空白）？
+3. 是否有明显的"种子发芽"隐喻或四阶段语言？
+4. 主角插画是否轻盈克制（单线条、无装饰堆砌）？
+5. 配角装饰带元素 ≤4 种颜色，且不抢主角？
+6. 色彩是否落在 §2 token 表内（无自创撞色）？
+7. 标题是否像"洞察"，而不是"广告语"（无"革命"/"颠覆"/"暴涨"）？
+8. CTA 是否克制可信（无促销红、无 emoji、无"立即抢购"句式）？
+9. 是否同时具备**人文感**与**当代感**（不复古、不科技）？
+10. 任何 AI 生成内容是否同屏可见 `<DisclaimerBlock>`（§4.2 + CLAUDE.md §11.1）？
+
+---
+
+## 14. Provenance
 
 - **Base**: [Notion DESIGN.md](https://github.com/VoltAgent/awesome-design-md/tree/main/design-md/notion) — warm minimalism aesthetic.
 - **VitaMe-specific additions**:
   - §2.1–2.2 four-risk-color system (the product's visual spine)
   - §2.5 dedicated disclaimer palette
   - §4.1 `RiskBadge`, §4.2 `DisclaimerBlock`, §4.3 `EvidenceSource` component specs
+  - §4.7 `ClarifyBubble`, §4.8 `IntentFallbackForm`, §4.9 `SymptomCandidateList`（v2.8 — L0 意图层 UI）
   - §8.4–8.5 WeChat WebView and iOS Safari quirks
+  - §11–13 brand illustration system + AI prompts + review rubric (D7, merged from `UI设计/skill.md`)
 
 ---
 

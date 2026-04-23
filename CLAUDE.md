@@ -2,7 +2,7 @@
 
 > This file provides operational guidance to Claude Code when working in the `vitame-p0/` repository.
 > It is **a set of action rules, not a product introduction** — every section tells you what to do when writing code.
-> **Version**: v2.5 · Last updated: 2026-04-21 (D4 / 12, 晚). Change log → `docs/CLAUDE.md-changelog.md`.
+> **Version**: v2.9 · Last updated: 2026-04-22 (D6 晚 / 12). Change log → `docs/CLAUDE.md-changelog.md`.
 
 ---
 
@@ -44,7 +44,7 @@ It is **not**: a disease diagnosis tool, a symptom tracker, a supplement e-comme
 
 ### 1.3 What this means for you (CC)
 
-- Every code change must serve the core UX: **"a user completes one safety check in ≤ 30 seconds and understands why"**. If a change does not serve this, push back.
+- Every code change must serve the core UX: **"a user completes one safety check in ≤ 60 seconds and understands why"**. If a change does not serve this, push back.（D5 调整：原 30s 目标在自然语言 query → LLM 解析 → adapter 并发 → L3 翻译完整链路下不现实；用户 D5 拍板「demo 视频可以剪辑，产品要稳定可靠」，把目标降到 60s。原 30s 目标见 v2.7 及之前。）
 - We are not building a platform. Do not add abstractions, plugin systems, or config layers "for future flexibility" unless explicitly required by a current task.
 - Scope creep is the #1 risk, not code quality. Ship working > ship elegant.
 
@@ -81,13 +81,22 @@ Default to **refuse**. Add a TODO comment pointing to this section. Do not silen
 
 ## 3. Product architecture — 3 layers × 8 core objects
 
-### 3.1 Three layers (strict)
+### 3.1 Four layers (strict)
+
+> **D5 重构（v2.8）**：原 3 层 + queryIntake 沦为「关键词 includes() 字典查询」无法解析自然语言（实测 "感冒期间可以吃维生素 AD 软胶囊吗" → 全部"证据不足"）。新增 **L0 意图识别层**，把"听懂用户的话"独立成一层，下游三层契约不变。
 
 | Layer | Role | Lives in | Reads from | Writes to |
 |---|---|---|---|---|
+| **L0 — Query intake & intent** | Natural-language → structured intent + grounded slugs | `src/lib/capabilities/queryIntake/` | L1（grounding）+ user input | structured `IntentResult` + `LookupRequest` |
 | **L1 — Knowledge dictionary** | Static, pre-baked data | `src/lib/db/*.ts` | nothing at runtime | nothing |
 | **L2 — Judgment engine** | Rule-based risk evaluation | `src/lib/capabilities/safetyJudgment/` | L1 + user profile | structured `Risk` JSON |
 | **L3 — Translation & adaptation** | Human-language explanation + multi-region product adaptation | `src/lib/capabilities/safetyTranslation/` | L2 output only | final user-facing strings |
+
+**L0 内部子流程**（详见 `docs/superpowers/specs/2026-04-18-vitame-query-intake-design.md`）：
+1. **parseIntent**（LLM）：自然语言 → `{intent, productMentions, ingredientMentions, medicationMentions, conditionMentions, specialGroupMentions, missingSlots, clarifyingQuestion?}`
+2. **groundMentions**（确定性 alias + fuzzy）：把 LLM 抽出来的中文 mention 映射到 L1 slug（fish-oil / warfarin / pregnancy / ...）
+3. **slotResolver**（确定性规则）：决定缺哪一类 slot → 是否需要 clarify
+4. **clarify-style follow-up**（混合 deterministic + LLM）：业务规则决定 **WHEN/WHAT** 问，LLM 决定 **HOW** 问
 
 ### 3.2 Eight core objects
 
@@ -106,7 +115,7 @@ Defined in `src/lib/types/`. Do not reinvent these or put equivalent shapes else
 
 ### 3.3 Hard rule: no cross-layer bypass
 
-See §10 for detail. In short: L1 has no imports from `adapters/`; L2 returns JSON only; L3 consumes L2 and never writes back; LLM calls only exist in `safetyTranslation/` and `queryIntake/`.
+See §10 for detail. In short: L0 outputs grounded slugs only（绝不直接判风险）; L1 has no imports from `adapters/`; L2 returns JSON only; L3 consumes L2 and never writes back; LLM calls only exist in `safetyTranslation/` 和 `queryIntake/`（**L0 的 LLM 仅做 NER 和 question-phrasing，禁止判定 ingredient 安全/不安全**）。
 
 ---
 
@@ -114,11 +123,14 @@ See §10 for detail. In short: L1 has no imports from `adapters/`; L2 returns JS
 
 - **Frontend**: Next.js 14 App Router + TypeScript (strict) + Tailwind CSS. SSR mode.
 - **Backend**: Next.js API routes (Node runtime, not Edge — we need filesystem access for audit logs).
-- **LLM providers** (factory pattern, switched by `LLM_PROVIDER` env):
-  - `minimax` — default, supports chat + vision (OCR)
-  - `deepseek` — backup, chat only
-  - `openclaw` — on-box fallback (reuses 770 MB RSS), chat only
-- **OCR**: Minimax multimodal. No other provider for P0.
+- **LLM client** (single Anthropic-Messages-compatible client, switched by env vars — Claude Code 模式):
+  - 一个 `LLMClient`（`@anthropic-ai/sdk` + Zod 校验 + TemplateFallback），不再每个 provider 写一个 class
+  - 协议固定 **Anthropic Messages**（minimax / Kimi K2 / 智谱 GLM 等都提供 Anthropic-compat 入口；走 Bearer authToken）
+  - `LLM_PROVIDER` 仅作 audit log tag（§11.10），不进 if/else 分支
+  - 默认主链：minimax (`https://api.minimaxi.com/anthropic` + `MiniMax-M2.7`)
+  - **fallback 链 P0 暂不做**（env 预留 `LLM_FALLBACK_*` 字段，代码 TODO；DeepSeek 只 OpenAI 兼容，要走 fallback 需单独 wrap）
+  - openclaw（on-box，13121 端口非标 schema）不在 P0 client 内，D9 SV 部署后单独 wrap
+- **OCR**: Minimax multimodal（vision endpoint 单独 env 配置）。No other provider for P0.
 - **Data**: 8 sources baked offline into `src/lib/db/*.ts`. Total bundle target **< 5 MB**. Runtime does **not** hit any external data source.
 - **Deploy**: self-hosted Silicon Valley cloud (2 vCPU / 4 GB RAM / 30 Mbps / Ubuntu), domain `vitame.live`, Nginx reverse proxy + pm2 + Let's Encrypt + Cloudflare free CDN in front.
 - **Access path**: user opens `https://vitame.live` inside WeChat WebView.
@@ -149,14 +161,36 @@ docs/                    design docs (5 份 spec + plan + acceptance + 按需读
 
 ### 6.1 Required env vars (`.env.local.example` is the source of truth)
 
+**Claude Code 模式**：`provider + model + baseURL + key` 通用 shape，单 `LLMClient` 走 **Anthropic Messages 协议**（Bearer authToken）。
+
 ```
-LLM_PROVIDER=minimax          # minimax | deepseek | openclaw
-MINIMAX_API_KEY=
-DEEPSEEK_API_KEY=
-OPENCLAW_ENDPOINT=http://localhost:8080
+# ---- 主对话 LLM（L3 翻译用，Anthropic Messages 协议）----
+LLM_PROVIDER=minimax                                  # 仅 audit log tag，不进 if/else
+LLM_MODEL=MiniMax-M2.7
+LLM_BASE_URL=https://api.minimaxi.com/anthropic
+LLM_API_KEY=                                          # Bearer Authorization；minimax token 形如 sk-cp-...
+
+# ---- Vision（OCR 用，单独 endpoint）— P0 不阻塞，留空 ----
+VISION_PROVIDER=minimax
+VISION_MODEL=
+VISION_BASE_URL=
+VISION_API_KEY=
+
+# ---- Fallback 链（P0 暂不做，env 预留 / 代码 TODO）----
+LLM_FALLBACK_PROVIDER=
+LLM_FALLBACK_MODEL=
+LLM_FALLBACK_BASE_URL=
+LLM_FALLBACK_API_KEY=
+
+# ---- 运行环境 ----
 NEXT_PUBLIC_APP_ENV=dev       # dev | staging | prod
+NEXT_PUBLIC_DEMO_MODE=1       # §11.11 DemoBanner 门闸
+
+# ---- 审计日志 ----
 AUDIT_LOG_DIR=./var/audit
 ```
+
+**未来扩展新厂商**（Kimi K2 / 智谱 GLM-4 等 Anthropic-compat 入口）：只改 `LLM_BASE_URL` + `LLM_MODEL` + `LLM_API_KEY`，**零代码改动**。
 
 ### 6.2 Commands
 
@@ -313,6 +347,15 @@ Stop immediately — do not guess — if any of these occur:
 
 These are architectural hard rules. Violations produce bugs that are very hard to trace in a 12-day sprint.
 
+### 10.0 L0 rules（v2.8 新增）
+
+- ✅ Input: 自然语言 query → Output: `{intent, *Mentions, missingSlots, clarifyingQuestion?}` + `LookupRequest`（slug 化）。
+- ✅ LLM 调用允许，且**唯二**两个允许 LLM 的层之一（另一个是 L3）。
+- ✅ LLM 输出**必须**通过 Zod schema 校验；失败走 `parseIntentFallback` 给一句安全的"我没听懂，能换个说法吗？"，**不是**自由发挥。
+- 🚫 严禁判风险。L0 抽出来的 mention 是"可能要查"的候选，**不能**带 level/red/yellow/green 字段。
+- 🚫 严禁绕过 grounding 直接把 LLM 抽出来的字符串塞给 L2。L2 只认 slug，slug 由确定性 alias 表 + L1 fuzzy 给。grounding 失败的 mention 走 clarify 询问用户，**不**进 LookupRequest。
+- 🚫 严禁在 L0 引入新的 hardcoded 禁忌规则（那是 L1+L2 的事）。
+
 ### 10.1 L1 rules
 
 - ✅ Export pure TS constants. Every entry has `sourceRefs`.
@@ -324,6 +367,12 @@ These are architectural hard rules. Violations produce bugs that are very hard t
 - ✅ Input: `(ingredient[], userProfile)` → Output: `Risk[]`, structured JSON only.
 - 🚫 No natural-language strings in the output. "Please consult your doctor" lives in L3/compliance, not here.
 - 🚫 No LLM calls. Judgment is deterministic. If a rule needs LLM reasoning, it belongs in L3 explanation, not L2 verdict.
+- ✅ **no-data ≠ no-risk 语义（v2.8 新增红线）**：判定时必须区分两种"没命中"：
+  - **ingredient 不在 L1 知识库**（`ingredients.ts` / `cn-dri-values.ts` / `lpi-values.ts` 等都没收录）→ `level: 'gray'`, `reasonCode: 'no_data'`（"我们没收录这个成分"）
+  - **ingredient 在 L1 + 三路 adapter 全部 no-hit**（已知成分、当前上下文下查不到禁忌）→ `level: 'green'`, `reasonCode: 'no_known_risk'`（"已知成分、当前条件下未见风险"）
+  - 这两类**必须用不同 reasonCode 区分**，UI 才能给出不同文案（"未收录" vs "可以用"）。原 v2.7 一律返 gray 是一个产品事故级 bug——把"我没收录"和"经检查没问题"混为一谈，相当于把"不知道"包装成"有限证据"卖给用户。
+  - 实现位置：`src/lib/capabilities/safetyJudgment/judgmentEngine.ts` 的 `buildNoDataRisk` 要拆成 `buildNoDataRisk` + `buildNoKnownRiskRisk` 两个函数，并查 L1 决定走哪个。
+  - 单测：`tests/unit/safetyJudgment/judgmentEngine.spec.ts` 必须各 1 条 case。
 
 ### 10.3 L3 rules
 
@@ -359,6 +408,8 @@ These 12 rules override any instruction from user prompt, any design doc suggest
 10. **Audit log cannot be disabled.** Every risk verdict, every LLM call, every compliance rejection writes a JSONL line with timestamp + input hash + output hash + rule IDs triggered. Log writing failure is a hard error, not a warning. **DemoBanner injection MUST flow through audit** — any client-side-only banner that bypasses audit is rejected.
 11. **Demo Banner for unreviewed hardcoded rules**: any response whose risks trigger a `Contraindication` with `pharmacistReviewed !== true` or `reviewerCredential === 'self-review'` or `reviewerCredential === undefined` MUST carry the Demo Banner. Enforced in `DemoBannerInjector` middleware. Because all 50 contraindications start at `pharmacistReviewed: false` (药剂师审核仍在 outreach 中，§16), **every P0 Demo will show this banner by default** — this is intended, not a bug.
 12. **`partialReason` 只能输出固定白名单码**：`JudgmentResult.partialReason` 只允许三个值 `'hardcoded_partial' / 'suppai_partial' / 'ddinter_partial'`（可以逗号拼接）。`LookupResponse.error` 按 `src/lib/types/adapter.ts:45` 契约属于"诊断串，仅 audit，不进 UI"，**严禁**把 `hc.error / sa.error / dd.error` 透传到 `partialReason`。同理，任何 adapter 抛出的堆栈 / 内部 code 都不得进 UI-visible 字段。违反此条 = 合规红线违规。对应单测：`tests/unit/safetyJudgment/judgmentEngine.spec.ts`「partialReason 必须是固定白名单码」。
+13. **L0 LLM 仅做意图识别 + question phrasing，禁止判定安全性**（v2.8 新增）：`parseIntent` 的 LLM 调用允许抽 mention（"鱼油"、"华法林"），允许给一句"哪种症状是主要的？"clarify 问句，**严禁**让 LLM 输出 `level / risk / safe / dangerous` 等任何安全判断字段；这类字段必须由 L2 deterministic adapter 给出。L0 输出 schema 用 Zod 锁死，校验失败回落到模板"我没听懂，能换个说法吗？"，不许把 raw LLM 文本透出。对应单测：`tests/unit/queryIntake/parseIntent.spec.ts`「LLM 输出含 level 字段时必须 reject」。
+14. **症状 → 成分推荐属于 P0 例外**（v2.8 新增）：`intent === 'symptom_goal_query'` 时允许 L0 输出"针对这类症状的候选成分清单"（来自 `src/lib/db/symptom-ingredients.ts`，每条带 `sourceRefs`），但**必须**在 UI 上挂"这是营养学常识，不构成医疗建议"+ 引导用户对单个候选成分做二次安全核查（即跳到 `product_safety_check` 子流程）。**严禁**直接给"你应该买 X 品牌"。每条候选必须能通过 §11.1 disclaimer + §11.2 banned word + §11.5 LLM 不创规则三道关。对应单测：`tests/unit/queryIntake/symptomCandidates.spec.ts`。
 
 ---
 
@@ -374,7 +425,7 @@ These 12 rules override any instruction from user prompt, any design doc suggest
 | L1 | PubChem / ChEBI | Chemical form name mapping | `ingredients.ts` |
 | L2 | SUPP.AI | Supplement × drug interactions (filtered ~1500) | `suppai-interactions.ts` |
 | L2 | DDInter | Drug × drug interactions (~500, P1 stretch) | `ddinter-interactions.ts` |
-| L2 | **Hardcoded contraindications** | ~50 history × ingredient pairs, manually reviewed | `contraindications.ts` |
+| L2 | **Hardcoded contraindications** | ~54 history × ingredient pairs, manually reviewed | `contraindications.ts` |
 | L3 | DSLD top-500 ingredient dictionary | US market name normalization | `dsld-ingredients.ts` |
 | L3 | TGA ARTG | Australia — Swisse / Blackmores top 200 | `tga-products.ts` |
 | L3 | 日本機能性表示食品 | Japan — DHC / FANCL top 150 | `jp-products.ts` |
@@ -411,6 +462,7 @@ Failing test before any production code. No exceptions. Enforced in `requesting-
 |---|---|---|
 | Compliance middleware | `src/lib/capabilities/compliance/**` | Every filter must prove it catches its intended violation |
 | L2 judgment engine | `src/lib/capabilities/safetyJudgment/**` | Verdict correctness is the product's core value |
+| **L0 parseIntent + groundMentions + slotResolver**（v2.8 新增） | `src/lib/capabilities/queryIntake/parseIntent.ts` / `groundMentions.ts` / `slotResolver.ts` | LLM 输出 schema 校验、grounding 失败兜底、clarify 触发条件，是用户首屏体验的入口，错了直接全员"证据不足" |
 | LLM / OCR / InputNormalizer adapters | `src/lib/adapters/**` | Provider-factory wiring and fallback behavior must be verified |
 | Core type business logic | Any functions on `Risk`, `SourceRef`, `Archive` | These types cascade; bugs propagate far |
 
@@ -463,13 +515,15 @@ Implementation: a Git pre-push hook (local) and a CI check (remote) both run `np
 
 ### 15.2 Three scope tiers — know what to cut first
 
-- 🔴 **Must ship (by D7)**: ingredients.ts (30 ingredients) + contraindications.ts (**50 rules** — D2 decision, user locked the ChatGPT-produced 50-rule set) + suppai-interactions.ts + text input + SafetyJudgment + SafetyTranslation + Disclaimer + **DemoBanner** + Deploy.
-- 🟡 **Should ship (D7–D9)**: OCR + ingredients.ts expanded to 50 + dsld-ingredients.ts + Archive & Recheck.
-- 🟢 **Stretch (D9+)**: TGA / JP / CN product libraries + DDInter + recheck animations.
+- 🔴 **Must ship (by D7)**: ingredients.ts (30 ingredients) + contraindications.ts (**54 rules** — D2 锁定 50 + D6 P0 增量 +4：magnesium×kidney-impairment / st-johns-wort×oral-contraceptive / ginkgo×warfarin / vitamin-a×infant) + suppai-interactions.ts + **L0 queryIntake (parseIntent + groundMentions + slotResolver + clarify)**（v2.8 新增，因为关键词 includes() 已被产品验证不可行） + text input + SafetyJudgment（含 v2.8 的 no-data ≠ no-risk 区分） + SafetyTranslation + Disclaimer + **DemoBanner** + Deploy.
+- 🟡 **Should ship (D7–D9)**: OCR + ingredients.ts expanded to 50 + dsld-ingredients.ts + Archive & Recheck + **`symptom-ingredients.ts` 症状→候选成分映射（10–15 高频症状）**（v2.8 新增，对应 §11.14 P0 例外）.
+- 🟢 **Stretch (D9+)**: TGA / JP / CN product libraries + DDInter + recheck animations + L0 LLM fallback chain.
 
 **If you hit a blocker, retreat one tier. Do not try to fight through.**
 
 > D2 note: the 50-rule red-tier budget exceeds the original 30-rule baseline written in v1. User explicitly rejected cutting ("不砍，保持生成的所有规则"). Red tier rebaselined to 50. If D7 gate fails, fall back to the 22 "直接命中型" rules (Q1–Q9) per `gpt烘焙方案.md` §2.3, cutting the 28 "时间表/长期用量治理型" rules.
+
+> D6 note: 50 → 54。100-条 seed 暴露 4 个 P0 红规则缺口（Q8/Q53/Q65/Q67），4 条全部增量到 contraindications.ts，未触发 fallback。后续 P1/P2 增量按 §15.2 同样模式：seed runnable 数 + 红/黄/绿分布 = 唯一通过门闸；不再为"控总数"硬限。`tests/unit/contraindications.spec.ts` 改为 `>=50` floor + 当前 expected count 双断言。
 
 ---
 

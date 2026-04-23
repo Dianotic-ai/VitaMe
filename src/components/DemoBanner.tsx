@@ -1,3 +1,8 @@
+// file: src/components/DemoBanner.tsx — §11.11 红线：未经药师复核的硬编码规则必带此条
+//
+// 视觉用 risk-amber 谱系（不是 amber-50/400 raw 色）；不抢 RiskBadge 的"留意"语义，
+// 用左竖条 + 较弱的背景透明度区分：这是"产品声明"不是"成分留意"。
+
 interface Props {
   className?: string;
 }
@@ -9,14 +14,18 @@ export function DemoBanner({ className }: Props) {
   return (
     <div
       role="note"
+      aria-label="Demo 阶段说明"
       className={[
-        'border-l-4 border-amber-400 bg-amber-50 p-3 text-sm leading-6 text-amber-950',
+        'border-l-[3px] border-risk-amber bg-risk-amber/10 px-3 py-2.5 text-xs leading-6 text-text-secondary',
         className,
       ]
         .filter(Boolean)
         .join(' ')}
     >
-      <p>⚠︎ {DEMO_TEXT}</p>
+      <p>
+        <span className="mr-1 font-medium text-risk-amber">原型说明</span>
+        {DEMO_TEXT}
+      </p>
     </div>
   );
 }

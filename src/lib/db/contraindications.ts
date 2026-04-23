@@ -542,6 +542,47 @@ export const CONTRAINDICATIONS: Contraindication[] = [
     sourceRef: ref('vm-rule-calcium-magnesium-highdose-window'),
     pharmacistReviewed: false,
   },
+  // ── P0 红规则增量（D6 末，解锁 seed Q8 / Q53 / Q65 / Q67）──
+  {
+    id: 'vm-rule-magnesium-kidney-impairment',
+    substanceA: supp('magnesium', '镁'),
+    substanceB: condition('kidney-impairment', '肾功能不全'),
+    severity: 'red',
+    reasonCode: 'magnesium_accumulation_renal_impairment',
+    reason: '肾功能下降时镁排泄受阻，自行补镁有高镁血症风险',
+    sourceRef: ref('vm-rule-magnesium-kidney-impairment'),
+    pharmacistReviewed: false,
+  },
+  {
+    id: 'vm-rule-stjohnswort-oral-contraceptive',
+    substanceA: supp('st-johns-wort', '圣约翰草'),
+    substanceB: drugClass('oral-contraceptive', '口服避孕药'),
+    severity: 'red',
+    reasonCode: 'cyp3a4_induction_contraceptive_failure',
+    reason: '圣约翰草诱导 CYP3A4，可显著降低避孕药血药浓度，存在避孕失败风险',
+    sourceRef: ref('vm-rule-stjohnswort-oral-contraceptive'),
+    pharmacistReviewed: false,
+  },
+  {
+    id: 'vm-rule-ginkgo-warfarin',
+    substanceA: supp('ginkgo', '银杏叶'),
+    substanceB: drug('warfarin', '华法林'),
+    severity: 'red',
+    reasonCode: 'bleeding_risk_anticoagulant_synergy',
+    reason: '银杏叶抑制血小板聚集,与华法林合用显著增加出血风险',
+    sourceRef: ref('vm-rule-ginkgo-warfarin'),
+    pharmacistReviewed: false,
+  },
+  {
+    id: 'vm-rule-vitamina-infant-highdose',
+    substanceA: supp('vitamin-a', '维生素 A（预成型 / retinol）'),
+    substanceB: specialGroup('infant', '婴幼儿'),
+    severity: 'red',
+    reasonCode: 'infant_vitamina_overdose_risk',
+    reason: '婴幼儿维 A 急性中毒阈值低（颅内压升高、肝毒性），不可自行加量',
+    sourceRef: ref('vm-rule-vitamina-infant-highdose'),
+    pharmacistReviewed: false,
+  },
 ];
 
 // ---- 运行时索引：二元组 (a.id, b.id) → 规则 ----

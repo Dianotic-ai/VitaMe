@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-04-21（D4 / Kevin specs × Wave 1 代码跨分支对齐）
+
+**触发**：Kevin 在 `codex/spec-hardening` D3 提交 8 份 P0 specs（api-contract / risk-matrix / context-taxonomy / metrics-instrumentation / test-matrix / 统一执行总纲 等）；与 Wave 1 落代码（`src/lib/types/risk.ts` 等）命名 + 结构冲突。
+
+**3 条命名约定锁定（用户 D4 拍板）**：
+1. TS 字段 camelCase / 枚举值字面量 snake_case（例：`reasonCode: 'drug_interaction'`）
+2. `disclaimer` 顶层 1 份（`TranslationResult.disclaimer`，非每条 TranslatedRisk）
+3. Risk 保留 `ingredient / condition? / medication?` 结构化溯源（不并入 `sourceRefs: string[]`）
+
+**代码侧**（commits on `vitame-dev-v0.1`，已 push dianotic）：
+- `4868883` feat(L2)：Risk 加 `RiskDimension` 6 值 + `RiskCta` 5 值 必填；EvidenceSourceType 扩 'none'；JudgmentResult 加 `partialReason?`；新增 `riskDefaults.ts` 共享映射
+- `371e16e` fix(L2)：`partialReason` 锁死白名单码（`hardcoded_partial / suppai_partial / ddinter_partial`），不再透 `LookupResponse.error` 诊断串；`riskLevelMerger.mergeBucket` 加 Wave 2 TODO（同 bucket 次值 dimension/cta 暂吞）
+- 测试 84/84 green / typecheck 0 error
+
+**文档侧**：
+- PR #1 `docs/align-risk-schema` → `codex/spec-hardening`：6 files / 159+/130-，覆盖 Kevin 8 份 specs schema 全部 camelCase 转换 + Risk 结构溯源加回 + Metrics 边界（schema 派生 camelCase / 业内惯例 snake_case）
+- `f412170` 推 `docs/2026-04-21-kevin-review-handoff.md` 给 Kevin
+
+**CLAUDE.md v2.3 → v2.4**（D4 晚回填）：§11 红线 11→12（partialReason 白名单契约）；§9.4 checklist 加 Risk dimension/cta；§19 v2.4 行
+
+---
+
 ## 2026-04-20（D3, 晚 / Wave 1 外包 + Git 重建）
 
 - **Git 重建 + GitHub 推送** — 用户删项目历史资料时把 `.git` 一起删了；重新 `git init` + 单 commit + 推 `vitame-dev-v0.1` 到 `dianotic` (Dianotic-ai/VitaMe)。不动 GitHub main，让 main 作为项目 pivot 前的历史留档

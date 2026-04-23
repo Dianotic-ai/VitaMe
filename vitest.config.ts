@@ -15,8 +15,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: false,
-    include: ['tests/unit/**/*.spec.ts', 'tests/compliance-audit.spec.ts'],
-    exclude: ['tests/seed-questions.spec.ts', 'node_modules', '.next'],
+    include: ['tests/unit/**/*.spec.ts', 'tests/compliance-audit.spec.ts', 'tests/seed-questions.spec.ts'],
+    exclude: ['node_modules', '.next'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

@@ -1,10 +1,13 @@
 // file: src/lib/capabilities/safetyJudgment/judgmentEngine.ts — L2 并发编排器
 //
 // 依据：docs/superpowers/specs/2026-04-18-vitame-safety-judgment-design.md §Architecture / §Data Flow
+//      + CLAUDE.md §10.2 v2.8（no-data ≠ no-risk 红线）
 // 流程：
 //   1) 并发 3 路 adapter（hardcoded / suppai / ddinter）
 //   2) flatMap 所有 risks → mergeRisks 去重/冲突合并
-//   3) 给"未被任何 adapter 命中"的 ingredient 补 gray(no_data) 兜底（§Error Handling）
+//   3) 给"未被任何 adapter 命中"的 ingredient 补兜底，按 KB 命中拆两类：
+//        - KB 已知 → green (no_known_risk)，"已检查未见风险"
+//        - KB 未收录 → gray (no_data)，"未收录"
 //   4) pickOverallLevel 取最严级别；partialData 取 OR
 
 import type { LookupRequest } from '@/lib/types/adapter';
@@ -13,7 +16,9 @@ import { hardcodedAdapter } from '@/lib/adapters/hardcodedAdapter';
 import { suppaiAdapter } from '@/lib/adapters/suppaiAdapter';
 import { ddinterAdapter } from '@/lib/adapters/ddinterAdapter';
 import { mergeRisks, pickOverallLevel } from './riskLevelMerger';
+import { isInKnowledgeBase } from './knowledgeBaseLookup';
 
+/** KB 未收录 → gray no_data；表示"我们没收录这个成分" */
 function buildNoDataRisk(ingredientId: string): Risk {
   return {
     level: 'gray',
@@ -30,6 +35,23 @@ function buildNoDataRisk(ingredientId: string): Risk {
   };
 }
 
+/** KB 已知 + 三路 adapter 全部 no-hit → green no_known_risk；表示"已检查未见风险" */
+function buildNoKnownRiskRisk(ingredientId: string): Risk {
+  return {
+    level: 'green',
+    dimension: 'coverage_gap',
+    cta: 'basic_ok',
+    ingredient: ingredientId,
+    reasonCode: 'no_known_risk',
+    reasonShort: '已知成分，当前条件下未见已知风险',
+    evidence: {
+      sourceType: 'none',
+      sourceRef: `no-known-risk:${ingredientId}`,
+      confidence: 'unknown',
+    },
+  };
+}
+
 export async function judge(sessionId: string, req: LookupRequest): Promise<JudgmentResult> {
   const [hc, sa, dd] = await Promise.all([
     hardcodedAdapter.lookup(req),
@@ -40,14 +62,14 @@ export async function judge(sessionId: string, req: LookupRequest): Promise<Judg
   const allRaw: Risk[] = [...hc.risks, ...sa.risks, ...dd.risks];
   const merged = mergeRisks(allRaw);
 
-  // 给未命中的 ingredient 补 gray(no_data)
+  // 给未命中的 ingredient 补兜底：KB 已知走 green no_known_risk，KB 未收录走 gray no_data
   const coveredIngredients = new Set(merged.map((r) => r.ingredient));
   const uniqueInputs = [...new Set(req.ingredients)];
-  const grayFills = uniqueInputs
+  const fallbackFills = uniqueInputs
     .filter((id) => !coveredIngredients.has(id))
-    .map(buildNoDataRisk);
+    .map((id) => (isInKnowledgeBase(id) ? buildNoKnownRiskRisk(id) : buildNoDataRisk(id)));
 
-  const risks = [...merged, ...grayFills];
+  const risks = [...merged, ...fallbackFills];
   const overallLevel = pickOverallLevel(risks);
   const partialData = hc.partialData || sa.partialData || dd.partialData;
 

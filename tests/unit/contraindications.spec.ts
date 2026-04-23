@@ -12,8 +12,11 @@ import {
 const BANNED = ['治疗', '治愈', '处方', '药效', '根治', '诊断'];
 
 describe('contraindications.ts — 50 硬编码禁忌契约', () => {
-  it('恰好 50 条规则（CLAUDE.md §15.2 红色底线）', () => {
-    expect(CONTRAINDICATIONS).toHaveLength(50);
+  it('规则总数 ≥ 50（CLAUDE.md §15.2 红色底线 — D6 P0 增量后为 54）', () => {
+    // §15.2 锁定了 50 条 D2 baseline；P0 D6 增量 +4（Q8/Q53/Q65/Q67 解锁）后为 54。
+    // 后续如再增量，更新这里的 expected 数字即可，不再做硬上限断言。
+    expect(CONTRAINDICATIONS.length).toBeGreaterThanOrEqual(50);
+    expect(CONTRAINDICATIONS).toHaveLength(54);
   });
 
   it('每条规则 id 全局唯一', () => {

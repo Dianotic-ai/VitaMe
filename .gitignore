@@ -34,6 +34,9 @@ var/
 # 本地过程记录（不推 github）
 9999过程记录不pushgh/
 
+# Codex dev runtime logs
+.codex-dev.*.log
+
 # IDE
 .vscode/
 .idea/

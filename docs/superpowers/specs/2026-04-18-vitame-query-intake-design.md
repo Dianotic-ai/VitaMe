@@ -1,144 +1,377 @@
 ---
-title: "VitaMe P0 Design — Query Intake"
-description: "补剂安全翻译 Agent 查询入口与关键风险采集:文字 + 拍照(Minimax 多模态 OCR)双入口,DSLD 字典标准化。"
+title: "VitaMe P0 Design — Query Intake (L0)"
+description: "L0 意图识别层：自然语言 query → LLM parseIntent → 确定性 grounding → slot resolver → clarify-style follow-up → 出 LookupRequest 给 L2。"
 doc_type: "design"
 status: "active"
 created: "2026-04-18"
-updated: "2026-04-18"
+updated: "2026-04-22"
 canonical: true
 privacy: "internal"
-tags: ["engineering", "p0", "superpowers", "query-intake", "ocr", "multimodal"]
+tags: ["engineering", "p0", "superpowers", "query-intake", "intent-recognition", "ocr", "multimodal"]
 ---
 
-# VitaMe P0 Design — Query Intake
+# VitaMe P0 Design — Query Intake (L0)
+
+> **D5 重写背景（v2 → v3，2026-04-22）**：v1/v2 的 InputNormalizer + 关键词 `includes()` 字典查询在自然语言 query 上完全失效。实测 "感冒期间可以吃维生素 AD 软胶囊吗" / "我妈最近老觉得累，听说辅酶 Q10 能补一下" 等真实输入全部返回"证据不足"。
+>
+> 问题根因：把"识别用户在问什么"和"判断风险"塞在了同一层。
+>
+> v3 把 L0 拆成独立层（CLAUDE.md §3.1 / §10.0），由「LLM parseIntent + 确定性 grounding + 业务 slotResolver + 混合 clarify」四个子模块组成。LLM 只做 NER + question-phrasing，**不**判风险（合规红线 §11.5 / §11.13）。
+
+---
 
 ## Architecture
 
-Query Intake 是 VitaMe 整条链路的入口层,位于 H5 前端和 SafetyJudgment 之间。它承担三件事:
+L0 在前端 H5 与 L2 SafetyJudgment 之间，承担"听懂人话 → 给出 slug"的全部职能。
 
-1. **接收两类输入**:文字(手动打字)或图片(拍照瓶子);**图片走 Minimax 多模态 OCR** 转结构化成分。
-2. **把输入归一化成标准 Ingredient**:英文成分名(`Magnesium Glycinate`)→ 中文标准名(`甘氨酸镁`),依赖 DSLD Top 500 成分字典做映射。
-3. **只问最少必要的 2–4 个问题**,把上下文补齐后交给 SafetyJudgment。
+```
+[ 用户自然语言 query / 上传瓶子图 ]
+              │
+              ▼
+┌─────────────────────────────────────────┐
+│ L0 — Query Intake & Intent              │
+│                                         │
+│  ┌─────────────────────────────────┐   │
+│  │ a. parseIntent (LLM, Zod 校验)  │   │
+│  │   in : { rawQuery, history? }   │   │
+│  │   out: IntentResult             │   │
+│  └────────────────┬────────────────┘   │
+│                   ▼                     │
+│  ┌─────────────────────────────────┐   │
+│  │ b. groundMentions (deterministic)│   │
+│  │   alias 表 + L1 fuzzy           │   │
+│  │   out: GroundedMentions         │   │
+│  └────────────────┬────────────────┘   │
+│                   ▼                     │
+│  ┌─────────────────────────────────┐   │
+│  │ c. slotResolver (rules)         │   │
+│  │   缺关键 slot? → 触发 clarify   │   │
+│  └────────────────┬────────────────┘   │
+│                   ▼                     │
+│  ┌─────────────────────────────────┐   │
+│  │ d. clarify-style follow-up      │   │
+│  │   business decides WHAT/WHEN    │   │
+│  │   LLM decides HOW (一句话)      │   │
+│  └────────────────┬────────────────┘   │
+└────────────────────┼────────────────────┘
+                     ▼
+        IntentResult + LookupRequest（slug 化）
+                     │
+                     ▼
+              L2 SafetyJudgment
+```
 
-它不做安全判断,也不做解释。输出是一个 `QuerySession` 对象:`{ sessionId, ingredients: Ingredient[], context: { medications, conditions, allergies, special_groups }, person: PersonRef }`。这个对象是 `SafetyJudgment` 的唯一输入契约。
+**关键工程约束**：
 
-设计约束(来自 PRD 非功能 + User Journey 母型 2 + 4-18 锁定决策):
-- 交互必须"像聪明的安全问诊卡,不是无限聊天",所以 Intake 在工程上是一个**有限状态机**——最多 4 个问题,答完即出结果,不走开放对话。
-- **OCR 是 P0 主 Demo 场景 A**(拍照瓶子 → 成分结构化),实现走 Minimax 多模态端点,识别失败必须有"手动输入"兜底。
-- **DSLD 用作字典**(Top 500 成分英文→中文映射,~50KB),不用作产品库。产品字段由 OCR 输出承载。
+- **L0 LLM 调用允许，输出必须 Zod 校验**（CLAUDE.md §11.6）。校验失败回 `parseIntentFallback`：一句"我没听懂，能换个说法吗？"+ 引导按钮，**不**透出 raw LLM 文本。
+- **LLM 不判风险**（CLAUDE.md §11.13）。L0 输出 schema 不含 `level / risk / safe / dangerous` 字段；含则 reject。
+- **grounding 是确定性的**：LLM 抽出的 mention 是中文短语（"鱼油" / "华法林" / "孕期"），由 `src/lib/api/slugMappings.ts` + L1 fuzzy 翻成 slug。grounding 失败 → clarify 询问，**不**塞 L2。
+- **clarify 是混合的**：业务规则决定问什么、问几次（≤2 轮，避免无限对话），LLM 只决定措辞。问句和选项都通过 Zod schema。
+- **症状型 query 例外**（§11.14）：`intent === 'symptom_goal_query'` 时允许返"针对该症状的候选成分"，但每条带 `sourceRefs` + 引导用户对单个候选做二次安全核查。
+
+---
 
 ## Components
 
-- **QueryInput** (`src/components/QueryInput.tsx`):前端双入口组件——文字输入 Tab + 图片上传 Tab;图片走 base64 转码后 `POST /api/query`。
-- **OcrAdapter** (`src/lib/adapters/ocrAdapter.ts`):调 Minimax 多模态 `chat/completions`(vision endpoint),OCR Prompt 模板固定输出 JSON:`{ brand, product_name, ingredients: [{ name_en, amount, unit, form? }], serving_size }`。Zod schema 校验;识别置信度 `confidence < 0.7` 时走"手动输入"兜底(不拦阻用户)。仅此一处用多模态 LLM(由 `llmAdapter.getMultimodalProvider()` 返回 Minimax)。
-- **InputNormalizer** (`src/lib/query/inputNormalizer.ts`):清洗输入,识别多条目(支持 `、` `,` `+` `加` 等分隔);**查 `src/lib/db/dsld-ingredients.ts` 做英文→中文标准化**(`Magnesium Glycinate` → `{name: "镁", form: "甘氨酸镁"}`);判断每条目类型(产品名 / 成分名 / 药物名)。输出 `NormalizedToken[]`。对 OCR 输出(已结构化)做二次标准化 + 合并同成分。
-- **ProductMatcher** (`src/lib/query/productMatcher.ts`):模糊匹配到标准 `Ingredient`(`src/lib/db/ingredients.ts`)。OCR 已结构化的 ingredients 直接走这里;手动输入带商品名的也走这里。低置信度时返回候选列表,要求前端 disambiguation。
-- **IntakeOrchestrator** (`src/lib/query/intakeOrchestrator.ts`):按 `Ingredient` 查预设问题模板,挑出 2–4 个会影响判断的问题。例:输入含"镁" → 必问"胃肠敏感?";含"鱼油" → 必问"正在服用的药物";含"维 D" → 按人群问"是否孕期"。
-- **ContextCollector** (`src/lib/query/contextCollector.ts`):把用户答案拼成 `{ medications: string[], conditions: string[], allergies: string[], special_groups: string[] }` 四类标准化字段。
-- **QuerySession** (`src/lib/query/querySession.ts`):管理会话状态(内存 Map + 可选 LocalStorage 兜底),TTL 30 分钟,返回 `sessionId` 给 SafetyJudgment 消费。
+### a. parseIntent — `src/lib/capabilities/queryIntake/parseIntent.ts`
+
+LLM 调用，**唯一**入口走 `src/lib/adapters/llm/`（CLAUDE.md §6.1 单 LLMClient）。
+
+**输入**：
+
+```ts
+interface ParseIntentInput {
+  rawQuery: string;          // 用户原始输入
+  imageOcrText?: string;     // 拍照路径下 ocrAdapter 输出的纯文本
+  history?: ClarifyTurn[];   // 多轮 clarify 历史
+}
+```
+
+**输出 Zod schema**（`src/lib/types/intent.ts`）：
+
+```ts
+export const IntentTypeEnum = z.enum([
+  'product_safety_check',     // "Swisse 葡萄籽现在能吃吗？"
+  'photo_label_parse',        // 拍了张瓶子图（前端识别后归此类）
+  'symptom_goal_query',       // "我最近老觉得累"
+  'ingredient_translation',   // "EPA 是什么？"
+  'contraindication_followup',// "刚才说的 Q10 + 华法林，那如果只吃半量呢？"
+  'profile_update',           // "我现在不吃 SSRI 了"
+  'unclear',                  // 兜底
+]);
+
+export const IntentResultSchema = z.object({
+  intent: IntentTypeEnum,
+  productMentions: z.array(z.string()).max(10),       // "Swisse 葡萄籽" / "Doctor's Best Magnesium 200mg"
+  ingredientMentions: z.array(z.string()).max(10),    // "鱼油" / "辅酶 Q10"
+  medicationMentions: z.array(z.string()).max(10),    // "华法林" / "降压药"
+  conditionMentions: z.array(z.string()).max(10),     // "胃溃疡" / "肝炎"
+  specialGroupMentions: z.array(z.string()).max(5),   // "孕期"
+  symptomMentions: z.array(z.string()).max(5),        // "疲劳" / "失眠"（仅 symptom_goal_query 用）
+  missingSlots: z.array(z.enum([
+    'product_or_ingredient',  // 没说在问哪个东西
+    'medication_context',     // 高风险类问题但没说在吃什么药
+    'special_group',          // 缺孕期/婴幼儿等关键人群信息
+    'symptom_specificity',    // symptom 型但太笼统
+  ])),
+  clarifyingQuestion: z.object({
+    question: z.string().min(4).max(40),  // ≤40 字，遵循 DESIGN.md 移动端
+    choices: z.array(z.string()).min(2).max(4),  // 2-4 个选项 + UI 自动加 "其他"
+  }).nullable(),
+  // 严禁字段（出现即 Zod reject）
+}).strict();  // .strict() 锁死，LLM 多吐 level/safe/risk 字段会被拒
+```
+
+**Prompt 模板**（保存在 `src/lib/capabilities/queryIntake/prompts/parseIntent.zh.md`）：
+
+```
+你是 VitaMe 的查询解析器。你的任务是把用户的自然语言查询，
+解析成结构化字段，供后续判断引擎使用。
+
+---
+你必须遵守的约束：
+1. 你只做识别，不做判断。绝不输出 "安全/不安全/红/黄/绿" 等任何风险字段。
+2. mention 用用户原话或最自然的中文短语（"鱼油"，不是 "fish oil"；
+   "华法林"，不是 "warfarin"）。slug 转换由下游做。
+3. clarifyingQuestion 只在 missingSlots 非空且关键时给出；问句 ≤40 字，
+   选项 2-4 个；不要列穷举（"其他" 由 UI 自动追加）。
+4. 不认识的成分名直接放进 ingredientMentions，不要丢，不要猜近似品牌。
+
+---
+输入：{{rawQuery}}
+（多轮上下文：{{history}}）
+
+输出 JSON（严格符合 schema）：
+{ "intent": ..., "productMentions": [...], ..., "clarifyingQuestion": null }
+```
+
+**错误处理**：
+
+- LLM timeout（30s）→ 返 `IntentResult { intent: 'unclear', clarifyingQuestion: parseIntentFallback() }`
+- Zod 校验失败 → 同上
+- LLM 输出含 `level / safe / dangerous / risk_level` 等违规字段 → reject + audit log + 同上回落
+
+### b. groundMentions — `src/lib/capabilities/queryIntake/groundMentions.ts`
+
+**纯函数，无 LLM**。用 `src/lib/api/slugMappings.ts` 的 alias 表 + L1 fuzzy 把 mention → slug。
+
+**输入**：`IntentResult`（来自 parseIntent）
+
+**输出**：
+
+```ts
+interface GroundedMentions {
+  ingredientSlugs: string[];          // ['fish-oil', 'coenzyme-q10']
+  medicationSlugs: string[];          // ['warfarin']
+  conditionSlugs: string[];           // ['gastric-ulcer']
+  specialGroupSlugs: string[];        // ['pregnancy']
+  ungroundedMentions: Array<{
+    raw: string;
+    kind: 'ingredient' | 'medication' | 'condition' | 'specialGroup';
+    candidates: string[];             // L1 fuzzy 找到的近似 slug，UI 给候选选
+  }>;
+}
+```
+
+**fuzzy 规则**（用现有 `slugMappings.ts` 不够时降级走）：
+
+1. 精确 match alias 表 → 命中 slug
+2. 去标点 + 小写 + 简体化后再 match
+3. L1 ingredient 字典 `ingredients.ts` 的 `nameZh / nameEn / aliases` 字段 levenshtein ≤2
+4. 仍未命中 → `ungroundedMentions`
+
+### c. slotResolver — `src/lib/capabilities/queryIntake/slotResolver.ts`
+
+**纯函数，无 LLM**。基于 intent + grounded 结果，决定要不要 clarify。
+
+```ts
+interface SlotDecision {
+  shouldClarify: boolean;
+  clarifyTopic: 'medication_context' | 'special_group' | 'product_disambiguation' | 'symptom_specificity' | null;
+  clarifyChoices: string[];   // 业务规则给候选，LLM 把它们包装成自然问句
+  passThrough: LookupRequest | null;  // 不需要 clarify 时直接给 L2
+}
+```
+
+**决策规则**（P0 写死）：
+
+| Intent | 触发 clarify 的条件 | clarifyTopic | choices 来源 |
+|---|---|---|---|
+| `product_safety_check` | productMentions 非空 + ingredientMentions 空 → 用户给了商品名但没成分 | `product_disambiguation` | 固定 3 选："拍照配料表 / 手动输入主要成分 / 我不确定" |
+| `product_safety_check` | ingredientSlugs 非空 + medicationSlugs / conditionSlugs / specialGroupSlugs 全空 + 高风险 ingredient（warfarin-relevant 列表） | `medication_context` | 来自 `MEDICATION_OPTION_MAP` keys |
+| `symptom_goal_query` | symptomMentions 太笼统（"不舒服" / "累"） | `symptom_specificity` | 业务给 4 个常见细分（睡眠 / 精力 / 消化 / 免疫） |
+| `unclear` | always | `product_disambiguation` | "你想查的是某个补剂的安全性 / 某个症状能补什么 / 都不是" |
+
+P0 上限 **2 轮 clarify**，超出仍未明朗 → 走 `intent: 'unclear'` 兜底文案。
+
+### d. clarify-style follow-up — `src/lib/capabilities/queryIntake/clarify.ts`
+
+**混合**：business 决定 WHAT/WHEN，LLM 决定 HOW。
+
+如果 slotResolver 给了 `clarifyTopic` 和 `clarifyChoices`，clarify 调用 LLM 包装成自然问句：
+
+```
+你是 VitaMe 的友好引导助手。把下面的"主题 + 候选答案"包装成
+一句简洁的中文问句（≤25 字）+ 4 个 button label（每个 ≤8 字）。
+
+主题：{{topic}}（如 "用户当前是否在用某些药"）
+候选：{{choices}}
+
+输出 JSON：{ "question": "...", "buttonLabels": ["...", "...", ...] }
+```
+
+**严禁** LLM 自由发挥添加 choice，schema 锁 `buttonLabels.length === clarifyChoices.length`，不一致 reject + 走模板。
+
+### e. parseIntentFallback — `src/lib/capabilities/queryIntake/fallbacks.ts`
+
+LLM 链路任何异常的兜底文案。3 条固定文案：
+
+1. 完全没听懂："我没听懂你的问题，能换个说法吗？比如『我妈在吃华法林，能吃辅酶 Q10 吗？』"
+2. 缺商品名："你想查哪个补剂或成分？可以输入名字，也可以拍照配料表。"
+3. 缺关键上下文："为了给出准确判断，能告诉我你目前在吃哪些药吗？（没在吃也告诉我一声）"
+
+### f. P0 4-handler 实现矩阵
+
+7 个 intent，P0 实现 4 个 handler；其余 3 个落到「礼貌告知」fallback：
+
+| Intent | P0 handler | 行为 |
+|---|---|---|
+| `product_safety_check` | ✅ 主流程 | 拼 LookupRequest → L2 → L3 |
+| `symptom_goal_query` | ✅ B-full（v2.8 决策） | 查 `symptom-ingredients.ts` → 候选清单 → 引导对单个候选做二次安全核查 |
+| `ingredient_translation` | ✅ 简化版 | 查 L1 `ingredients.ts` 直接吐"是什么、常见形式、参考摄入"，不走 L2 |
+| `unclear` | ✅ fallback | parseIntentFallback 文案 1 |
+| `photo_label_parse` | ⏳ 走 OCR 链路（已有 `ocrAdapter`） | 同 product_safety_check |
+| `contraindication_followup` | ❌ P0 不实现 | 礼貌告知"P0 暂不支持多轮深问，可以重新发起一次完整查询" |
+| `profile_update` | ❌ P0 不实现 | 礼貌告知"P0 暂不支持档案改动，可以在档案页手动改" |
+
+---
 
 ## Data Flow
 
-**路径 A — 拍照入口(主 Demo 场景)**:
+**主路径 — 自然语言文本入口**：
 
-1. 前端 `QueryInput.tsx` 拍照/选图 → base64 → `POST /api/query` `{ imageBase64: string, personRef?: string }`
-2. `OcrAdapter.extract(imageBase64)` → Minimax vision → `{ brand, product_name, ingredients, confidence }`
-3. Zod schema 校验:失败或 `confidence < 0.7` → 响应 `{ status: "ocr_fallback", hint: "请手动输入成分" }`,前端切文字 Tab 预填
-4. 校验通过 → `InputNormalizer.normalize(ingredients)` → `NormalizedToken[]`(英文成分名映射为中文 + form)
-5. `ProductMatcher.match(tokens)` 并发匹配 → `{ matches: Ingredient[], lowConfidence: Token[] }`
-6. 低置信度 → `needs_disambiguation`;OK → 进入 IntakeOrchestrator
-7. `IntakeOrchestrator.pickQuestions(matches)` 返回 2–4 个 `Question[]`
-8. 响应 `{ sessionId, matches, questions, source: "ocr" }`
+1. 前端 `POST /api/query/parse` `{ rawQuery: string, history?: ClarifyTurn[] }`
+2. `parseIntent(rawQuery)` → `IntentResult`（LLM + Zod 校验）
+3. `groundMentions(IntentResult)` → `GroundedMentions`
+4. `slotResolver(IntentResult, GroundedMentions)` → `SlotDecision`
+5. **分叉**：
+   - `shouldClarify = true` → `clarify(topic, choices)` 包装成自然问句 → 响应 `{ status: 'clarify_needed', question, choices, sessionId }`
+   - `shouldClarify = false` → 响应 `{ status: 'ready', lookupRequest, intentSummary, sessionId }`
+6. 前端拿到 `lookupRequest` → `POST /api/judgment` 走 L2
 
-**路径 B — 文字入口(保底场景)**:
+**clarify 多轮**：
 
-1. 前端 `POST /api/query` `{ input: string, personRef?: string }`
-2. `InputNormalizer.parse(input)` → `NormalizedToken[]`(多条目拆分 + DSLD 字典映射)
-3. `ProductMatcher.match(tokens)` 并发匹配
-4. (之后同路径 A 的 6–8 步)
+- 用户答完 → `POST /api/query/parse` 带 `history: [...prevTurns, {topic, userChoice}]`
+- 重跑 step 2-5；P0 最多 2 轮，超出强制走 fallback
 
-**上下文补齐(两路径共享)**:
+**症状型 query 子流程**（B-full）：
 
-9. 前端渲染问题 → 用户答完 → `POST /api/query/context` `{ sessionId, answers }`
-10. `ContextCollector.merge(answers)` → 写回 `QuerySession.context`
-11. 响应 `{ sessionId, ready: true }`,SafetyJudgment 可直接用 sessionId 拉取
+- step 5 之后若 `intent === 'symptom_goal_query'` 且 grounded → 查 `symptom-ingredients.ts` → 响应 `{ status: 'symptom_candidates', candidates: [{ingredientSlug, evidence, sourceRefs, brief}], sessionId }`
+- 用户点某个候选 → 自动以该 ingredient 发起 `product_safety_check` 子查询，进 step 1 重新走
+
+**OCR 路径**（沿用 v2，挂在 `parseIntent` 前）：
+
+1. `POST /api/query/parse` 带 `imageBase64`
+2. `ocrAdapter` → 拿 `{ brand, ingredients }` 文本
+3. 把 OCR 文本 + 用户原 query 拼成 `parseIntent` 的输入
+4. 走主路径 step 2-6
+
+---
 
 ## Error Handling
 
-- **OCR 识别失败 / 低置信度**(`confidence < 0.7`):**不报错阻断**,响应 `{ status: "ocr_fallback", partialResult?: {...}, hint: "请手动输入成分" }`,前端自动切文字 Tab,若有部分识别结果(比如认出了 brand 但 ingredients 空)则预填到输入框。
-- **OCR 输出 Zod 校验失败**:同 ocr_fallback 路径(LLM 偶尔返回非法 JSON)。审计日志记录,便于 Prompt 调优。
-- **Minimax 多模态 API 超时 / 504**:ocrAdapter 内部 30s timeout,超时即 fallback;不重试(避免雪崩)。
-- **DSLD 字典未命中**(英文成分不在 Top 500 词典里):保留原文 + `normalized: false` 标志,ProductMatcher 继续走模糊匹配;不静默失败。
-- **ProductMatcher 命中 0 个**:返回 `needs_disambiguation + hint: "可以用成分名或英文名再试一次"`,不直接失败。
-- **多条目同时输入**(文字路径):`InputNormalizer` 拆分,`ProductMatcher` 并发匹配;任一条目低置信度都触发 disambiguation;不把所有条目"塞"给 SafetyJudgment 要求它去猜。
-- **用户跳过必填问题**:"正在服用的药物"为必填,若跳过则 block;"过敏/特殊群体"允许跳过,默认为空数组,但结果页会标识"上下文不全"。
-- **输入长度 > 200 字符**(文字路径):截断并 echo 被处理后的内容给用户确认,避免 LLM prompt 被塞脏。
-- **SessionId 过期**:返回 `410 Gone` + 引导前端重新发起查询;不静默吞失败。
-- **图片过大 > 5MB**:前端压缩再上传;若仍过大 413,返回 `{ error: "image_too_large", hint: "请拍近一点或切到文字输入" }`。
-- **隐私**:`QuerySession` 不含身份识别信息,仅 sessionId 可追溯,不写死 DB;上传的图片 base64 **不落盘**,OCR 完即丢。
+- **parseIntent LLM timeout / 5xx**：30s 内未返 → 走 `parseIntentFallback` 文案 1。审计日志记 `intent_llm_timeout`。
+- **parseIntent Zod 校验失败**：同上。Audit `intent_zod_fail` + raw response hash（不存原文）。
+- **parseIntent 输出含违规字段（level / safe / dangerous / risk_level / "你应该" / "建议吃"）**：reject + audit `intent_llm_overreach` + 走 fallback。这是 §11.5 + §11.13 红线。
+- **groundMentions 全部 unground**（用户输入完全是噪音）→ 走 fallback 文案 1。
+- **clarify 已 2 轮仍 unclear**：强制走 fallback 文案 1，附"重新开始"按钮。
+- **症状候选数 > 5**：UI 截断到 top 5（`evidenceCount` 排序），多余进"看更多"。
+- **症状候选数 == 0**（症状未在 `symptom-ingredients.ts`）：礼貌告知"这个症状超出我们目前的覆盖，建议先就医"，**不**让 LLM 自由发挥推荐。
+- **OCR confidence < 0.7**：沿用 v2，回手动输入 tab，CLAUDE.md §9.3 pit 6 红线。
+- **OCR + 用户文本都给了**：以 OCR 为主、用户文本作为补充上下文（用户可能在文本里说"我妈正在吃华法林"）。
+- **隐私（CLAUDE.md §11.8）**：rawQuery + history 不落盘，仅 sessionId 30 分钟 TTL；audit log 只存 hash。
+
+---
 
 ## Testing
 
-场景 0(新增 · 主 Demo 场景 A — OCR 拍照):
+强 TDD（CLAUDE.md §13.1 v2.8 新增）。每个子模块至少 1 个 spec：
 
-> 用户对准 Now Foods Magnesium Glycinate 200mg 瓶子拍照
+### 场景 1 — 自然语言 query 命中主路径（之前 v2 翻车的场景）
 
-- WHEN 上传瓶子照片 → `POST /api/query` `{ imageBase64: "...", personRef: "self" }`
-- THEN `OcrAdapter` 调 Minimax vision 返回 `{ brand: "Now Foods", product_name: "Magnesium Glycinate", ingredients: [{ name_en: "Magnesium Glycinate", amount: 200, unit: "mg" }], confidence: 0.92 }`
-- AND Zod schema 校验通过
-- AND `InputNormalizer` 查 DSLD 字典 → `{ name: "镁", form: "甘氨酸镁", amount: 200, unit: "mg" }`
-- AND `ProductMatcher` 命中标准 Ingredient "镁"
-- AND `IntakeOrchestrator` 返回 2 个问题:"胃肠是否敏感"、"补镁目的"
-- AND 响应 `source: "ocr"` 供前端在结果页标注"识别自图片"
+> 输入："感冒期间可以吃维生素 AD 软胶囊吗？"
 
-场景 0B(新增 · OCR 兜底):
+- WHEN `parseIntent("感冒期间可以吃维生素 AD 软胶囊吗？")`
+- THEN 返回 `{ intent: 'product_safety_check', productMentions: ['维生素 AD 软胶囊'], ingredientMentions: ['维生素 A','维生素 D'], conditionMentions: ['感冒'], ... }`
+- AND `groundMentions` 把 ingredientMentions 翻成 `['vitamin-a','vitamin-d']`
+- AND `slotResolver` 检查到 conditionSlugs 空（"感冒" 没收录） + ingredientSlugs 命中 → `shouldClarify: false, passThrough: LookupRequest { ingredients: ['vitamin-a','vitamin-d'] }`
+- AND 进 L2，返回 `vitamin-a` 在 L1 收录 + 无禁忌命中 → green（v2.8 §10.2 新语义）
+- AND **不再返回"证据不足"**
 
-> 用户上传一张模糊的中文瓶子照片
+### 场景 2 — 症状型 query（B-full）
 
-- WHEN OCR 返回 `confidence: 0.45`
-- THEN 响应 `{ status: "ocr_fallback", partialResult: { brand: "汤臣倍健" }, hint: "请手动输入成分" }`
-- AND 前端自动切文字 Tab 并预填 "汤臣倍健"
-- AND 用户可以补充成分名后提交
+> 输入："我最近老觉得累，听说辅酶 Q10 能补一下"
 
-场景 1 — 来自小红书真实评论 Q10(贵州 2025-08-21,博主获 15 赞的原始提问):
+- WHEN `parseIntent(...)`
+- THEN `intent: 'symptom_goal_query'`, `symptomMentions: ['疲劳']`, `ingredientMentions: ['辅酶 Q10']`
+- AND 走症状候选子流程，返回 `coenzyme-q10` 命中 + 其他可能候选（B12 / 镁 / ...）
+- AND 用户点 `coenzyme-q10` → 自动起 `product_safety_check` 子查询
 
-> "鱼油、维 D、D3、镁、益生菌、维 B、维 C 都吃,每天什么时间吃?需要间隔多久?"
+### 场景 3 — clarify 触发（缺药物上下文）
 
-- WHEN `InputNormalizer.parse` 接收此文本
-- THEN 返回 7 个 `NormalizedToken`(鱼油 / 维D / D3 / 镁 / 益生菌 / 维B / 维C)
-- AND `ProductMatcher` 匹配到 7 个标准 Ingredient(`D3` 合并为"维D")
-- AND `IntakeOrchestrator` **只返回 4 个问题**:当前用药 / 慢性病史 / 过敏 / 特殊群体
-- AND **不追问**"睡眠质量如何"、"食欲怎样"、"每天喝几杯咖啡"等不影响判断的问题
+> 输入："辅酶 Q10 现在能吃吗？"
 
-场景 2 — 来自小红书真实评论 Q5(湖南 01-04,家人 + 精准医学场景):
+- WHEN parseIntent → `intent: 'product_safety_check'`, ingredientMentions: ['辅酶 Q10'], 其他全空
+- AND ground 后 `ingredientSlugs: ['coenzyme-q10']`, medicationSlugs: []
+- AND slotResolver 触发 `clarifyTopic: 'medication_context'` （Q10 在高风险列表，因为 vk_like × warfarin）
+- AND clarify 包装成 "你目前在吃什么药？" + 4 选（华法林 / SSRI / 降压 / 都没在吃）
+- AND 用户点"都没在吃" → 第二轮 parseIntent 拿到 history → passThrough → L2 → green
 
-> "家里老人有肝炎+脂肪肝,apoe4 基因,可以吃鱼油吗?什么样的鱼油?"
+### 场景 4 — LLM 越权违规
 
-- WHEN 用户输入同时带"肝炎/脂肪肝/apoe4"病史标签 + "鱼油"产品
-- THEN `InputNormalizer` 识别"鱼油"为产品 token,其余为 context 预填
-- AND `ContextCollector` 预置 `conditions=["肝炎","脂肪肝"]`、`genes=["apoe4"]`
-- AND `IntakeOrchestrator` 追问"肝功当前值(正常/异常/不清楚)"和"凝血功能"(这是博主实际手动追问的,VitaMe 自动化)
-- AND 自动建议用户在档案中把 `Person.role = "parent"`
+- WHEN LLM 返回 `{ intent: 'product_safety_check', ingredientMentions: ['鱼油'], level: 'green', safe: true }`
+- THEN Zod `.strict()` reject（level / safe 不在 schema）
+- AND audit log 写 `intent_llm_overreach`
+- AND 走 fallback 文案 1
 
-场景 3 — Q7(胃溃疡体质选镁形式):
+### 场景 5 — grounding 失败 → 选候选
 
-> "胃溃疡体质,听说镁能助眠但容易腹泻,吃什么形式的?"
+> 输入："Doctor's Best 镁片"
 
-- WHEN 用户输入"镁"(无具体形式)
-- THEN `ProductMatcher` 返回通用 Ingredient `镁`,并附 4 种形式候选(氧化/柠檬酸/甘氨酸/苏糖酸)
-- AND `IntakeOrchestrator` 只问 2 个必要问题:"胃肠是否敏感"、"补镁目的(睡眠/便秘/认知)"
-- AND 不问"是否在运动"等与判断无关的问题
+- WHEN parseIntent → `productMentions: ["Doctor's Best 镁片"], ingredientMentions: ['镁']`
+- AND groundMentions 把 "镁" → `magnesium`，product 暂无 slug → ungrounded
+- AND slotResolver: `passThrough: LookupRequest { ingredients: ['magnesium'] }`（product 没 slug 不阻塞，提示用户"我们查的是镁的安全性，不分形式"）
 
-场景 4 — 低置信度 disambiguation:
+### 场景 6 — 完全噪音
 
-- WHEN 用户输入 "ons d3k2"(拼写残缺 + 混合)
-- THEN `ProductMatcher` 置信度 < 0.6,返回 `needs_disambiguation`
-- AND 候选列表包含 ["维 D3","维 K2","D3+K2 复合"]
-- AND 前端引导用户选一个,不强行猜测
+> 输入："asdfasdfasdf"
 
-场景 5(新增 · OCR + DSLD 字典连携):
+- WHEN parseIntent → `intent: 'unclear', clarifyingQuestion: parseIntentFallback()`
+- AND 响应 `status: 'clarify_needed'`，question 来自 fallback 文案 1
 
-- WHEN OCR 识别出 `{ name_en: "Coenzyme Q10", amount: 100, unit: "mg" }`
-- THEN `InputNormalizer` 查 DSLD 字典 → `{ name: "辅酶 Q10", standard_name_en: "Coenzyme Q10", amount: 100, unit: "mg" }`
-- AND 若 DSLD 字典未命中(Top 500 之外的冷门成分),保留 `normalized: false` 标志
-- AND `ProductMatcher` 继续走模糊匹配,不静默丢失
+### 场景 7 — OCR 路径
+
+> 用户拍 Now Foods Magnesium Glycinate 200mg
+
+- WHEN ocrAdapter 返回 `{ brand: 'Now Foods', ingredients: [{name_en: 'Magnesium Glycinate'}], confidence: 0.92 }`
+- AND 拼 imageOcrText 进 parseIntent
+- AND parseIntent 把 OCR 抽出来的英文成分回译成 "甘氨酸镁" mention → ground 到 `magnesium`
+- AND 走主路径 step 5+
+
+---
+
+## v2 → v3 迁移说明
+
+| v2 组件 | v3 处置 |
+|---|---|
+| `InputNormalizer` | **删**。它的"分隔符拆分 + DSLD 字典映射"职能被 `parseIntent` LLM + `groundMentions` 替代 |
+| `ProductMatcher` | **降级为 groundMentions 内部一个 fuzzy 步骤**，不再独立 |
+| `IntakeOrchestrator`（"按 ingredient 查 4 道预设题"） | **删**。改为 `slotResolver` 业务规则按需 clarify，最多 2 轮，不强制 4 题 |
+| `ContextCollector`（拼答案） | **删**。clarify 答案直接进 `history`，由 parseIntent 二轮重新解析 |
+| `QuerySession` | **保留**。仍是 sessionId TTL 管理 |
+| `OcrAdapter` | **保留**。挂在 parseIntent 前作输入预处理 |
+| `slugMappings.ts`（v2.7 落地的关键词表） | **保留为 groundMentions 的 alias 表**，不再独立做主入口 |
+
+**前端影响**：
+- `/intake` 页（4 道固定问答）→ **改为 clarify 气泡式问答**（DESIGN.md §4.7 v2.8 新增）
+- `/query` 页输入框保留，placeholder 改为引导自然语言（"问我吧，比如：我妈在吃华法林，能吃辅酶 Q10 吗？"）

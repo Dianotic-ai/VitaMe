@@ -1,0 +1,385 @@
+{
+  "_meta": {
+    "purpose": "L0 symptom_goal_query 走候选成分清单（CLAUDE.md §11.14 P0 例外）",
+    "scope": "15 高频症状 × 候选成分映射，证据全部来自 LPI（Linus Pauling Institute）公开资料。",
+    "guardrails": [
+      "每条候选只是'营养学常识'级别的提示，UI 必须挂 §11.1 disclaimer + 引导用户对单个候选成分做二次安全核查（跳到 product_safety_check）。",
+      "ingredientSlug 与 src/lib/api/slugMappings.ts 的 canonical slug 对齐；与 L1（cn-dri-values / lpi-values / pubchem-cids）任一收录一致。",
+      "禁止任何品牌名 / 剂量 / 处方建议 / 治疗承诺。"
+    ],
+    "retrievedAt": "2026-04-22"
+  },
+  "rows": [
+    {
+      "symptomSlug": "insomnia",
+      "symptomZh": "失眠",
+      "synonyms": ["睡不着", "入睡难", "夜里醒", "浅睡"],
+      "candidates": [
+        {
+          "ingredientSlug": "magnesium",
+          "evidenceNote": "镁参与 GABA 通路与肌肉放松；LPI 失眠章节将镁列为常见相关营养素。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "sleep", "url": "https://lpi.oregonstate.edu/mic/health-disease/sleep", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "melatonin",
+          "evidenceNote": "褪黑素是经典调时差/助入睡膳食补充剂；NIH ODS 与 LPI 健康章节均有记载。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "sleep", "url": "https://lpi.oregonstate.edu/mic/health-disease/sleep", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "fatigue",
+      "symptomZh": "疲劳",
+      "synonyms": ["没精神", "总觉得累", "提不起劲", "乏力"],
+      "candidates": [
+        {
+          "ingredientSlug": "vitamin-b12",
+          "evidenceNote": "B12 缺乏可致疲劳与巨幼红细胞贫血（LPI Vitamin B12 章节）。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "vitamin-b12", "url": "https://lpi.oregonstate.edu/mic/vitamins/vitamin-B12", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "iron",
+          "evidenceNote": "缺铁性贫血典型症状即疲劳乏力（LPI Iron 章节）。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "iron", "url": "https://lpi.oregonstate.edu/mic/minerals/iron", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "coenzyme-q10",
+          "evidenceNote": "CoQ10 参与线粒体能量代谢；LPI CoQ10 章节列疲劳相关研究。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "coq10", "url": "https://lpi.oregonstate.edu/mic/other-nutrients/coenzyme-Q10", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "low-immunity",
+      "symptomZh": "免疫力低",
+      "synonyms": ["易感冒", "总生病", "免疫差"],
+      "candidates": [
+        {
+          "ingredientSlug": "vitamin-c",
+          "evidenceNote": "LPI Immunity 章节将维生素 C 列为支持先天与适应性免疫的核心营养素。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "immunity", "url": "https://lpi.oregonstate.edu/mic/health-disease/immunity", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "vitamin-d",
+          "evidenceNote": "LPI Immunity 章节将维生素 D 列为免疫调节关键。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "immunity", "url": "https://lpi.oregonstate.edu/mic/health-disease/immunity", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "zinc",
+          "evidenceNote": "LPI Immunity 章节指出锌缺乏会损害细胞与体液免疫。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "immunity", "url": "https://lpi.oregonstate.edu/mic/health-disease/immunity", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "bone-joint-discomfort",
+      "symptomZh": "骨骼/关节不适",
+      "synonyms": ["腰腿疼", "关节响", "骨头疼", "骨质疏松担心"],
+      "candidates": [
+        {
+          "ingredientSlug": "calcium",
+          "evidenceNote": "LPI Bone Health 章节将钙列为骨密度核心营养素。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "bone-health", "url": "https://lpi.oregonstate.edu/mic/health-disease/bone-health", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "vitamin-d",
+          "evidenceNote": "LPI Bone Health 章节强调维生素 D 缺乏会显著降低钙吸收。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "bone-health", "url": "https://lpi.oregonstate.edu/mic/health-disease/bone-health", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "glucosamine",
+          "evidenceNote": "LPI Glucosamine 章节列其用于关节健康支持的人群研究。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "glucosamine", "url": "https://lpi.oregonstate.edu/mic/dietary-factors/glucosamine", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "digestive-discomfort",
+      "symptomZh": "消化不适",
+      "synonyms": ["胀气", "便秘", "肠道不好", "消化不良"],
+      "candidates": [
+        {
+          "ingredientSlug": "probiotics",
+          "evidenceNote": "LPI 食品/膳食因子章节记录益生菌对肠道菌群与消化症状的支持研究。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "probiotics", "url": "https://lpi.oregonstate.edu/mic/food-beverages/probiotics", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "vision-decline",
+      "symptomZh": "视力下降",
+      "synonyms": ["看东西模糊", "夜里看不清", "眼睛累"],
+      "candidates": [
+        {
+          "ingredientSlug": "lutein",
+          "evidenceNote": "LPI 类胡萝卜素章节将叶黄素与黄斑色素密度、AMD 风险研究相关联。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "carotenoids", "url": "https://lpi.oregonstate.edu/mic/dietary-factors/phytochemicals/carotenoids", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "vitamin-a",
+          "evidenceNote": "LPI Vitamin A 章节明确将夜盲列为典型缺乏症状。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "vitamin-a", "url": "https://lpi.oregonstate.edu/mic/vitamins/vitamin-A", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "fish-oil",
+          "evidenceNote": "LPI Essential Fatty Acids 章节记录 omega-3（DHA）对视网膜健康的支持研究。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "essential-fatty-acids", "url": "https://lpi.oregonstate.edu/mic/other-nutrients/essential-fatty-acids", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "dry-skin",
+      "symptomZh": "皮肤干燥",
+      "synonyms": ["皮肤痒", "脱皮", "干裂"],
+      "candidates": [
+        {
+          "ingredientSlug": "vitamin-c",
+          "evidenceNote": "LPI Vitamin C 章节将其列为胶原合成必需辅因子。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "vitamin-c", "url": "https://lpi.oregonstate.edu/mic/vitamins/vitamin-C", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "vitamin-e",
+          "evidenceNote": "LPI Vitamin E 章节列其为细胞膜抗氧化保护营养素。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "vitamin-e", "url": "https://lpi.oregonstate.edu/mic/vitamins/vitamin-E", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "fish-oil",
+          "evidenceNote": "LPI Essential Fatty Acids 章节记录 omega-3 对皮肤屏障功能的支持研究。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "essential-fatty-acids", "url": "https://lpi.oregonstate.edu/mic/other-nutrients/essential-fatty-acids", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "memory-attention",
+      "symptomZh": "记忆/注意力问题",
+      "synonyms": ["健忘", "脑雾", "注意力不集中", "记不住"],
+      "candidates": [
+        {
+          "ingredientSlug": "fish-oil",
+          "evidenceNote": "LPI Essential Fatty Acids 章节记录 DHA 对认知与神经功能的研究。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "essential-fatty-acids", "url": "https://lpi.oregonstate.edu/mic/other-nutrients/essential-fatty-acids", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "vitamin-b12",
+          "evidenceNote": "LPI Vitamin B12 章节将认知功能下降列为缺乏相关表现，老年人尤甚。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "vitamin-b12", "url": "https://lpi.oregonstate.edu/mic/vitamins/vitamin-B12", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "hair-loss",
+      "symptomZh": "脱发",
+      "synonyms": ["掉头发", "头发稀疏"],
+      "candidates": [
+        {
+          "ingredientSlug": "biotin",
+          "evidenceNote": "LPI Biotin 章节记录脱发为典型缺乏症状（仅缺乏者补充有效）。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "biotin", "url": "https://lpi.oregonstate.edu/mic/vitamins/biotin", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "iron",
+          "evidenceNote": "LPI Iron 章节将缺铁列为弥漫性脱发常见可纠正诱因之一。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "iron", "url": "https://lpi.oregonstate.edu/mic/minerals/iron", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "zinc",
+          "evidenceNote": "LPI Zinc 章节列脱发为缺乏症状之一。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "zinc", "url": "https://lpi.oregonstate.edu/mic/minerals/zinc", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "muscle-cramp",
+      "symptomZh": "肌肉抽筋",
+      "synonyms": ["小腿抽筋", "夜里抽筋", "腿抽"],
+      "candidates": [
+        {
+          "ingredientSlug": "magnesium",
+          "evidenceNote": "LPI Magnesium 章节将肌肉痉挛列为缺乏相关表现。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "magnesium", "url": "https://lpi.oregonstate.edu/mic/minerals/magnesium", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "calcium",
+          "evidenceNote": "LPI Calcium 章节涉及神经-肌肉兴奋性，低钙血症可致痉挛。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "calcium", "url": "https://lpi.oregonstate.edu/mic/minerals/calcium", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "vitamin-d",
+          "evidenceNote": "LPI Vitamin D 章节涉及钙稳态，缺乏可加重肌肉症状。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "vitamin-d", "url": "https://lpi.oregonstate.edu/mic/vitamins/vitamin-D", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "low-mood",
+      "symptomZh": "心情低落",
+      "synonyms": ["情绪差", "情绪低落", "抑郁感"],
+      "candidates": [
+        {
+          "ingredientSlug": "vitamin-d",
+          "evidenceNote": "LPI Vitamin D 章节记录其在情绪与认知健康相关研究中的关联。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "vitamin-d", "url": "https://lpi.oregonstate.edu/mic/vitamins/vitamin-D", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "vitamin-b12",
+          "evidenceNote": "LPI Vitamin B12 章节将神经精神症状列为缺乏相关表现。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "vitamin-b12", "url": "https://lpi.oregonstate.edu/mic/vitamins/vitamin-B12", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "preconception-pregnancy",
+      "symptomZh": "备孕/孕期营养",
+      "synonyms": ["备孕", "怀孕", "孕期"],
+      "candidates": [
+        {
+          "ingredientSlug": "folate",
+          "evidenceNote": "LPI Folate 章节将孕前/孕早期补充与神经管缺陷预防关联，证据等级强。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "folate", "url": "https://lpi.oregonstate.edu/mic/vitamins/folate", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "iron",
+          "evidenceNote": "LPI Iron 章节将孕期需求显著上调列为缺铁高危场景。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "iron", "url": "https://lpi.oregonstate.edu/mic/minerals/iron", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "fish-oil",
+          "evidenceNote": "LPI Essential Fatty Acids 章节记录孕期 DHA 对胎儿神经发育的支持研究。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "essential-fatty-acids", "url": "https://lpi.oregonstate.edu/mic/other-nutrients/essential-fatty-acids", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "menstrual-discomfort",
+      "symptomZh": "经期不适",
+      "synonyms": ["痛经", "月经量大", "经前综合征", "PMS"],
+      "candidates": [
+        {
+          "ingredientSlug": "iron",
+          "evidenceNote": "LPI Iron 章节将经期失血列为成年女性缺铁高危场景。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "iron", "url": "https://lpi.oregonstate.edu/mic/minerals/iron", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "vitamin-b6",
+          "evidenceNote": "LPI Vitamin B6 章节涉及 PMS 相关补充研究。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "vitamin-b6", "url": "https://lpi.oregonstate.edu/mic/vitamins/vitamin-B6", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "magnesium",
+          "evidenceNote": "LPI Magnesium 章节涉及痛经与 PMS 相关补充研究。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "magnesium", "url": "https://lpi.oregonstate.edu/mic/minerals/magnesium", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "dry-eyes",
+      "symptomZh": "眼睛干涩",
+      "synonyms": ["眼干", "眼睛涩", "眼疲劳"],
+      "candidates": [
+        {
+          "ingredientSlug": "lutein",
+          "evidenceNote": "LPI 类胡萝卜素章节涉及叶黄素对视疲劳与黄斑色素密度的相关研究。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "carotenoids", "url": "https://lpi.oregonstate.edu/mic/dietary-factors/phytochemicals/carotenoids", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "fish-oil",
+          "evidenceNote": "LPI Essential Fatty Acids 章节涉及 omega-3 在干眼症研究中的应用。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "essential-fatty-acids", "url": "https://lpi.oregonstate.edu/mic/other-nutrients/essential-fatty-acids", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    },
+    {
+      "symptomSlug": "common-cold",
+      "symptomZh": "感冒/上呼吸道感染",
+      "synonyms": ["感冒", "嗓子疼", "流鼻涕", "上呼吸道感染"],
+      "candidates": [
+        {
+          "ingredientSlug": "vitamin-c",
+          "evidenceNote": "LPI Immunity 章节涉及维生素 C 对感冒病程缩短的相关研究（证据等级有限）。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "immunity", "url": "https://lpi.oregonstate.edu/mic/health-disease/immunity", "retrievedAt": "2026-04-22" }
+          ]
+        },
+        {
+          "ingredientSlug": "zinc",
+          "evidenceNote": "LPI Zinc 章节涉及锌锭剂在感冒早期使用的相关研究（证据等级有限）。",
+          "sourceRefs": [
+            { "source": "lpi", "id": "zinc", "url": "https://lpi.oregonstate.edu/mic/minerals/zinc", "retrievedAt": "2026-04-22" }
+          ]
+        }
+      ]
+    }
+  ]
+}
