@@ -56,11 +56,11 @@ P0 的 API 分为两层：
 
 ```ts
 type IngredientRef = {
-  raw_name: string;
-  canonical_name?: string | null;
-  canonical_cn?: string | null;
+  rawName: string;
+  canonicalName?: string | null;
+  canonicalCn?: string | null;
   form?: string | null;
-  amount_text?: string | null;
+  amountText?: string | null;
   source: "manual" | "ocr" | "archive";
   confidence: "high" | "medium" | "low";
 };
@@ -70,8 +70,8 @@ type IngredientRef = {
 
 ```ts
 type MedicationEntry = {
-  raw_name: string;
-  canonical_name?: string | null;
+  rawName: string;
+  canonicalName?: string | null;
   code?: string | null;
   confidence: "high" | "medium" | "low";
 };
@@ -84,10 +84,10 @@ type QueryContext = {
   medications: MedicationEntry[];
   conditions: string[];
   allergies: string[];
-  special_groups: string[];
-  dose_band?: "unknown" | "low" | "medium" | "high" | null;
+  specialGroups: string[];
+  doseBand?: "unknown" | "low" | "medium" | "high" | null;
   timing?: "unknown" | "empty_stomach" | "with_food" | "before_sleep" | "other" | null;
-  existing_supplements?: IngredientRef[];
+  existingSupplements?: IngredientRef[];
 };
 ```
 
@@ -107,16 +107,16 @@ type PersonRef = {
 type QuerySession = {
   sessionId: string;
   status: "collecting_context" | "ready_for_judgment" | "completed" | "expired";
-  query_mode: "manual" | "ocr";
-  query_kind: "product" | "ingredient" | "recheck";
-  raw_input: string;
+  queryMode: "manual" | "ocr";
+  queryKind: "product" | "ingredient" | "recheck";
+  rawInput: string;
   ingredients: IngredientRef[];
   context: QueryContext;
   person?: PersonRef | null;
-  asked_questions: string[];
-  missing_required_fields: string[];
-  created_at: string;
-  expires_at: string;
+  askedQuestions: string[];
+  missingRequiredFields: string[];
+  createdAt: string;
+  expiresAt: string;
 };
 ```
 
@@ -126,12 +126,16 @@ type QuerySession = {
 type Risk = {
   level: "red" | "yellow" | "gray" | "green";
   dimension: "drug_interaction" | "condition_contra" | "population_caution" | "dose_caution" | "form_difference" | "coverage_gap";
-  reason_code: string;
+  // 溯源（与 Ingredient.id / 药物词表 / 病史 code 一致）
+  ingredient: string;
+  condition?: string;
+  medication?: string;
+  reasonCode: string;
   title: string;
   summary: string;
-  evidence_strength: "high" | "medium" | "low" | "unknown";
-  evidence_type: "hardcoded_rule" | "database" | "literature" | "limited" | "none";
-  source_refs: string[];
+  evidenceStrength: "high" | "medium" | "low" | "unknown";
+  evidenceType: "hardcoded_rule" | "database" | "literature" | "limited" | "none";
+  sourceRefs: string[];
   cta: "stop_and_consult" | "consult_if_needed" | "recheck_with_more_context" | "proceed_with_caution" | "basic_ok";
 };
 
@@ -145,7 +149,15 @@ type JudgmentResult = {
 type TranslatedRisk = Risk & {
   translation: string;
   avoidance: string;
-  disclaimer: string;
+};
+
+// Disclaimer 改为顶层一份，挂在 TranslationResult 上（合规红线：不重复贴到每条 Risk）
+type TranslationResult = {
+  sessionId: string;
+  overallLevel: "red" | "yellow" | "gray" | "green";
+  translatedRisks: TranslatedRisk[];
+  disclaimer: string;   // 合规顶层一份，前端兜底必渲染
+  criticalWarning?: { show: true; text: string };
 };
 ```
 
@@ -159,21 +171,21 @@ type Person = {
   conditions: string[];
   medications: MedicationEntry[];
   allergies: string[];
-  special_groups: string[];
-  saved_queries: string[];
-  created_at: string;
-  updated_at: string;
+  specialGroups: string[];
+  savedQueries: string[];
+  createdAt: string;
+  updatedAt: string;
 };
 
 type ArchiveEntry = {
   archiveEntryId: string;
   personId: string;
   sessionId: string;
-  query_summary: string;
+  querySummary: string;
   ingredients: IngredientRef[];
   overallLevel: "red" | "yellow" | "gray" | "green";
   risks: TranslatedRisk[];
-  created_at: string;
+  createdAt: string;
 };
 ```
 
@@ -197,9 +209,9 @@ type ArchiveEntry = {
 
 ```json
 {
-  "query_mode": "manual",
-  "raw_input": "Doctor's Best Magnesium",
-  "image_base64": null,
+  "queryMode": "manual",
+  "rawInput": "Doctor's Best Magnesium",
+  "imageBase64": null,
   "personRef": {
     "personId": "person_mom_001"
   }
@@ -214,14 +226,14 @@ type ArchiveEntry = {
   "session": {
     "sessionId": "qs_123",
     "status": "collecting_context",
-    "query_mode": "manual",
-    "query_kind": "product",
-    "raw_input": "Doctor's Best Magnesium",
+    "queryMode": "manual",
+    "queryKind": "product",
+    "rawInput": "Doctor's Best Magnesium",
     "ingredients": [
       {
-        "raw_name": "Magnesium",
-        "canonical_name": "magnesium",
-        "canonical_cn": "镁",
+        "rawName": "Magnesium",
+        "canonicalName": "magnesium",
+        "canonicalCn": "镁",
         "source": "manual",
         "confidence": "medium"
       }
@@ -230,18 +242,18 @@ type ArchiveEntry = {
       "medications": [],
       "conditions": ["hypertension"],
       "allergies": [],
-      "special_groups": ["older_adult"]
+      "specialGroups": ["older_adult"]
     },
     "person": {
       "personId": "person_mom_001",
       "label": "mom"
     },
-    "asked_questions": [],
-    "missing_required_fields": ["medications"],
-    "created_at": "2026-04-20T10:00:00Z",
-    "expires_at": "2026-04-20T10:30:00Z"
+    "askedQuestions": [],
+    "missingRequiredFields": ["medications"],
+    "createdAt": "2026-04-20T10:00:00Z",
+    "expiresAt": "2026-04-20T10:30:00Z"
   },
-  "next_questions": [
+  "nextQuestions": [
     {
       "questionId": "q_medications",
       "type": "multi_select_or_text",
@@ -254,9 +266,9 @@ type ArchiveEntry = {
 
 ### 约束
 
-- `query_mode = ocr` 时，`image_base64` 必填
-- `raw_input` 和 `image_base64` 至少有一个
-- OCR 失败时仍返回 `ok: true` + `fallback_to_manual: true`，不要直接 500
+- `queryMode = ocr` 时，`imageBase64` 必填
+- `rawInput` 和 `imageBase64` 至少有一个
+- OCR 失败时仍返回 `ok: true` + `fallbackToManual: true`，不要直接 500
 
 ---
 
@@ -273,7 +285,7 @@ type ArchiveEntry = {
   "sessionId": "qs_123",
   "answers": {
     "medications": [
-      { "raw_name": "Amlodipine", "confidence": "medium" }
+      { "rawName": "Amlodipine", "confidence": "medium" }
     ],
     "conditions": ["hypertension"]
   }
@@ -288,9 +300,9 @@ type ArchiveEntry = {
   "session": {
     "sessionId": "qs_123",
     "status": "collecting_context",
-    "missing_required_fields": ["special_groups"]
+    "missingRequiredFields": ["specialGroups"]
   },
-  "next_questions": [
+  "nextQuestions": [
     {
       "questionId": "q_special_groups",
       "type": "single_select",
@@ -311,24 +323,27 @@ type ArchiveEntry = {
     "status": "completed"
   },
   "result": {
+    "sessionId": "qs_123",
     "overallLevel": "yellow",
     "partialData": false,
-    "risks": [
+    "translatedRisks": [
       {
         "level": "yellow",
         "dimension": "drug_interaction",
-        "reason_code": "DRUG_INTERACTION_CAUTION",
+        "ingredient": "magnesium",
+        "medication": "amlodipine",
+        "reasonCode": "DRUG_INTERACTION_CAUTION",
         "title": "当前用药下需注意",
         "summary": "可能影响当前用药体验",
-        "evidence_strength": "medium",
-        "evidence_type": "database",
-        "source_refs": ["suppai:123"],
+        "evidenceStrength": "medium",
+        "evidenceType": "database",
+        "sourceRefs": ["suppai:123"],
         "cta": "consult_if_needed",
         "translation": "这不是绝对不能吃，但在你现在的用药情况下需要多留心。",
-        "avoidance": "先保存这次结果；若准备长期服用，建议咨询医生或药师确认。",
-        "disclaimer": "VitaMe 提供补剂安全信息和决策辅助，不提供诊断或处方建议。"
+        "avoidance": "先保存这次结果；若准备长期服用，建议咨询医生或药师确认。"
       }
-    ]
+    ],
+    "disclaimer": "VitaMe 提供补剂安全信息和决策辅助，不提供诊断或处方建议。"
   }
 }
 ```
@@ -368,12 +383,13 @@ type ArchiveEntry = {
       {
         "level": "gray",
         "dimension": "coverage_gap",
-        "reason_code": "INSUFFICIENT_CONTEXT_MEDICATION",
+        "ingredient": "magnesium",
+        "reasonCode": "INSUFFICIENT_CONTEXT_MEDICATION",
         "title": "缺少关键用药信息",
         "summary": "当前无法可靠判断与在用药是否冲突",
-        "evidence_strength": "unknown",
-        "evidence_type": "limited",
-        "source_refs": [],
+        "evidenceStrength": "unknown",
+        "evidenceType": "limited",
+        "sourceRefs": [],
         "cta": "recheck_with_more_context"
       }
     ]
@@ -401,12 +417,14 @@ type ArchiveEntry = {
       {
         "level": "red",
         "dimension": "drug_interaction",
-        "reason_code": "DRUG_INTERACTION_MAJOR",
+        "ingredient": "fish_oil",
+        "medication": "warfarin",
+        "reasonCode": "DRUG_INTERACTION_MAJOR",
         "title": "存在明确高风险交互",
         "summary": "当前成分与在用药存在已知高风险",
-        "evidence_strength": "high",
-        "evidence_type": "hardcoded_rule",
-        "source_refs": ["rule:warfarin_fish_oil"],
+        "evidenceStrength": "high",
+        "evidenceType": "hardcoded_rule",
+        "sourceRefs": ["rule:warfarin_fish_oil"],
         "cta": "stop_and_consult"
       }
     ]
@@ -419,30 +437,35 @@ type ArchiveEntry = {
 ```json
 {
   "ok": true,
-  "translated_risks": [
+  "sessionId": "qs_123",
+  "overallLevel": "red",
+  "translatedRisks": [
     {
       "level": "red",
       "dimension": "drug_interaction",
-      "reason_code": "DRUG_INTERACTION_MAJOR",
+      "ingredient": "fish_oil",
+      "medication": "warfarin",
+      "reasonCode": "DRUG_INTERACTION_MAJOR",
       "title": "存在明确高风险交互",
       "summary": "当前成分与在用药存在已知高风险",
-      "evidence_strength": "high",
-      "evidence_type": "hardcoded_rule",
-      "source_refs": ["rule:warfarin_fish_oil"],
+      "evidenceStrength": "high",
+      "evidenceType": "hardcoded_rule",
+      "sourceRefs": ["rule:warfarin_fish_oil"],
       "cta": "stop_and_consult",
       "translation": "你现在吃的药和这类补剂放在一起，风险已经不是“多注意”级别。",
-      "avoidance": "先不要自行继续，建议把这次结果带给医生或药师确认。",
-      "disclaimer": "VitaMe 提供补剂安全信息和决策辅助，不提供诊断或处方建议。"
+      "avoidance": "先不要自行继续，建议把这次结果带给医生或药师确认。"
     }
-  ]
+  ],
+  "disclaimer": "VitaMe 提供补剂安全信息和决策辅助，不提供诊断或处方建议。"
 }
 ```
 
 ### 约束
 
 - 不允许新增或修改 `level`
-- 不允许新增核心 `reason_code`
+- 不允许新增核心 `reasonCode`
 - 违规时走模板 fallback
+- 合规红线：Disclaimer 挂在 TranslationResult 顶层，不重复贴到每条 Risk
 
 ---
 
@@ -484,7 +507,7 @@ type ArchiveEntry = {
   "personSummary": {
     "personId": "person_mom_001",
     "label": "mom",
-    "saved_queries_count": 3
+    "savedQueriesCount": 3
   }
 }
 ```
@@ -508,8 +531,8 @@ type ArchiveEntry = {
 ```json
 {
   "personId": "person_mom_001",
-  "raw_input": "Fish Oil",
-  "query_mode": "manual"
+  "rawInput": "Fish Oil",
+  "queryMode": "manual"
 }
 ```
 
@@ -521,22 +544,24 @@ type ArchiveEntry = {
   "session": {
     "sessionId": "qs_recheck_001",
     "status": "completed",
-    "query_kind": "recheck"
+    "queryKind": "recheck"
   },
   "result": {
+    "sessionId": "qs_recheck_001",
     "overallLevel": "yellow",
     "partialData": false,
-    "risks": [],
+    "translatedRisks": [],
     "newRisks": [],
-    "unchangedRisks": []
+    "unchangedRisks": [],
+    "disclaimer": "VitaMe 提供补剂安全信息和决策辅助，不提供诊断或处方建议。"
   }
 }
 ```
 
 ### 约束
 
-- 从 archive 触发时，默认复用该 Person 已有的 `conditions / medications / allergies / special_groups`
-- 若仅因剂量或时序仍不确定，可继续返回 `next_questions`
+- 从 archive 触发时，默认复用该 Person 已有的 `conditions / medications / allergies / specialGroups`
+- 若仅因剂量或时序仍不确定，可继续返回 `nextQuestions`
 
 ---
 
@@ -545,7 +570,7 @@ type ArchiveEntry = {
 ### 首次查询
 
 1. 前端调 `POST /api/query`
-2. 服务端返回 `session + next_questions`
+2. 服务端返回 `session + nextQuestions`
 3. 前端依次提交 `POST /api/query/context`
 4. 服务端满足条件后，内部串行：
    - `/api/judgment`
@@ -557,7 +582,7 @@ type ArchiveEntry = {
 
 1. 前端从某 `Person` 发起 `POST /api/archive/recheck`
 2. 服务端自动回填既有 context
-3. 若还需少量新问题，则返回 `next_questions`
+3. 若还需少量新问题，则返回 `nextQuestions`
 4. 否则直接回结果
 5. 用户可再 `save` 成为新 archive entry
 

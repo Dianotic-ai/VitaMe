@@ -52,7 +52,7 @@ purpose: "把 P0 的“可信、可懂、可复查”拆成可执行的测试样
 每条样例至少检查：
 
 - `overallLevel`
-- `reason_code`
+- `reasonCode`
 - 是否应继续追问
 - 是否有免责声明
 - CTA 是否正确
@@ -75,7 +75,7 @@ purpose: "把 P0 的“可信、可懂、可复查”拆成可执行的测试样
 
 ## A. Rule Truth — 红黄灰绿真值
 
-| ID | 场景 | 输入摘要 | 期望 overallLevel | 期望核心 reason_code | 关键断言 |
+| ID | 场景 | 输入摘要 | 期望 overallLevel | 期望核心 reasonCode | 关键断言 |
 |----|------|----------|-------------------|----------------------|----------|
 | R-01 | 强药物交互 | Fish Oil + Warfarin | red | `DRUG_INTERACTION_MAJOR` | 必须红，不得黄或灰 |
 | R-02 | 条件性药物交互 | Fish Oil + Amlodipine | yellow | `DRUG_INTERACTION_CAUTION` | 不得夸大成红 |
@@ -133,7 +133,7 @@ purpose: "把 P0 的“可信、可懂、可复查”拆成可执行的测试样
 |----|------|----------|----------|
 | E-01 | Session 过期 | 返回 `SESSION_EXPIRED` | 前端引导重新开始 |
 | E-02 | Ingredient 无法标准化 | 结果落灰或引导手动输入标准成分 | 不得硬猜 |
-| E-03 | 药名 canonicalize 失败 | 保留 raw_name + 转灰/提示复查 | 不丢原始信息 |
+| E-03 | 药名 canonicalize 失败 | 保留 rawName + 转灰/提示复查 | 不丢原始信息 |
 | E-04 | API 部分失败 | judgment 成功、translation 失败时走 fallback | 不得空白页 |
 | E-05 | 低网速 / 重试 | 重试后仍能恢复当前 session | 不应创建多个脏 session |
 | E-06 | localStorage 被清 | 至少前端有显式提示 | 不让用户误以为已保存 |

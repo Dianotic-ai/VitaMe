@@ -31,7 +31,7 @@ purpose: "作为 Safety Judgment / Translation / Compliance / QA 共同依赖的
 2. **高风险优先确定性规则**
 3. **证据不足时要诚实落灰**
 4. **未发现已知高风险，不等于绝对安全**
-5. **结果必须带 level、reason_code、evidence、cta**
+5. **结果必须带 level、reasonCode、evidence、cta**
 
 ---
 
@@ -41,12 +41,16 @@ purpose: "作为 Safety Judgment / Translation / Compliance / QA 共同依赖的
 type Risk = {
   level: "red" | "yellow" | "gray" | "green";
   dimension: "drug_interaction" | "condition_contra" | "population_caution" | "dose_caution" | "form_difference" | "coverage_gap";
-  reason_code: string;
+  // 溯源（与 Ingredient.id / 药物词表 / 病史 code 一致）
+  ingredient: string;
+  condition?: string;
+  medication?: string;
+  reasonCode: string;
   title: string;
   summary: string;
-  evidence_strength: "high" | "medium" | "low" | "unknown";
-  evidence_type: "hardcoded_rule" | "database" | "literature" | "limited" | "none";
-  source_refs: string[];
+  evidenceStrength: "high" | "medium" | "low" | "unknown";
+  evidenceType: "hardcoded_rule" | "database" | "literature" | "limited" | "none";
+  sourceRefs: string[];
   cta: "stop_and_consult" | "consult_if_needed" | "recheck_with_more_context" | "proceed_with_caution" | "basic_ok";
 };
 ```
@@ -166,8 +170,8 @@ type JudgmentResult = {
 
 ### 4.2 依据类型（用户可见）
 
-| evidence_type | 含义 |
-|---------------|------|
+| evidenceType | 含义 |
+|--------------|------|
 | `hardcoded_rule` | 经审核冻结的强规则 |
 | `database` | 结构化数据库命中 |
 | `literature` | 文献或次级资料支持 |
@@ -262,12 +266,12 @@ P0 的风险维度统一收口为 6 类：
 
 ---
 
-## 10. P0 的 reason_code 管理规则
+## 10. P0 的 reasonCode 管理规则
 
 ### 原则
 
-- `reason_code` 数量可控，优先覆盖高频风险
-- 不允许 LLM 现场发明新的核心 reason_code
+- `reasonCode` 数量可控，优先覆盖高频风险
+- 不允许 LLM 现场发明新的核心 reasonCode
 - 高频 code 必须有模板翻译兜底
 
 ### 推荐首批范围
