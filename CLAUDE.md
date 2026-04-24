@@ -2,7 +2,7 @@
 
 > This file provides operational guidance to Claude Code when working in the `vitame-p0/` repository.
 > It is **a set of action rules, not a product introduction** — every section tells you what to do when writing code.
-> **Version**: v2.9 · Last updated: 2026-04-22 (D6 晚 / 12). Change log → `docs/CLAUDE.md-changelog.md`.
+> **Version**: v2.10 · Last updated: 2026-04-24 (D7 下午 / 12). Change log → `docs/CLAUDE.md-changelog.md`.
 
 ---
 

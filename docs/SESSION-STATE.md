@@ -7,29 +7,40 @@
 ---
 
 ## 最后更新
-**2026-04-22（D6 / 12，晚）** — **CLAUDE.md v2.9 P0 红规则 +4**：100-条 seed 暴露 32 条 missing-l1-substance 长尾，按 demo ROI 分四档 P0/P1/P2/P3，落地 P0 4 条解锁 4 条 seed（红规则总数 2→6）。  
-（v2.8 架构升级 D5 晚的内容已推到下方"刚完成"段。）
+**2026-04-24（D7 / 12，下午）** — **三分支对齐 + docs 重组 + PR #1 合入**：把 Kevin 的 `codex/spec-hardening` specs（41 份独有文档）+ PR #1 的 3 条命名约定（camelCase / disclaimer 顶层 / Risk 保留结构化溯源）合入 Sunny 的代码分支。为不打扰 Sunny 的开发，整合后推到**新分支 `dev-merged-2026-04-24`**，本地 `vitame-dev-v0.1` 已 reset 回 `f55d138`（= 远程，Sunny 无感）。  
+（v2.9 P0 红规则 +4 D6 晚、v2.8 架构升级 D5 晚、v2.7 LLM Client 等内容已推到下方"刚完成"段。）
 
 ### 本次会话主要产出
-1. **替换 seed runner**：`tests/seed-questions.spec.ts` 从 20 条版重写为 100 条版（来源 `docs/research/Demo种子问题清单-100条.md`），引入 6-kind 分类（covered / fallback / missing-l1-rule / missing-l1-substance / non-l2-form / non-l2-decision）+ `afterAll` 覆盖率报告 + 自检阈值断言。基线 24 runnable / 76 skip / 全 pass。
-2. **P0 L1 扩展（4 条红规则）**：`src/lib/db/contraindications.ts` 50 → 54。
-   - `vm-rule-magnesium-kidney-impairment` (red, `magnesium_accumulation_renal_impairment`) → seed Q65
-   - `vm-rule-stjohnswort-oral-contraceptive` (red, `cyp3a4_induction_contraceptive_failure`) → seed Q8
-   - `vm-rule-ginkgo-warfarin` (red, `bleeding_risk_anticoagulant_synergy`) → seed Q67
-   - `vm-rule-vitamina-infant-highdose` (red, `infant_vitamina_overdose_risk`) → seed Q53
-3. **配套同步**：`slugMappings.ts` 加 alias（圣约翰草/银杏/避孕药/肾病/婴幼儿）；`knowledgeBaseLookup.ts` `KB_ALIAS_KNOWN_SET` 加 st-johns-wort/ginkgo（避免 KB 误判 gray no_data）；`tests/unit/contraindications.spec.ts` 总数 50 → 54 + 改 `>=50` floor 双断言。
-4. **文档侧**：CLAUDE.md v2.8 → v2.9（§3.1 `~50` → `~54` / §15.2 D6 note + 必发清单 +4 条 / 头部 Version + 日期）；`docs/CLAUDE.md-changelog.md` 加 v2.9 条目；本文件本次。
-5. **测试**：seed 25→29 pass，runnable 24→28，红 2→6；全 unit 套件 286 pass / 0 fail / 72 skip。
+1. **分支对齐**：`main`（僵尸不动）+ `codex/spec-hardening`（Kevin docs，PR #1 已 MERGED）+ `dev-merged-2026-04-24`（新集成分支，Phase 0-6 产出在这）+ `vitame-dev-v0.1`（Sunny 不受影响的代码开发分支）。
+2. **PR #1 合入**：gh pr merge 1 --merge，PR #1 状态 MERGED at 2026-04-24T07:29:51Z，merge commit d052623。
+3. **unrelated-histories 合并**（commit `a1cb8b2`）：把 `origin/codex/spec-hardening`（41 份 Kevin 独有文档 + PR #1 产物）合入本地代码分支。7 份重叠 specs 冲突全部取 vitame-dev 侧（v2.8/v2.9 新于 codex D3）。`.gitignore` 手动合并两边条目（Next.js + TypeScript + IDE + GStack + Playwright MCP + 健康数据隐私 + 音频）。
+4. **最小重组**（commit `691bf40`）：
+   - `_bmad/ _bmad-output/` → `docs/_archive/`（BMAD 残留，不再使用）
+   - `docs/superpowers/` → `docs/engineering/`（更贴近职能语义）
+   - `docs/小红书需求调研/Demo种子问题清单-100条.md` → `docs/research/`（D6 产出）
+   - dedup 删 2 份合并重复文件（`小红书用户需求调研.md` / `Demo种子问题清单-20条.md`）
+   - `scripts/smoke100.ts:25` SEED_FILE 路径同步更新
+   - `.gitignore` 加音频（`*.m4a` / `*.mp3` / `*.wav` 防 42MB 会议录音误推）
+5. **命名规范 + §7 刷新**（commit `0969dea`）：
+   - 新增 `docs/naming-conventions.md`（30 行规范：product=中文主题 / engineering=英文 kebab / decisions=YYYY-MM-DD-主题 / research=中文主题 / 运行态=大写锚点）
+   - CLAUDE.md §0.1 加 naming-conventions 行 + §3.1/§11.1/§11.11/§16 路径改到 `docs/engineering/`
+   - README.md + SESSION-STATE.md 同步路径
+6. **验证全绿**：test:unit 286 pass / 72 skip（25 files）；test:seed 29 pass / 72 skip（+1 vs D6 基线，v2.9 红规则 +4 多解锁 1 条）；build 12/12 routes 生成（8 static + 3 API + 1 icon）。
+
+### 三分支未来职能（写进 auto-memory）
+| 分支 | 职能 | 谁动 | 合并策略 |
+|---|---|---|---|
+| `main` | 发版分支（live 代码 + 归档文档）| deploy 前推；deadline 后讨论 | 从 `dev-merged-2026-04-24` fast-forward |
+| `codex/spec-hardening` | Kevin 的 PRD / 决策 / 策略 / 研究 | Kevin | 新 spec 先提 PR 到这里，再定期合入 dev |
+| `dev-merged-2026-04-24` | 集成分支（代码 + 工程文档 + Kevin 吸收过来的产品文档）| Sunny (主 CC) 主攻 | day-to-day 开发在这；吸收 codex 定期 cherry-pick |
+| `vitame-dev-v0.1` | 老开发分支（备用）| 暂不动 | — |
+| `backup/*-pre-merge-2026-04-24` | Phase 0 安全锚 | 永不动 | — |
 1. **时间目标 30s → 60s**（"Demo 视频可剪，产品稳定可靠优先"）
 2. **B-full 症状→成分推荐作 P0 例外**（接受工作量超 P0；带 §11.14 强 disclaimer + 用户必须二次点击 product_safety_check）
 3. **L2 grading 语义 root fix**（不是 UI 文案：no-data→gray、known+no-rule→green，写入 §10.2 + spec + 改 `judgmentEngine.ts:17-31` + 新增 `KnowledgeBaseLookup`）
 
-**新增 L0 Query Intake 层**取代 v2 关键词 4 题固定问答：parseIntent (LLM, Zod `.strict()`) + groundMentions (确定性) + slotResolver (业务规则) + clarify (hybrid: 业务定 WHEN/WHAT, LLM 仅 phrase)。7 intent 类型，P0 实装 4 handler（product_safety_check / symptom_goal_query / ingredient_translation / unclear），其他 3 走"礼貌告知"fallback。
-
-**8 文档同步全部完成**（CLAUDE v2.7→v2.8 + query-intake-design 重写 v3 + safety-judgment-design grading 拆分 + DESIGN 加 §4.7-4.9 + p0-plan 加 Phase 1.5/2.5/3.5/3.6 任务簇 + acceptance 12→15 条 + SESSION-STATE 本次 + changelog 待）。CLAUDE.md 加两条新红线：§11.13 L0 LLM 不得判风险 / §11.14 症状→成分需 disclaimer + 二次核查。预估额外工作量 35–43h / 5–6 天。
-
 ## 当前 Sprint 阶段
-**Phase 1.5（v2.8 新增）— L0 Query Intake 层 + L2 grading fix；Phase 1 L3 LLM Client 已就位**
+**D7 — 三分支整合日；L0 intake 代码已落；Phase 3.6 UI 三组件 + 主链联调 未开始**
 
 - Sprint: 12 天 P0（2026-04-18 → 2026-04-29）
 - 初赛截止: 2026-04-30（WAIC 超级个体黑客松）
@@ -37,6 +48,23 @@
 ---
 
 ## ✅ 刚完成
+
+### D7 — 三分支对齐 + docs 重组 + PR #1 合入 ✅
+**触发**：跨分支信息不对齐（代码分支看不到 Kevin 的 PRD / api-contract，Kevin 分支看不到 v2.8/v2.9 红线与 L0 架构），docs/ 10+ 目录分散命名混乱。用户决策：先解阻塞（合并 + 吸收文档），新结构推到**新分支不打扰 Sunny**。
+
+**执行 7 个 Phase**（详见 `docs/CLAUDE.md-changelog.md` v2.10）：
+- Phase 0: Backup 分支（`backup/vitame-dev-v0.1-pre-merge-2026-04-24` + `backup/codex-spec-hardening-pre-merge-2026-04-24`）+ stash untracked
+- Phase 1: `gh pr merge 1 --merge` → PR #1 MERGED，codex/spec-hardening HEAD → `d052623`
+- Phase 2: `git merge --allow-unrelated-histories origin/codex/spec-hardening` → 41 份独有文档 + PR #1 产物合入，7 冲突全 `--ours`，`.gitignore` 合并 → commit `a1cb8b2`
+- Phase 3: 重组 `_bmad → _archive / 小红书 → research / superpowers → engineering` + dedup 2 份重复 + scripts/smoke100.ts 路径同步 → commit `691bf40`
+- Phase 4: 新增 `docs/naming-conventions.md` + CLAUDE.md §0.1/§3.1/§11.1/§11.11/§16 路径同步 + README.md / SESSION-STATE.md 路径同步 → commit `0969dea`
+- Phase 5: 验证 test:unit 286 pass / test:seed 29 pass / build 12/12 routes ✅
+- Phase 6: SESSION-STATE + changelog + auto-memory 三处同步；branch fork 到 `dev-merged-2026-04-24`（本地 `vitame-dev-v0.1` reset 回 `f55d138` = 远程 Sunny 无感）
+
+**验证**：
+- 3 套测试全绿，Phase 2 的 --ours 决策正确（没把 v2.9 红线丢掉）
+- `.playwright-mcp/` + `docs/research/gemini-health-consultation.md` + `*.m4a/*.mp3` 隐私/大文件被 `.gitignore` 挡住
+- 本地 `vitame-dev-v0.1` 与 `origin/vitame-dev-v0.1` 一致 → Sunny 完全无感
 
 ### D5 晚 — v2.8 架构升级 8 文档同步 ✅
 **触发**：本次会话用户连续拍板 3 项产品决策（30s→60s / B-full symptom→ingredient / L2 grading semantic root fix），需把决策落到 8 份文档保持一致性。
@@ -108,19 +136,18 @@
 
 ## 👉 下一步
 
-**v2.9 P0 红规则 +4 完成 + 文档同步完成**（CLAUDE / changelog / SESSION-STATE 三处）。下一步候选（按用户决策序）：
+**D7 三分支对齐完成**（commit `a1cb8b2 → 691bf40 → 0969dea` 在新分支 `dev-merged-2026-04-24` 上）。下一步候选（按 deadline 倒数 5 天排序）：
 
-1. **D6 prompt tuning 真 LLM 验证（task #63 in_progress）** — `scripts/smokeIntent.ts` 在真 LLM 下跑 5 case，看新加的 4 few-shot examples 是否把 A/C/D/E 4 个失败 case 至少修复 4/5。需联网 + minimax key 在 env。
-2. **P1/P2 L1 增量（28 条 missing-l1-substance 长尾）**：
-   - 🟡 P1（黄规则高频，~8 条 Q）— melatonin+benzodiazepine+alcohol / quinolone / antibiotic / vitamin-k2 / niacin+gout / caffeine 高剂量
-   - 🟢 P2（单 ingredient 低成本，~9 条 Q，每条 ~30 min）— inositol+pcos / cranberry / ginseng / alpha-lipoic-acid / nmn / milk-thistle+nafld / black-cohosh+menopause
-   - ⏸ P3（需新机制层，暂缓）— grapefruit-CYP3A4 / 赋形剂层 / 减脂违规识别 / 运动营养 / 婴幼儿剂型 / 双磷酸盐 等
-3. **Phase 3.6 L0 UI 三组件**（task #53 pending）— DESIGN §4.7-4.9 ClarifyBubble / IntentFallbackForm / SymptomCandidateList
-4. **D7 主链联调** — text input → /api/intent → /api/judgment → /api/translation → 渲染 RiskBadge + Disclaimer + DemoBanner，跑 60s end-to-end 时间预算
+1. **推 `dev-merged-2026-04-24` 到 origin**（本会话最后一步）— 合伙人能在 GitHub 上看到这条集成分支。
+2. **D7 主链联调**（Phase 3.6 前置）— text input → /api/intent → /api/judgment → /api/translation → 渲染 RiskBadge + Disclaimer + DemoBanner，跑 60s end-to-end 时间预算；修复发现的集成问题。
+3. **Phase 3.6 L0 UI 三组件** — DESIGN §4.7-4.9 ClarifyBubble / IntentFallbackForm / SymptomCandidateList（L0 架构已落，UI 三件套把 user-visible 部分补上）。
+4. **D6 prompt tuning 真 LLM 验证**（暂挂）— `scripts/smokeIntent.ts` 真 LLM 跑 5 case（需联网 + minimax key）；4 few-shot 是否修复 A/C/D/E 失败 case，主链联调后再验。
+5. **P1/P2 L1 增量**（暂挂）— 🟡 8 条 / 🟢 9 条 missing-l1-substance 长尾；看 D7/D8 主链联调后是否有余量。
 
 **用户拍板需求**：
-- D6 smokeIntent 是否本会话跑（需联网/key），还是挂 D7 一起？
-- P1 是否进 D7（再 +8 条 seed runnable，红→6 + 黄 +8）？还是直接做 UI（Phase 3.6）让 demo 链路先能跑通再回头扩 L1？
+- 大规模 rename（按 `docs/naming-conventions.md` 规则清 VitaMe-补剂安全翻译Agent- 冗长前缀）何时做？建议 D8-9 Sprint 末。
+- `main` 何时 force-update 到 `dev-merged-2026-04-24`？建议 D10-11 发版前（deploy target 锁定）。
+- Kevin 合并模型：codex/spec-hardening 未来如何同步到 dev？（单向 PR？定期 cherry-pick？）
 
 ---
 
@@ -139,6 +166,7 @@
 
 ## 📋 决策日志（新 → 旧）
 
+- **2026-04-24（D7 下午, 三分支对齐 + docs 重组, CLAUDE.md v2.10）** — 用户拍板：(1) 3 条命名约定（PR #1 §2.1-2.3 camelCase / disclaimer 顶层 / Risk 结构化溯源）全接受 → `gh pr merge 1 --merge` 合入 codex/spec-hardening；(2) unrelated-histories 合并（方案 C）把 Kevin 的 41 份独有文档 + PR #1 产物合进代码分支，7 冲突全取 vitame-dev 侧 --ours；(3) 最小重组 `_bmad → _archive / 小红书 → research / superpowers → engineering` + dedup 2 份重复；(4) 中文命名规范（`docs/naming-conventions.md`），大规模 rename 推迟到 D8-9；(5) **新结构推到新分支 `dev-merged-2026-04-24` 不打扰 Sunny**，本地 `vitame-dev-v0.1` reset 回 `f55d138` = 远程。三分支未来职能写入 auto-memory + SESSION-STATE 头部。验证 test:unit 286 pass / test:seed 29 pass (+1 vs D6) / build 12/12。
 - **2026-04-22（D5 晚, v2.8 架构升级）** — 用户连续拍板 3 项产品决策：(1) 时间目标 30s→60s；(2) B-full 症状→成分推荐作 P0 例外（接受工作量超 P0，要求合规审查就合规审查）；(3) L2 grading 语义 root fix（L2 逻辑改，不是 UI 文案）。CC 落实 8 文档同步：CLAUDE v2.7→v2.8 加 L0 layer + 2 条新红线（§11.13 / §11.14）+ §10.0 / §10.2 / §13.1 / §15.2 同步；query-intake-design 重写 v3；safety-judgment-design grading 拆分 + 新组件 KnowledgeBaseLookup；DESIGN 加 §4.7-4.9 三组件 + §9.3 checklist 5 项；p0-plan 加 Phase 1.5/2.5/3.5/3.6 任务簇 + 日历 D5/D6/D7 重排；acceptance 12→15 条；本文件；changelog v2.8 行。预估额外工作量 35–43h / 5–6 天。
 - **2026-04-22（D5, 协议修正, CLAUDE.md v2.7）** — v2.6 误选 OpenAI-compat，用户给的 token `sk-cp-...` 实际走 minimax `/anthropic` 入口（Anthropic Messages 协议 + Bearer authToken）。同日改用 `@anthropic-ai/sdk` 重写 client.ts，`LLMRole` 收窄、加 `system` 字段、`stop_reason` 映射。Smoke test 真调 minimax 通过（M2.7 返中文）。fallback DeepSeek 因只 OpenAI-compat → P0 暂不做。
 - **2026-04-22（D5, LLM Adapter 架构, CLAUDE.md v2.6）** — 用户拍板「参考 Claude Code 模式」：env 配置 `LLM_PROVIDER + LLM_MODEL + LLM_BASE_URL + LLM_API_KEY` 通用 shape，单 `LLMClient` 适配所有 厂商。弃 v1 三家各自 adapter class 的 factory 模式。openclaw 非标 schema 不进 P0 client（D9 SV 后 wrap）。第一版无 fallback chain（env 预留代码 TODO），vision endpoint placeholder（OCR 是 🟡 tier）。
