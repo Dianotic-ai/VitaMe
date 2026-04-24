@@ -156,6 +156,36 @@ type AgentResponse = {
 
 Runtime note：`runJudgmentTool` 是唯一风险等级来源。ToolLoopAgent 不得直接输出 `red/yellow/gray/green`。
 
+### Agent Tool Contracts
+
+本节定义 planned `/api/agent` 内部可调用工具。工具契约借鉴 Vercel-style tool loop：每个 tool 必须有稳定 input/output、trace summary 和清晰权限边界。工具可以由 AI SDK Agent shell 调度，但医学风险事实只能来自 deterministic service。
+
+| Tool | Status | Input | Output | Deterministic | Boundary |
+|---|---|---|---|---|---|
+| `parseIntentTool` | planned | `message`, `history?` | `IntakeOutcome` | mixed | 不输出风险等级 |
+| `runJudgmentTool` | planned | grounded `LookupRequest` | `JudgmentResult` | yes | 唯一风险等级来源 |
+| `translateRiskTool` | planned | `Risk[]`, `locale?` | `TranslationResult` | mixed | 不改写 level/dimension/reasonCode |
+| `createActionPlanTool` | planned | `JudgmentResult`, `TranslationResult` | action cards | yes | 只给下一步建议，不诊断、不处方 |
+| `createMemoryPreviewTool` | planned | session summary, user label | local preview | mixed | 不写长期存储，不默认上云 |
+
+Tool trace target shape：
+
+```ts
+type AgentToolTrace = {
+  tool:
+    | "parseIntentTool"
+    | "runJudgmentTool"
+    | "translateRiskTool"
+    | "createActionPlanTool"
+    | "createMemoryPreviewTool";
+  status: "started" | "completed" | "failed";
+  summary: string;
+  source: "llm" | "deterministic" | "template";
+};
+```
+
+Provider note：模型 provider 可通过 AI SDK provider abstraction 或 AI Gateway 切换。Provider 变化不得改变 tool contract、risk level precedence 或 disclaimer requirements。
+
 ### `POST /api/archive/save`
 
 Status：planned。
