@@ -22,7 +22,7 @@ const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT, 10) : undefined;
 const ONLY = process.env.ONLY?.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
 const CONCURRENCY = process.env.CONCURRENCY ? parseInt(process.env.CONCURRENCY, 10) : 2;
 
-const SEED_FILE = 'docs/小红书需求调研/Demo种子问题清单-100条.md';
+const SEED_FILE = 'docs/research/Demo种子问题清单-100条.md';
 const OUT_DIR = 'var';
 
 interface SeedQ {

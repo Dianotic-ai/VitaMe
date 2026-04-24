@@ -52,3 +52,8 @@ var/
 
 # Private health materials（含隐私健康数据，不推 github）
 docs/research/gemini-health-consultation.md
+
+# 会议录音（>10MB，不推 github）
+*.m4a
+*.mp3
+*.wav
