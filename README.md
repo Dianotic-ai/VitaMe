@@ -20,8 +20,8 @@
 | 2 | [`docs/SESSION-STATE.md`](./docs/SESSION-STATE.md) | **当前进度单一事实源** — 做到哪了、下一步、已知阻塞 |
 | 3 | [`CLAUDE.md`](./CLAUDE.md) | 工程规则 / §11 红线 / 3 层架构 / 8 核心对象 |
 | 4 | [`DESIGN.md`](./DESIGN.md) | 视觉规范 —— **只有做 UI 的时候需要** |
-| 5 | [`docs/superpowers/specs/`](./docs/superpowers/specs/) | 5 份 design doc（按任务选读，别全读） |
-| 6 | [`docs/superpowers/plans/2026-04-18-vitame-p0-plan.md`](./docs/superpowers/plans/2026-04-18-vitame-p0-plan.md) | 12 天任务表 |
+| 5 | [`docs/engineering/specs/`](./docs/engineering/specs/) | 5 份 design doc（按任务选读，别全读） |
+| 6 | [`docs/engineering/plans/2026-04-18-vitame-p0-plan.md`](./docs/engineering/plans/2026-04-18-vitame-p0-plan.md) | 12 天任务表 |
 
 **如果你只有 10 分钟**：读 1 + 2 + `CLAUDE.md §1-3 + §11`。
 

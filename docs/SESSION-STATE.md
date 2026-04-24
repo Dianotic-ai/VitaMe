@@ -11,7 +11,7 @@
 （v2.8 架构升级 D5 晚的内容已推到下方"刚完成"段。）
 
 ### 本次会话主要产出
-1. **替换 seed runner**：`tests/seed-questions.spec.ts` 从 20 条版重写为 100 条版（来源 `docs/小红书需求调研/Demo种子问题清单-100条.md`），引入 6-kind 分类（covered / fallback / missing-l1-rule / missing-l1-substance / non-l2-form / non-l2-decision）+ `afterAll` 覆盖率报告 + 自检阈值断言。基线 24 runnable / 76 skip / 全 pass。
+1. **替换 seed runner**：`tests/seed-questions.spec.ts` 从 20 条版重写为 100 条版（来源 `docs/research/Demo种子问题清单-100条.md`），引入 6-kind 分类（covered / fallback / missing-l1-rule / missing-l1-substance / non-l2-form / non-l2-decision）+ `afterAll` 覆盖率报告 + 自检阈值断言。基线 24 runnable / 76 skip / 全 pass。
 2. **P0 L1 扩展（4 条红规则）**：`src/lib/db/contraindications.ts` 50 → 54。
    - `vm-rule-magnesium-kidney-impairment` (red, `magnesium_accumulation_renal_impairment`) → seed Q65
    - `vm-rule-stjohnswort-oral-contraceptive` (red, `cyp3a4_induction_contraceptive_failure`) → seed Q8
@@ -156,10 +156,10 @@
 2. `DESIGN.md`（根） — 视觉规范（UI 阶段才需要）
 3. **本文件** `docs/SESSION-STATE.md` — 当前进度
 4. `MIGRATION-2026-04-19.md`（根） — Superpowers + DESIGN + Tier 3 TDD 决策
-5. `docs/superpowers/plans/2026-04-18-vitame-p0-plan.md` — 12 天主任务表
-6. `docs/superpowers/plans/2026-04-18-vitame-数据接入与实现方案.md` — 数据层方案
-7. `docs/superpowers/specs/*.md` — 5 份 design + demo acceptance
-8. `docs/小红书需求调研/Demo种子问题清单-20条.md` — MVP 边界
+5. `docs/engineering/plans/2026-04-18-vitame-p0-plan.md` — 12 天主任务表
+6. `docs/engineering/plans/2026-04-18-vitame-数据接入与实现方案.md` — 数据层方案
+7. `docs/engineering/specs/*.md` — 5 份 design + demo acceptance
+8. `docs/research/Demo种子问题清单-20条.md` — MVP 边界
 
 ---
 

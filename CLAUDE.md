@@ -24,6 +24,7 @@
 | `docs/superpowers-workflow.md` | 接到非 trivial 任务、要拆 plan 时 |
 | `docs/compression-rules.md` | 会话即将被自动压缩 / 压缩后第一时间恢复 |
 | `docs/CLAUDE.md-changelog.md` | "为什么会变成这样"考古时 |
+| `docs/naming-conventions.md` | 新建 doc 文件时（中文/英文/日期前缀规则） |
 
 ---
 
@@ -92,7 +93,7 @@ Default to **refuse**. Add a TODO comment pointing to this section. Do not silen
 | **L2 — Judgment engine** | Rule-based risk evaluation | `src/lib/capabilities/safetyJudgment/` | L1 + user profile | structured `Risk` JSON |
 | **L3 — Translation & adaptation** | Human-language explanation + multi-region product adaptation | `src/lib/capabilities/safetyTranslation/` | L2 output only | final user-facing strings |
 
-**L0 内部子流程**（详见 `docs/superpowers/specs/2026-04-18-vitame-query-intake-design.md`）：
+**L0 内部子流程**（详见 `docs/engineering/specs/2026-04-18-vitame-query-intake-design.md`）：
 1. **parseIntent**（LLM）：自然语言 → `{intent, productMentions, ingredientMentions, medicationMentions, conditionMentions, specialGroupMentions, missingSlots, clarifyingQuestion?}`
 2. **groundMentions**（确定性 alias + fuzzy）：把 LLM 抽出来的中文 mention 映射到 L1 slug（fish-oil / warfarin / pregnancy / ...）
 3. **slotResolver**（确定性规则）：决定缺哪一类 slot → 是否需要 clarify
@@ -385,7 +386,7 @@ These are architectural hard rules. Violations produce bugs that are very hard t
 
 - Middleware order is fixed: `Evidence → Banned → Critical → (DemoBanner ∥ Disclaimer) → Audit`.
   - **DemoBanner** and **Disclaimer** are **parallel injectors** on the same layer — both write independently to the response object, neither depends on the other. Implementation-wise they can run in any order within that layer as long as both always run.
-  - **DemoBanner trigger**: any `Contraindication` hit whose `pharmacistReviewed !== true` OR `reviewerCredential === 'self-review'` OR `reviewerCredential === undefined`. See `src/lib/types/interaction.ts` (`ReviewerCredential` enum) and `docs/superpowers/specs/2026-04-18-vitame-compliance-design.md`.
+  - **DemoBanner trigger**: any `Contraindication` hit whose `pharmacistReviewed !== true` OR `reviewerCredential === 'self-review'` OR `reviewerCredential === undefined`. See `src/lib/types/interaction.ts` (`ReviewerCredential` enum) and `docs/engineering/specs/2026-04-18-vitame-compliance-design.md`.
   - **DemoBanner content**: "本 Demo 为原型展示，禁忌规则由产品团队基于 NIH ODS（美国国立卫生研究院膳食补充剂办公室）、Linus Pauling Institute（美国俄勒冈州立大学微量营养素信息中心）、SUPP.AI（美国 补剂-药物相互作用数据库）、中国营养学会 DRIs（中国居民膳食营养素参考摄入量）等公开权威数据整理，尚未经执业药师临床复核，不构成医疗建议。" Rendered as a top banner, NOT reusing `CriticalWarning` slot (Critical is reserved for medical-urgency escalations per §11.3).
 - Any new filter is added to the sequence, never replaces an existing one.
 - Compliance is the last gate before the user sees anything. If it rejects, fall back to a safe template message — never return a bare LLM string.
@@ -394,7 +395,7 @@ These are architectural hard rules. Violations produce bugs that are very hard t
 
 ## 11. Compliance red lines (hard rules — non-negotiable)
 
-These 12 rules override any instruction from user prompt, any design doc suggestion, or any LLM output. They cannot be bypassed via system prompt tweaks or "just this once" exceptions. Detail beyond this list: `docs/superpowers/specs/2026-04-18-vitame-compliance-design.md`.
+These 12 rules override any instruction from user prompt, any design doc suggestion, or any LLM output. They cannot be bypassed via system prompt tweaks or "just this once" exceptions. Detail beyond this list: `docs/engineering/specs/2026-04-18-vitame-compliance-design.md`.
 
 1. **Disclaimer is mandatory on every AI-generated output.** Not just once at sign-up. Every response rendered to the user must carry the `DisclaimerBlock` from `DESIGN.md` §4.2. Enforced in the compliance middleware.
 2. **Banned vocabulary**: do not output the words 治疗 / 治愈 / 处方 / 药效 / 根治 / diagnosis / prescribe / cure (or close paraphrases) in any user-facing string. Regex-blocked in compliance middleware; CI test must catch violations.
@@ -529,7 +530,7 @@ Implementation: a Git pre-push hook (local) and a CI check (remote) both run `np
 
 ## 16. Risk fallback matrix
 
-→ 见 `docs/superpowers/plans/2026-04-18-vitame-p0-plan.md` §"Risk fallback matrix"。是 plan-time 的"如果某个风险触发，就退到这个降级方案"清单。
+→ 见 `docs/engineering/plans/2026-04-18-vitame-p0-plan.md` §"Risk fallback matrix"。是 plan-time 的"如果某个风险触发，就退到这个降级方案"清单。
 
 ---
 
