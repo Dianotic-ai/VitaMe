@@ -1,6 +1,6 @@
 // file: scripts/bakeSuppai.ts — SUPP.AI HTML + API → src/lib/db/suppai-interactions.ts
 //
-// 依据：CLAUDE.md §5 / §6.3 / §9.3 坑 4 / §12.1 / gpt烘焙方案.md §4.6
+// 依据：CLAUDE.md §5 / §6.3 / §9.3 坑 4 / §12.1 / docs/engineering/plans/data-baking-gpt.md §4.6
 // 流程：
 //   1) 读 scripts/raw/suppai-ingredient-map.json（27 个 ingredientId → CUI）
 //   2) 对每个 supplement：分页抓 /a/<slug>/<cui>?p=N 直到无新条目，收集 interaction_id 列表

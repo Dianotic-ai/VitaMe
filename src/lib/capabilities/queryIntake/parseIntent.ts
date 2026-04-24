@@ -1,7 +1,7 @@
 // file: src/lib/capabilities/queryIntake/parseIntent.ts — L0 自然语言 → IntentResult（LLM + Zod .strict() 校验）
 //
 // 对齐：
-//   - docs/superpowers/specs/2026-04-18-vitame-query-intake-design.md §a / §Error Handling
+//   - docs/engineering/specs/query-intake.md §a / §Error Handling
 //   - CLAUDE.md §10.0（L0 rules）/ §11.6（Zod 必校验）/ §11.13（L0 LLM 不许判风险）
 //
 // 流程：

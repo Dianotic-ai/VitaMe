@@ -1,6 +1,6 @@
 // file: src/lib/types/intent.ts — L0 Query Intake 跨子模块契约
 //
-// 依据：docs/superpowers/specs/2026-04-18-vitame-query-intake-design.md
+// 依据：docs/engineering/specs/query-intake.md
 //      + CLAUDE.md §3.1（4 层架构）/ §10.0（L0 rules）/ §11.13（L0 LLM 不判风险）
 //
 // 这里集中定义 4 个子模块（parseIntent / groundMentions / slotResolver / clarify）的输入输出，

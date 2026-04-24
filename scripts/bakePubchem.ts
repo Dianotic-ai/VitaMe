@@ -1,6 +1,6 @@
 // file: scripts/bakePubchem.ts — PubChem PUG REST → src/lib/db/pubchem-cids.ts
 //
-// 依据：CLAUDE.md §5 / §12.1 / gpt烘焙方案.md §4.4 / 数据接入与实现方案.md §2
+// 依据：CLAUDE.md §5 / §12.1 / docs/engineering/plans/data-baking-gpt.md §4.4 / 数据接入与实现方案.md §2
 // 目的：为 IngredientForm.pubchemCid 填充官方化学 ID，供 L3 FormComparator 校验化学形式真实性。
 // 流程：
 //   1) 读 scripts/raw/pubchem-forms.json（手工策划 (ingredient, form) 清单）

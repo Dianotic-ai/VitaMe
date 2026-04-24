@@ -1,6 +1,6 @@
 // file: src/lib/types/adapter.ts — 3 路 SafetyAdapter 的统一契约
 //
-// 依据：docs/superpowers/specs/2026-04-18-vitame-safety-judgment-design.md §Components / §Data Flow
+// 依据：docs/engineering/specs/safety-judgment.md §Components / §Data Flow
 // 3 路实现：hardcodedAdapter（50 条禁忌）/ suppaiAdapter（~1500 条）/ ddinterAdapter（P0 空桩）
 // 设计原则（§10.2 L2 红线）：
 //  - 输入/输出均为结构化数据，禁自然语言解释（"请咨询医生" 留给 L3）

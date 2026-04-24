@@ -1,6 +1,6 @@
 // file: tests/unit/safetyJudgment/hardcodedAdapter.spec.ts — L2 判断层第 1 路 adapter TDD
 //
-// 对齐 docs/superpowers/specs/2026-04-18-vitame-safety-judgment-design.md §Testing 场景 1/2/3/4/5
+// 对齐 docs/engineering/specs/safety-judgment.md §Testing 场景 1/2/3/4/5
 // §13.1 要求 L2 judgment 必须 TDD；本测试跑红再实现。
 
 import { describe, it, expect } from 'vitest';

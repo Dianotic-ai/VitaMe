@@ -1,5 +1,5 @@
 // file: src/lib/db/contraindications.ts — 50 条硬编码禁忌规则（CLAUDE.md §11.3 + §11.11）
-// 数据来源：gpt烘焙方案.md §2.2 表，20 题 Demo 种子问题 Q1–Q20 的主 L2 判定骨架
+// 数据来源：docs/engineering/plans/data-baking-gpt.md §2.2 表，20 题 Demo 种子问题 Q1–Q20 的主 L2 判定骨架
 //
 // 合规红线：
 // - CLAUDE.md §11.3：critical-indicator 硬编码，不得依赖 LLM 推理

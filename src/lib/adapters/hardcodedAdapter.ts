@@ -1,6 +1,6 @@
 // file: src/lib/adapters/hardcodedAdapter.ts — L2 判断层第 1 路：硬编码 50 条禁忌
 //
-// 依据：docs/superpowers/specs/2026-04-18-vitame-safety-judgment-design.md §Components / §Data Flow
+// 依据：docs/engineering/specs/safety-judgment.md §Components / §Data Flow
 // 角色：消费 src/lib/db/contraindications.ts 的 CONTRAINDICATION_BY_PAIR（O(1) 查表）
 // 边界（§10.2）：
 //   - 输出只含结构化 Risk[]，无自然语言解释、无 "请咨询医生" 等 L3 语言

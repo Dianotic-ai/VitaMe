@@ -1,6 +1,6 @@
 // file: tests/unit/queryIntake/parseIntent.spec.ts — L0 parseIntent 强 TDD（CLAUDE.md §13.1）
 //
-// 对齐 docs/superpowers/specs/2026-04-18-vitame-query-intake-design.md §a / §Error Handling / §Testing 场景 1/4/6
+// 对齐 docs/engineering/specs/query-intake.md §a / §Error Handling / §Testing 场景 1/4/6
 // 重点验证：
 //   - 场景 1（happy path 自然语言 → mention）
 //   - 场景 4（LLM 越权字段 level/safe → Zod .strict() reject → fallback；红线 §11.13）

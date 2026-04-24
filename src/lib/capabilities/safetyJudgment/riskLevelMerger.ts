@@ -1,6 +1,6 @@
 // file: src/lib/capabilities/safetyJudgment/riskLevelMerger.ts — L2 合并器
 //
-// 依据：docs/superpowers/specs/2026-04-18-vitame-safety-judgment-design.md §Components
+// 依据：docs/engineering/specs/safety-judgment.md §Components
 // 职责：
 //   1) pickOverallLevel：在 red > yellow > gray > green 顺序里取最严
 //   2) mergeRisks：对同 (ingredient, medication|condition) 键的多条 Risk

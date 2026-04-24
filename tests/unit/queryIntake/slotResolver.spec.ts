@@ -1,6 +1,6 @@
 // file: tests/unit/queryIntake/slotResolver.spec.ts — L0 slotResolver TDD
 //
-// 对齐 design spec docs/superpowers/specs/2026-04-18-vitame-query-intake-design.md §c
+// 对齐 design spec docs/engineering/specs/query-intake.md §c
 //   + CLAUDE.md §10.0（L0 rules）/ §13.1（强 TDD）
 //
 // 覆盖：

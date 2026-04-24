@@ -1,6 +1,6 @@
 // file: scripts/bakeCnDri.ts — 中国营养学会 DRIs 手录 → src/lib/db/cn-dri-values.ts
 //
-// 依据：gpt烘焙方案.md §4.3 / CLAUDE.md §12 / §6.3
+// 依据：docs/engineering/plans/data-baking-gpt.md §4.3 / CLAUDE.md §12 / §6.3
 // 流程：读 scripts/raw/cn-dri-manual.json → Zod 校验 → 过滤全空值条目 → 写 TS 产物
 // 产物：src/lib/db/cn-dri-values.ts（typed export，供后续 ingredients.ts composer 合并）
 // 重跑幂等：给定相同输入必定产出相同输出（条目按 id 字典序）。

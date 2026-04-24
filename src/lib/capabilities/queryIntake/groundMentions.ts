@@ -1,6 +1,6 @@
 // file: src/lib/capabilities/queryIntake/groundMentions.ts — L0 子模块 b：mention → slug 确定性翻译
 //
-// 依据：docs/superpowers/specs/2026-04-18-vitame-query-intake-design.md §b "fuzzy 规则"
+// 依据：docs/engineering/specs/query-intake.md §b "fuzzy 规则"
 //      + CLAUDE.md §10.0 L0 rules（不判风险，不调 LLM）
 //      + CLAUDE.md §13.1（L0 强 TDD）
 //

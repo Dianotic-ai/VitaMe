@@ -4,7 +4,7 @@
 //       决定要不要再问用户一句（clarify），还是直接送 L2 SafetyJudgment（passThrough）。
 //
 // 依据：
-//   - design spec docs/superpowers/specs/2026-04-18-vitame-query-intake-design.md §c
+//   - design spec docs/engineering/specs/query-intake.md §c
 //   - CLAUDE.md §10.0（L0 rules：禁判风险）
 //   - CLAUDE.md §13.1（L0 强 TDD，先 spec 后实现）
 //

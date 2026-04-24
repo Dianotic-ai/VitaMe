@@ -1,6 +1,6 @@
 // file: src/lib/capabilities/safetyJudgment/judgmentEngine.ts — L2 并发编排器
 //
-// 依据：docs/superpowers/specs/2026-04-18-vitame-safety-judgment-design.md §Architecture / §Data Flow
+// 依据：docs/engineering/specs/safety-judgment.md §Architecture / §Data Flow
 //      + CLAUDE.md §10.2 v2.8（no-data ≠ no-risk 红线）
 // 流程：
 //   1) 并发 3 路 adapter（hardcoded / suppai / ddinter）

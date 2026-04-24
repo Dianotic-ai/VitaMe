@@ -1,6 +1,6 @@
 // file: tests/unit/queryIntake/groundMentions.spec.ts — L0 groundMentions TDD
 //
-// 对齐 docs/superpowers/specs/2026-04-18-vitame-query-intake-design.md §b（grounding rules）
+// 对齐 docs/engineering/specs/query-intake.md §b（grounding rules）
 // + CLAUDE.md §10.0 / §13.1（L0 强 TDD）
 //
 // groundMentions 是 L0 的纯确定性子模块：把 parseIntent 抽出来的中文 mention
