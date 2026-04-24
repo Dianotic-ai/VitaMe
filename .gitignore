@@ -44,8 +44,11 @@ var/
 # GStack local
 .gstack/
 
-# Claude Code local skills (BMAD plugin is large)
-.claude/skills/
-
-# Claude Code local user config
+# Claude Code local user config（含 skills / plugins / hooks）
 .claude/
+
+# Playwright MCP local
+.playwright-mcp/
+
+# Private health materials（含隐私健康数据，不推 github）
+docs/research/gemini-health-consultation.md
