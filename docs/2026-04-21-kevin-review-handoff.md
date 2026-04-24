@@ -1,3 +1,15 @@
+---
+title: "Kevin Review Handoff"
+description: "2026-04-21 给 Kevin 的跨分支 Risk schema 和 spec 对齐说明。"
+doc_type: "handoff"
+status: "reference"
+created: "2026-04-21"
+updated: "2026-04-21"
+canonical: false
+privacy: "internal"
+tags: ["handoff", "review", "risk-schema"]
+---
+
 # Kevin review handoff — 2026-04-21
 
 > 给 Kevin：以下是我和 Sunny 在 D4（2026-04-21）基于你 `codex/spec-hardening` (cdfd7f1) 做的跨分支对齐工作的摘要。**主要需要你确认 3 件事**（见 §2），其余是知会和背景。
@@ -112,7 +124,7 @@ gh pr view 1 --repo Dianotic-ai/VitaMe --web
 
 # 4. 对照：代码类型 vs 文档类型是否字段名完全一致
 diff <(git show vitame-dev-v0.1:src/lib/types/risk.ts | grep -oE '^\s+[a-z][a-zA-Z]*[:?]' | sort -u) \
-     <(git show docs/align-risk-schema:docs/superpowers/specs/2026-04-20-vitame-p0-api-contract.md | \
+     <(git show docs/align-risk-schema:docs/engineering/specs/api-contract.md | \
         awk '/^```ts/,/^```$/' | grep -oE '^\s+[a-z][a-zA-Z]*[:?]' | sort -u)
 ```
 

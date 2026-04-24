@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VitaMe Architecture · vitame-dev-v0.1</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    .container { max-width: 1320px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot {
+      width: 12px; height: 12px;
+      background: #22d3ee; border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+    svg { width: 100%; min-width: 1200px; display: block; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+    }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan    { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet  { background: #a78bfa; }
+    .card-dot.amber   { background: #fbbf24; }
+    .card-dot.rose    { background: #fb7185; }
+    .card-dot.orange  { background: #fb923c; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; line-height: 1.5; }
+    .card li strong { color: #e2e8f0; font-weight: 600; }
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: #475569;
+      font-size: 0.75rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      margin-left: 8px;
+    }
+    .badge-amber { background: rgba(120, 53, 15, 0.4); color: #fbbf24; border: 1px solid #fbbf24; }
+    .badge-rose  { background: rgba(136, 19, 55, 0.4); color: #fb7185; border: 1px solid #fb7185; }
+    .badge-gray  { background: rgba(30, 41, 59, 0.8); color: #94a3b8; border: 1px solid #64748b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>VitaMe Architecture <span class="badge badge-gray">vitame-dev-v0.1 @ f55d138</span></h1>
+      </div>
+      <p class="subtitle">补剂安全翻译 Agent · 4 层架构 (L0/L1/L2/L3) + Compliance · Next.js 16 App Router + SSR</p>
+    </div>
+
+    <!-- Main Diagram -->
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 1000" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee" />
+          </marker>
+          <marker id="arrow-emerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#34d399" />
+          </marker>
+          <marker id="arrow-violet" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa" />
+          </marker>
+          <marker id="arrow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <!-- Background Grid -->
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- ====================================================
+             FLOW ARROWS (drawn first so they sit behind boxes)
+             ==================================================== -->
+        <!-- User → /query page -->
+        <line x1="100" y1="130" x2="240" y2="130" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+        <text x="170" y="122" fill="#94a3b8" font-size="9" text-anchor="middle">HTTPS</text>
+
+        <!-- /query page → /api/intent -->
+        <line x1="370" y1="165" x2="560" y2="295" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+        <text x="450" y="220" fill="#94a3b8" font-size="9">POST</text>
+
+        <!-- /api/intent → intakeOrchestrator -->
+        <line x1="630" y1="320" x2="630" y2="415" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+        <!-- intakeOrchestrator → /api/judgment -->
+        <line x1="730" y1="500" x2="680" y2="322" stroke="#34d399" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arrow-emerald)"/>
+        <text x="760" y="410" fill="#94a3b8" font-size="9">LookupRequest</text>
+
+        <!-- /api/judgment → judgmentEngine -->
+        <line x1="790" y1="320" x2="790" y2="550" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+        <!-- judgmentEngine → /api/translation -->
+        <line x1="890" y1="580" x2="950" y2="322" stroke="#34d399" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arrow-emerald)"/>
+        <text x="940" y="440" fill="#94a3b8" font-size="9">Risk[]</text>
+
+        <!-- /api/translation → translateRisks -->
+        <line x1="950" y1="320" x2="950" y2="650" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+        <!-- translateRisks → LLM Client -->
+        <line x1="1050" y1="700" x2="1160" y2="560" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+        <text x="1120" y="645" fill="#94a3b8" font-size="9">Anthropic</text>
+        <text x="1130" y="657" fill="#94a3b8" font-size="9">Messages</text>
+
+        <!-- LLM Client → External Minimax -->
+        <line x1="1200" y1="510" x2="1200" y2="395" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+        <text x="1215" y="450" fill="#94a3b8" font-size="9">Bearer</text>
+
+        <!-- judgmentEngine → 3 adapters (fan out) -->
+        <line x1="830" y1="615" x2="830" y2="760" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+        <text x="870" y="695" fill="#94a3b8" font-size="9">concurrent</text>
+
+        <!-- parseIntent → LLM Client -->
+        <line x1="820" y1="465" x2="1160" y2="520" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arrow-amber)"/>
+        <text x="1000" y="484" fill="#94a3b8" font-size="9">NER only</text>
+
+        <!-- Adapters → L1 DBs -->
+        <line x1="665" y1="810" x2="665" y2="900" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
+        <line x1="830" y1="810" x2="830" y2="900" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
+        <line x1="995" y1="810" x2="995" y2="900" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
+
+        <!-- translateRisks → bannedWordsFilter -->
+        <line x1="1060" y1="680" x2="1140" y2="720" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowhead)"/>
+        <text x="1120" y="700" fill="#fb7185" font-size="8">filter</text>
+
+        <!-- Return flow /result -->
+        <path d="M 370 200 L 370 245 L 120 245 L 120 175" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-cyan)"/>
+        <text x="245" y="237" fill="#22d3ee" font-size="8">TranslationResult → /result render</text>
+
+        <!-- ====================================================
+             ZONE 1: Frontend (Next.js 16 App Router) — cyan
+             ==================================================== -->
+        <rect x="20" y="90" width="520" height="180" rx="12" fill="rgba(8, 51, 68, 0.15)" stroke="#22d3ee" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="32" y="108" fill="#22d3ee" font-size="11" font-weight="600">Frontend · Next.js 16 App Router · SSR · Tailwind</text>
+
+        <!-- User (external) -->
+        <rect x="30" y="115" width="70" height="60" rx="6" fill="#0f172a"/>
+        <rect x="30" y="115" width="70" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="65" y="140" fill="white" font-size="11" font-weight="600" text-anchor="middle">User</text>
+        <text x="65" y="156" fill="#94a3b8" font-size="8" text-anchor="middle">WeChat WebView</text>
+        <text x="65" y="167" fill="#94a3b8" font-size="8" text-anchor="middle">/ Browser</text>
+
+        <!-- Pages column -->
+        <rect x="245" y="120" width="130" height="140" rx="6" fill="#0f172a"/>
+        <rect x="245" y="120" width="130" height="140" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="310" y="138" fill="white" font-size="11" font-weight="600" text-anchor="middle">Pages</text>
+        <text x="310" y="152" fill="#94a3b8" font-size="8" text-anchor="middle">src/app/*/page.tsx</text>
+        <text x="310" y="170" fill="#94a3b8" font-size="9" text-anchor="middle">/ · /query</text>
+        <text x="310" y="184" fill="#94a3b8" font-size="9" text-anchor="middle">/intake · /result</text>
+        <text x="310" y="198" fill="#94a3b8" font-size="9" text-anchor="middle">/archive · /recheck</text>
+        <text x="310" y="225" fill="#22d3ee" font-size="8" text-anchor="middle">layout.tsx (root)</text>
+        <text x="310" y="240" fill="#22d3ee" font-size="8" text-anchor="middle">vitame.live</text>
+
+        <!-- Components column -->
+        <rect x="395" y="120" width="135" height="140" rx="6" fill="#0f172a"/>
+        <rect x="395" y="120" width="135" height="140" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="462" y="138" fill="white" font-size="11" font-weight="600" text-anchor="middle">Components</text>
+        <text x="462" y="152" fill="#94a3b8" font-size="8" text-anchor="middle">src/components/</text>
+        <text x="462" y="170" fill="#94a3b8" font-size="8" text-anchor="middle">RiskBadge · DemoBanner</text>
+        <text x="462" y="184" fill="#94a3b8" font-size="8" text-anchor="middle">DisclaimerBlock</text>
+        <text x="462" y="198" fill="#94a3b8" font-size="8" text-anchor="middle">ClarifyBubble</text>
+        <text x="462" y="212" fill="#94a3b8" font-size="8" text-anchor="middle">IntentFallbackForm</text>
+        <text x="462" y="226" fill="#94a3b8" font-size="8" text-anchor="middle">SymptomCandidateList</text>
+        <text x="462" y="240" fill="#94a3b8" font-size="8" text-anchor="middle">SeedSprout · LogoMark</text>
+
+        <!-- ====================================================
+             ZONE 2: API Routes (Node runtime)
+             ==================================================== -->
+        <rect x="560" y="270" width="440" height="70" rx="12" fill="rgba(6, 78, 59, 0.15)" stroke="#34d399" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="572" y="287" fill="#34d399" font-size="10" font-weight="600">Next.js API Routes · runtime: nodejs · src/app/api/*/route.ts</text>
+
+        <rect x="575" y="295" width="125" height="35" rx="6" fill="#0f172a"/>
+        <rect x="575" y="295" width="125" height="35" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="637" y="310" fill="white" font-size="10" font-weight="600" text-anchor="middle">POST /api/intent</text>
+        <text x="637" y="322" fill="#94a3b8" font-size="8" text-anchor="middle">IntakeOutcome</text>
+
+        <rect x="730" y="295" width="125" height="35" rx="6" fill="#0f172a"/>
+        <rect x="730" y="295" width="125" height="35" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="792" y="310" fill="white" font-size="10" font-weight="600" text-anchor="middle">POST /api/judgment</text>
+        <text x="792" y="322" fill="#94a3b8" font-size="8" text-anchor="middle">Risk[] + overall</text>
+
+        <rect x="885" y="295" width="110" height="35" rx="6" fill="#0f172a"/>
+        <rect x="885" y="295" width="110" height="35" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="940" y="310" fill="white" font-size="10" font-weight="600" text-anchor="middle">POST /api/translation</text>
+        <text x="940" y="322" fill="#94a3b8" font-size="8" text-anchor="middle">TranslationResult</text>
+
+        <!-- ====================================================
+             ZONE 3: Capabilities — 4 layers L0/L2/L3 + Compliance
+             ==================================================== -->
+        <rect x="560" y="370" width="620" height="360" rx="12" fill="rgba(6, 78, 59, 0.1)" stroke="#34d399" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="572" y="388" fill="#34d399" font-size="10" font-weight="600">Capabilities · 4 层架构 (L0 → L1 → L2 → L3) · 严格层级隔离 (CLAUDE.md §10)</text>
+
+        <!-- L0 Query Intake -->
+        <rect x="575" y="405" width="200" height="165" rx="6" fill="#0f172a"/>
+        <rect x="575" y="405" width="200" height="165" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="675" y="422" fill="white" font-size="11" font-weight="600" text-anchor="middle">L0 · Query Intake</text>
+        <text x="675" y="435" fill="#94a3b8" font-size="8" text-anchor="middle">queryIntake/ · v2.8 新增</text>
+        <text x="585" y="456" fill="#34d399" font-size="9" font-weight="600">intakeOrchestrator()</text>
+        <line x1="590" y1="462" x2="760" y2="462" stroke="#1e293b" stroke-width="1"/>
+        <text x="590" y="478" fill="#e2e8f0" font-size="9">1. parseIntent</text>
+        <text x="640" y="490" fill="#94a3b8" font-size="8">(LLM · Zod .strict)</text>
+        <text x="590" y="504" fill="#e2e8f0" font-size="9">2. groundMentions</text>
+        <text x="660" y="516" fill="#94a3b8" font-size="8">(alias + fuzzy)</text>
+        <text x="590" y="530" fill="#e2e8f0" font-size="9">3. slotResolver</text>
+        <text x="640" y="542" fill="#94a3b8" font-size="8">(rules only)</text>
+        <text x="590" y="556" fill="#e2e8f0" font-size="9">4. clarify</text>
+        <text x="620" y="567" fill="#94a3b8" font-size="8">(hybrid LLM phrasing)</text>
+
+        <!-- L2 Judgment Engine -->
+        <rect x="790" y="405" width="190" height="210" rx="6" fill="#0f172a"/>
+        <rect x="790" y="405" width="190" height="210" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="885" y="422" fill="white" font-size="11" font-weight="600" text-anchor="middle">L2 · Safety Judgment</text>
+        <text x="885" y="435" fill="#94a3b8" font-size="8" text-anchor="middle">safetyJudgment/ · 确定性</text>
+        <text x="800" y="456" fill="#34d399" font-size="9" font-weight="600">judgmentEngine()</text>
+        <line x1="805" y1="462" x2="965" y2="462" stroke="#1e293b" stroke-width="1"/>
+        <text x="800" y="478" fill="#e2e8f0" font-size="9">3 路 adapter 并发</text>
+        <text x="800" y="495" fill="#e2e8f0" font-size="9">knowledgeBaseLookup</text>
+        <text x="820" y="507" fill="#94a3b8" font-size="8">(gray ≠ green 语义)</text>
+        <text x="800" y="521" fill="#e2e8f0" font-size="9">riskLevelMerger</text>
+        <text x="820" y="533" fill="#94a3b8" font-size="8">(bucket 合并)</text>
+        <text x="800" y="547" fill="#e2e8f0" font-size="9">riskDefaults</text>
+        <text x="820" y="559" fill="#94a3b8" font-size="8">(6 dim × 5 cta 映射)</text>
+        <text x="800" y="577" fill="#fb7185" font-size="8" font-weight="600">🚫 纯确定性，无 LLM</text>
+        <text x="800" y="590" fill="#fb7185" font-size="8" font-weight="600">🚫 partialReason 白名单</text>
+        <text x="800" y="603" fill="#94a3b8" font-size="8">    (§11.12)</text>
+
+        <!-- L3 Translation -->
+        <rect x="995" y="405" width="175" height="210" rx="6" fill="#0f172a"/>
+        <rect x="995" y="405" width="175" height="210" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="1082" y="422" fill="white" font-size="11" font-weight="600" text-anchor="middle">L3 · Translation</text>
+        <text x="1082" y="435" fill="#94a3b8" font-size="8" text-anchor="middle">safetyTranslation/</text>
+        <text x="1005" y="456" fill="#34d399" font-size="9" font-weight="600">translateRisks()</text>
+        <line x1="1010" y1="462" x2="1160" y2="462" stroke="#1e293b" stroke-width="1"/>
+        <text x="1005" y="478" fill="#e2e8f0" font-size="9">promptBuilder</text>
+        <text x="1005" y="495" fill="#e2e8f0" font-size="9">LLM call (Zod schema)</text>
+        <text x="1005" y="512" fill="#e2e8f0" font-size="9">responseSchema</text>
+        <text x="1020" y="524" fill="#94a3b8" font-size="8">parse + validate</text>
+        <text x="1005" y="540" fill="#e2e8f0" font-size="9">templates (fallback)</text>
+        <text x="1020" y="552" fill="#94a3b8" font-size="8">on Zod fail / banned</text>
+        <text x="1005" y="570" fill="#fb7185" font-size="8" font-weight="600">✅ disclaimer 顶层</text>
+        <text x="1005" y="583" fill="#fb7185" font-size="8" font-weight="600">✅ LLM 仅翻译不造规则</text>
+        <text x="1005" y="596" fill="#94a3b8" font-size="8">    (§11.5)</text>
+
+        <!-- Compliance row (under capabilities) -->
+        <rect x="575" y="630" width="595" height="85" rx="6" fill="#0f172a"/>
+        <rect x="575" y="630" width="595" height="85" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="585" y="648" fill="white" font-size="11" font-weight="600">Compliance Middleware · 6 层链 (CLAUDE.md §10.4)</text>
+        <text x="585" y="662" fill="#fb7185" font-size="9">Evidence → Banned → Critical → (DemoBanner ∥ Disclaimer) → Audit</text>
+        <text x="585" y="682" fill="#e2e8f0" font-size="9">P0 已实装:</text>
+        <text x="660" y="682" fill="#94a3b8" font-size="9">bannedWordsFilter (§11.2 禁词扫描)</text>
+        <text x="585" y="696" fill="#e2e8f0" font-size="9">P0 隐式:</text>
+        <text x="640" y="696" fill="#94a3b8" font-size="9">DisclaimerBlock + DemoBanner (React 组件，每响应必显)</text>
+        <text x="585" y="710" fill="#fb7185" font-size="9">⚠ 待实装:</text>
+        <text x="655" y="710" fill="#94a3b8" font-size="9">Evidence / Critical filter · Audit Log (D9 后接，现 console.warn)</text>
+
+        <!-- ====================================================
+             ZONE 4: L1 Knowledge (bottom-left, Database violet)
+             ==================================================== -->
+        <rect x="560" y="745" width="620" height="190" rx="12" fill="rgba(76, 29, 149, 0.1)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="572" y="762" fill="#a78bfa" font-size="10" font-weight="600">L1 · Knowledge Dictionary · server-only · baked offline · 总量 ~5MB bundle · 22,717 行</text>
+
+        <!-- Adapters row -->
+        <rect x="575" y="775" width="180" height="35" rx="6" fill="#0f172a"/>
+        <rect x="575" y="775" width="180" height="35" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="665" y="790" fill="white" font-size="10" font-weight="600" text-anchor="middle">hardcodedAdapter</text>
+        <text x="665" y="802" fill="#94a3b8" font-size="8" text-anchor="middle">→ contraindications</text>
+
+        <rect x="765" y="775" width="130" height="35" rx="6" fill="#0f172a"/>
+        <rect x="765" y="775" width="130" height="35" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="830" y="790" fill="white" font-size="10" font-weight="600" text-anchor="middle">suppaiAdapter</text>
+        <text x="830" y="802" fill="#94a3b8" font-size="8" text-anchor="middle">→ suppai-interactions</text>
+
+        <rect x="905" y="775" width="130" height="35" rx="6" fill="#0f172a"/>
+        <rect x="905" y="775" width="130" height="35" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="970" y="790" fill="white" font-size="10" font-weight="600" text-anchor="middle">ddinterAdapter</text>
+        <text x="970" y="802" fill="#94a3b8" font-size="8" text-anchor="middle">(🟢 P1 stub)</text>
+
+        <!-- Data files row -->
+        <rect x="575" y="825" width="180" height="95" rx="6" fill="#0f172a"/>
+        <rect x="575" y="825" width="180" height="95" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="665" y="844" fill="white" font-size="11" font-weight="600" text-anchor="middle">contraindications.ts</text>
+        <text x="665" y="858" fill="#94a3b8" font-size="8" text-anchor="middle">54 条红规则 (硬编码)</text>
+        <text x="665" y="872" fill="#94a3b8" font-size="8" text-anchor="middle">cn-dri-values.ts</text>
+        <text x="665" y="884" fill="#94a3b8" font-size="8" text-anchor="middle">lpi-values.ts · pubchem-cids</text>
+        <text x="665" y="898" fill="#94a3b8" font-size="8" text-anchor="middle">symptom-ingredients.ts</text>
+        <text x="665" y="912" fill="#a78bfa" font-size="8" text-anchor="middle">SourceRef 追溯 §11.4</text>
+
+        <rect x="765" y="825" width="130" height="95" rx="6" fill="#0f172a"/>
+        <rect x="765" y="825" width="130" height="95" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="830" y="844" fill="white" font-size="11" font-weight="600" text-anchor="middle">suppai-interactions</text>
+        <text x="830" y="858" fill="#94a3b8" font-size="8" text-anchor="middle">20,257 行</text>
+        <text x="830" y="872" fill="#94a3b8" font-size="8" text-anchor="middle">supp × drug 互作</text>
+        <text x="830" y="886" fill="#94a3b8" font-size="8" text-anchor="middle">evidenceCount ≥ 3</text>
+        <text x="830" y="900" fill="#a78bfa" font-size="8" text-anchor="middle">SUPP.AI · 每条</text>
+        <text x="830" y="912" fill="#a78bfa" font-size="8" text-anchor="middle">&lt; 1.5 MB (§9.3)</text>
+
+        <rect x="905" y="825" width="130" height="95" rx="6" fill="#0f172a"/>
+        <rect x="905" y="825" width="130" height="95" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="970" y="844" fill="white" font-size="11" font-weight="600" text-anchor="middle">ddinter</text>
+        <text x="970" y="858" fill="#94a3b8" font-size="8" text-anchor="middle">drug × drug 互作</text>
+        <text x="970" y="872" fill="#94a3b8" font-size="8" text-anchor="middle">~500 (P1 stretch)</text>
+        <text x="970" y="900" fill="#fbbf24" font-size="8" text-anchor="middle">🟡 未激活</text>
+
+        <!-- ====================================================
+             ZONE 5: External LLM (right side, amber)
+             ==================================================== -->
+        <rect x="1185" y="270" width="90" height="50" rx="6" fill="#0f172a"/>
+        <rect x="1185" y="270" width="90" height="50" rx="6" fill="rgba(120, 53, 15, 0.5)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="1230" y="290" fill="white" font-size="11" font-weight="600" text-anchor="middle">External</text>
+        <text x="1230" y="305" fill="#94a3b8" font-size="8" text-anchor="middle">LLM Provider</text>
+        <text x="1230" y="315" fill="#fbbf24" font-size="8" text-anchor="middle">minimax</text>
+
+        <rect x="1185" y="340" width="90" height="70" rx="6" fill="#0f172a"/>
+        <rect x="1185" y="340" width="90" height="70" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="1230" y="358" fill="white" font-size="10" font-weight="600" text-anchor="middle">MiniMax M2.7</text>
+        <text x="1230" y="373" fill="#94a3b8" font-size="8" text-anchor="middle">/anthropic endpoint</text>
+        <text x="1230" y="385" fill="#94a3b8" font-size="8" text-anchor="middle">Bearer sk-cp-*</text>
+        <text x="1230" y="399" fill="#fbbf24" font-size="8" text-anchor="middle">thinking blocks</text>
+
+        <!-- LLM Client wrapper -->
+        <rect x="1195" y="500" width="110" height="65" rx="6" fill="#0f172a"/>
+        <rect x="1195" y="500" width="110" height="65" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="1250" y="520" fill="white" font-size="10" font-weight="600" text-anchor="middle">LLM Client</text>
+        <text x="1250" y="534" fill="#94a3b8" font-size="8" text-anchor="middle">createLLMClient()</text>
+        <text x="1250" y="546" fill="#94a3b8" font-size="8" text-anchor="middle">@anthropic-ai/sdk</text>
+        <text x="1250" y="560" fill="#fbbf24" font-size="8" text-anchor="middle">provider-agnostic</text>
+
+        <!-- Audit Log -->
+        <rect x="1195" y="680" width="110" height="65" rx="6" fill="#0f172a"/>
+        <rect x="1195" y="680" width="110" height="65" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="1250" y="700" fill="white" font-size="10" font-weight="600" text-anchor="middle">Audit Log</text>
+        <text x="1250" y="714" fill="#94a3b8" font-size="8" text-anchor="middle">§11.10 红线</text>
+        <text x="1250" y="728" fill="#fb7185" font-size="8" text-anchor="middle">P0: console.warn</text>
+        <text x="1250" y="740" fill="#fb7185" font-size="8" text-anchor="middle">D9: JSONL 日志</text>
+
+        <!-- OCR placeholder -->
+        <rect x="1195" y="765" width="110" height="55" rx="6" fill="#0f172a"/>
+        <rect x="1195" y="765" width="110" height="55" rx="6" fill="rgba(120, 53, 15, 0.2)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="1250" y="785" fill="white" font-size="10" font-weight="600" text-anchor="middle">OCR Vision</text>
+        <text x="1250" y="800" fill="#94a3b8" font-size="8" text-anchor="middle">Minimax VL</text>
+        <text x="1250" y="813" fill="#fbbf24" font-size="8" text-anchor="middle">🟡 placeholder</text>
+
+        <!-- ====================================================
+             LEGEND (bottom, outside all zones)
+             ==================================================== -->
+        <rect x="20" y="955" width="1240" height="35" rx="6" fill="rgba(15, 23, 42, 0.6)" stroke="#334155" stroke-width="1"/>
+        <text x="40" y="975" fill="white" font-size="10" font-weight="600">Legend</text>
+
+        <rect x="100" y="968" width="14" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="120" y="977" fill="#94a3b8" font-size="9">Frontend</text>
+
+        <rect x="195" y="968" width="14" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="215" y="977" fill="#94a3b8" font-size="9">Backend (API + Capability)</text>
+
+        <rect x="395" y="968" width="14" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="415" y="977" fill="#94a3b8" font-size="9">L1 Data (server-only)</text>
+
+        <rect x="570" y="968" width="14" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/>
+        <text x="590" y="977" fill="#94a3b8" font-size="9">External / LLM</text>
+
+        <rect x="710" y="968" width="14" height="10" rx="2" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1"/>
+        <text x="730" y="977" fill="#94a3b8" font-size="9">Compliance / Audit</text>
+
+        <rect x="870" y="968" width="14" height="10" rx="2" fill="transparent" stroke="#fb7185" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="890" y="977" fill="#94a3b8" font-size="9">Compliance zone</text>
+
+        <line x1="1010" y1="973" x2="1028" y2="973" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+        <text x="1034" y="977" fill="#94a3b8" font-size="9">Data flow</text>
+
+        <line x1="1120" y1="973" x2="1138" y2="973" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-cyan)"/>
+        <text x="1144" y="977" fill="#94a3b8" font-size="9">Return / render</text>
+      </svg>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot cyan"></div>
+          <h3>技术栈 · 已装实际版本</h3>
+        </div>
+        <ul>
+          <li>• <strong>Next.js 16.2.4</strong> (⚠ package.json 声明 ^14.2.15，npm install 实际升到 16)</li>
+          <li>• <strong>React 18.3.1</strong> + React-DOM 18.3.1</li>
+          <li>• <strong>TypeScript 5.4.5</strong> strict 模式</li>
+          <li>• <strong>Tailwind CSS 3.4.14</strong> + PostCSS + autoprefixer</li>
+          <li>• <strong>Zod 3.23.8</strong> (LLM 输出校验)</li>
+          <li>• <strong>@anthropic-ai/sdk 0.90.0</strong></li>
+          <li>• <strong>server-only 0.0.1</strong> (防 L1 泄漏 client bundle)</li>
+          <li>• <strong>vitest 4.1.5 + jsdom + Playwright 1.48</strong></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot emerald"></div>
+          <h3>数据流 · 用户一次 query 全链路</h3>
+        </div>
+        <ul>
+          <li>1. 用户在 <strong>/query</strong> 输自然语言（"我吃鱼油能和华法林一起吃吗"）</li>
+          <li>2. → <strong>POST /api/intent</strong> · L0 intakeOrchestrator 依次跑 parseIntent (LLM) → groundMentions → slotResolver → clarify</li>
+          <li>3. 缺 slot → 返 ClarifyBubble；全齐 → 返 LookupRequest 给前端</li>
+          <li>4. → <strong>POST /api/judgment</strong> · L2 judgmentEngine 并发 3 adapter (hardcoded / suppai / ddinter)</li>
+          <li>5. merger + knowledgeBaseLookup → gray (未收录) / green (已知无风险) / yellow / red 四档</li>
+          <li>6. → <strong>POST /api/translation</strong> · L3 translateRisks 单条 LLM 调用 → Zod 校验 → 失败 template fallback</li>
+          <li>7. → <strong>/result</strong> render RiskBadge + DisclaimerBlock + DemoBanner</li>
+          <li>⏱ 预算：60s end-to-end（CLAUDE.md §1.3，D5 从 30s 放宽）</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot rose"></div>
+          <h3>合规红线 · 架构层面强制</h3>
+        </div>
+        <ul>
+          <li>• <strong>§10.3 层级隔离</strong>：L2 无 LLM (确定性)；L1 无 adapter imports；L3 不造规则</li>
+          <li>• <strong>§11.1 Disclaimer</strong>：DisclaimerBlock 每次 AI 响应必带</li>
+          <li>• <strong>§11.5 LLM 仅翻译</strong>：L3 LLM 不判风险，只把 L2 的 Risk[] 翻成人话</li>
+          <li>• <strong>§11.6 Zod 校验</strong>：LLM 输出失败 → TemplateFallback</li>
+          <li>• <strong>§11.11 DemoBanner</strong>：54 条红规则 `pharmacistReviewed: false` → 每响应必挂</li>
+          <li>• <strong>§11.12 partialReason</strong>：白名单码，adapter.error 不泄到 UI</li>
+          <li>• <strong>§11.13 L0 LLM</strong>：仅 NER + question phrasing，Zod .strict() 防 level 泄露</li>
+          <li>• <strong>§11.4 SourceRef</strong>：每条 Risk 必带 SourceRef[]</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot violet"></div>
+          <h3>L1 数据规模 · 烘焙现状</h3>
+        </div>
+        <ul>
+          <li>• <strong>contraindications.ts</strong>：596 行 · 54 条红规则 (D6 +4 from v2.9)</li>
+          <li>• <strong>suppai-interactions.ts</strong>：20,257 行 · ~1500 供能-药物互作 (evidenceCount ≥ 3)</li>
+          <li>• <strong>cn-dri-values.ts</strong>：270 行 · 中国居民 DRIs</li>
+          <li>• <strong>lpi-values.ts</strong>：600 行 · Linus Pauling Institute 参考值</li>
+          <li>• <strong>pubchem-cids.ts</strong>：396 行 · 化学形式名映射</li>
+          <li>• <strong>symptom-ingredients.ts</strong>：598 行 · 症状→候选成分 (P0 例外 §11.14)</li>
+          <li>总行数 <strong>22,717</strong>，目标 bundle &lt; 5 MB</li>
+          <li>⚠ 未烘焙：DSLD / TGA / JP / Bluehat (🟢 P1 stretch)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot amber"></div>
+          <h3>LLM 策略 · Claude Code 模式</h3>
+        </div>
+        <ul>
+          <li>• 协议固定：<strong>Anthropic Messages</strong> (Bearer authToken)</li>
+          <li>• 单 <strong>LLMClient</strong>，不再每家一个 adapter class</li>
+          <li>• 主链：minimax <code>/anthropic</code> + MiniMax-M2.7</li>
+          <li>• LLM_PROVIDER 字段仅作 audit log tag，不进 if/else</li>
+          <li>• 扩展新厂商：改 env 3 字段零代码变动（Kimi K2 / 智谱 GLM 等）</li>
+          <li>• ⚠ Fallback chain P0 不做（env 预留 LLM_FALLBACK_*）</li>
+          <li>• Vision endpoint 留 placeholder（🟡 OCR 不阻塞 P0）</li>
+          <li>• 调用点：L0 parseIntent (NER) / L3 translateRisks (翻译)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot orange"></div>
+          <h3>部署 · P0 SV 自托管</h3>
+        </div>
+        <ul>
+          <li>• <strong>Silicon Valley 2vCPU / 4GB RAM / 30 Mbps / Ubuntu</strong></li>
+          <li>• 域名：<strong>vitame.live</strong> (入口 WeChat WebView)</li>
+          <li>• Nginx 反代 + pm2 + Let's Encrypt</li>
+          <li>• Cloudflare 免费 CDN 前置</li>
+          <li>• 本地 <code>npm run build</code> + rsync 上传（SV 上不 npm install，2GB RAM 会 OOM）</li>
+          <li>• ⚠ 待 D9 接入：JSONL audit log 文件落盘</li>
+          <li>• ⚠ 待 D9 接入：openclaw on-box (13121 端口，D9 后单独 wrap)</li>
+          <li>• VPN 阻塞：NIH / PubChem DNS 被劫持，烘焙脚本在 SV 上重跑</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p class="footer">
+      VitaMe P0 Sprint · D7 of 12 (2026-04-24) · WAIC 2026 超级个体黑客松 · deadline 2026-04-30 · 基于 vitame-dev-v0.1 @ f55d138
+    </p>
+  </div>
+</body>
+</html>

@@ -1,3 +1,15 @@
+---
+title: "Main CC Lessons"
+description: "主 Claude Code 在 VitaMe 项目中的自查教训和常见失误记录。"
+doc_type: "lessons"
+status: "active"
+created: "2026-04-22"
+updated: "2026-04-24"
+canonical: true
+privacy: "internal"
+tags: ["lessons", "engineering", "agent"]
+---
+
 # 主 CC — VitaMe 自查教训
 
 > 跟 `_vitame-wave2/CODEX-LESSONS.md` / `GEMINI-LESSONS.md` 对齐的体系，**给主 CC 自己用**。

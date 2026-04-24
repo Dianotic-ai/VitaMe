@@ -1,3 +1,15 @@
+---
+title: "Known Blockers"
+description: "VitaMe 开发环境中已知的网络、数据源和工具阻塞及当前处理方式。"
+doc_type: "runbook"
+status: "active"
+created: "2026-04-21"
+updated: "2026-04-24"
+canonical: true
+privacy: "internal"
+tags: ["blockers", "environment", "runbook"]
+---
+
 # Environmental blockers & known quirks — 阻塞实况速查
 
 > 从 `CLAUDE.md` §18 拆出。CC 启动时不必读，**遇到对应症状（fetch 失败 / SUPP.AI 抓空 / SSL 错 / 节点切换无效）先来这里查**，再去开新 issue 或试 fallback。

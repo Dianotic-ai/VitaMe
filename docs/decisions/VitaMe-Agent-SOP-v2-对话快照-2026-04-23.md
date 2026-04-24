@@ -9,7 +9,7 @@ canonical: false
 privacy: "internal"
 tags: ["product", "sop", "snapshot", "2026-04-23"]
 source_material: "docs/research/gemini-health-consultation.md"
-superseded_by: "docs/product/VitaMe-长期北极星-Reminder驱动-2026-04-23.md"
+superseded_by: "docs/product/2026-04-23-长期北极星-Reminder驱动.md"
 ---
 
 # VitaMe Agent SOP v2 — 对话快照（2026-04-23）
@@ -17,7 +17,7 @@ superseded_by: "docs/product/VitaMe-长期北极星-Reminder驱动-2026-04-23.md
 > 本文件是 2026-04-23 上午对话中产出的 v2 SOP 原样留档。
 > 同日 Kevin 提出"Reminder 驱动"pivot，导致"建档"从北极星降级为副产品。
 > v2 里的 **"Intake 渐进 + 隐私 HUD + Verify-first 多入口"** 三块设计依然有效，并入了 pivot 后的长期北极星文档。
-> 与 `VitaMe-P0-统一执行总纲.md` 冲突时，以总纲为准（P0 锁死在"补剂安全判断 wedge"）。
+> 与 `P0-执行总纲.md` 冲突时，以总纲为准（P0 锁死在"补剂安全判断 wedge"）。
 
 ---
 
@@ -172,9 +172,9 @@ superseded_by: "docs/product/VitaMe-长期北极星-Reminder驱动-2026-04-23.md
 
 ## 下一步（当时提出的方向，已演化到 pivot 文档）
 
-1. ~~把 SOP v2 落成 PRD 文档~~ → 已被 pivot 覆盖，见 `VitaMe-长期北极星-Reminder驱动-2026-04-23.md`
+1. ~~把 SOP v2 落成 PRD 文档~~ → 已被 pivot 覆盖，见 `2026-04-23-长期北极星-Reminder驱动.md`
 2. 抽禁忌规则 v0 → 见 `docs/research/禁忌规则-v0-种子库-待医学审核-2026-04-23.md`
-3. Demo golden path → 见 `docs/product/VitaMe-Demo-Golden-Path-黑客松脚本-2026-04-23.md`
+3. Demo golden path → 见 `docs/product/2026-04-23-Demo-Golden-Path.md`
 
 ---
 
@@ -183,6 +183,6 @@ superseded_by: "docs/product/VitaMe-长期北极星-Reminder驱动-2026-04-23.md
 | 时间 | 事件 | 触发文档 |
 |---|---|---|
 | 2026-04-23 上午 | v2 SOP 完成（本快照） | 本文件 |
-| 2026-04-23 下午 | Kevin pivot：Reminder 驱动、档案降权为副产品 | `VitaMe-长期北极星-Reminder驱动-2026-04-23.md` |
+| 2026-04-23 下午 | Kevin pivot：Reminder 驱动、档案降权为副产品 | `2026-04-23-长期北极星-Reminder驱动.md` |
 
 > **本快照仅供追溯讨论脉络。当前 canonical 产品方向见 P0 总纲 + 长期北极星两份文件。**

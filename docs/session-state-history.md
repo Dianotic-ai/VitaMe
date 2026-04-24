@@ -1,3 +1,15 @@
+---
+title: "Session State History"
+description: "SESSION-STATE.md 溢出的历史进度和决策归档。"
+doc_type: "history"
+status: "reference"
+created: "2026-04-22"
+updated: "2026-04-24"
+canonical: false
+privacy: "internal"
+tags: ["session-state", "history", "archive"]
+---
+
 # VitaMe P0 — Session State History（归档）
 
 > 从 `docs/SESSION-STATE.md` 决策日志溢出后的归档。按时间倒序。
@@ -58,7 +70,7 @@
 
 ## 2026-04-19（D1 早间）
 
-- 采用 Superpowers 精简装 4/11 skill + Tier 3 TDD（见 MIGRATION-2026-04-19.md）
+- 采用 Superpowers 精简装 4/11 skill + Tier 3 TDD（见 docs/decisions/VitaMe-Migration-Superpowers-DESIGN-TDD-2026-04-19.md）
 
 ## 2026-04-17
 

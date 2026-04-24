@@ -8,7 +8,7 @@ updated: "2026-04-18"
 canonical: false
 privacy: "internal"
 tags: ["demo", "seed-data", "test-cases", "p0"]
-source_docs: ["小红书用户需求调研.md", "../../20260417产品设计/VitaMe-补剂安全翻译Agent-P0-PRD.md"]
+source_docs: ["小红书用户需求调研.md", "../../20260417产品设计/PRD.md"]
 ---
 
 # Demo 种子问题清单 - 20 条

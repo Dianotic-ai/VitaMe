@@ -8,7 +8,7 @@ updated: "2026-04-22"
 canonical: false
 privacy: "internal"
 tags: ["demo", "seed-data", "test-cases", "p0", "waic-sprint"]
-source_docs: ["Demo种子问题清单-20条.md", "小红书用户需求调研.md", "VitaMe-补剂安全翻译Agent-P0-PRD.md"]
+source_docs: ["Demo种子问题清单-20条.md", "小红书用户需求调研.md", "PRD.md"]
 ---
 
 # Demo 种子问题清单 - 100 条

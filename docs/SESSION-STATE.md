@@ -1,3 +1,15 @@
+---
+title: "VitaMe P0 Session State Ledger"
+description: "VitaMe 当前工程进度、关键决策、阻塞和下一步的运行态记录。"
+doc_type: "state"
+status: "active"
+created: "2026-04-18"
+updated: "2026-04-24"
+canonical: true
+privacy: "internal"
+tags: ["session-state", "progress", "p0", "engineering"]
+---
+
 # VitaMe P0 — Session State Ledger
 
 > **Operational state file** — "where are we right now" 的单一事实源。
@@ -7,6 +19,10 @@
 ---
 
 ## 最后更新
+**2026-04-24（D7 / 12，Agent v2 文档体系）** — **长期方向正式升级为 Agent app**：在 P0 补剂安全判断楔子之上，新增并重写一套 canonical 文档，明确 P1/P2 为 Reminder、Feedback、Memory、Hermit Agent 自我进化闭环。新增 `docs/product/Agent-北极星.md`、`docs/product/指标体系.md`、`docs/product/demo-script-map.md`、`docs/engineering/specs/system-architecture.md`、`data-flow.md`、`implementation-map.md`、`medical-review-workflow.md`、`data-source-status.md`、`compliance-audit-status.md`、`launch-checklist.md`。API contract 已区分 implemented (`/api/intent`、`/api/judgment`、`/api/translation`) 和 planned（archive、recheck、reminder、feedback、memory、hermit-cycle）。
+
+**2026-04-24（D7 / 12，文档重建）** — **唯一事实源重建**：新增 `docs/START-HERE.md`、`docs/product/当前判断.md`、`docs/DOCS-COVERAGE.md`；产品/工程文档按短路径重命名；重复根目录文档和过期 strategy 文档归档到 `docs/_archive/`；当前阅读路径改为 START-HERE → 当前判断 → DOCS-COVERAGE → P0-执行总纲。
+
 **2026-04-24（D7 / 12，下午）** — **三分支对齐 + docs 重组 + PR #1 合入**：把 Kevin 的 `codex/spec-hardening` specs（41 份独有文档）+ PR #1 的 3 条命名约定（camelCase / disclaimer 顶层 / Risk 保留结构化溯源）合入 Sunny 的代码分支。为不打扰 Sunny 的开发，整合后推到**新分支 `dev-merged-2026-04-24`**，本地 `vitame-dev-v0.1` 已 reset 回 `f55d138`（= 远程，Sunny 无感）。  
 （v2.9 P0 红规则 +4 D6 晚、v2.8 架构升级 D5 晚、v2.7 LLM Client 等内容已推到下方"刚完成"段。）
 
@@ -16,7 +32,7 @@
 3. **unrelated-histories 合并**（commit `a1cb8b2`）：把 `origin/codex/spec-hardening`（41 份 Kevin 独有文档 + PR #1 产物）合入本地代码分支。7 份重叠 specs 冲突全部取 vitame-dev 侧（v2.8/v2.9 新于 codex D3）。`.gitignore` 手动合并两边条目（Next.js + TypeScript + IDE + GStack + Playwright MCP + 健康数据隐私 + 音频）。
 4. **最小重组**（commit `691bf40`）：
    - `_bmad/ _bmad-output/` → `docs/_archive/`（BMAD 残留，不再使用）
-   - `docs/superpowers/` → `docs/engineering/`（更贴近职能语义）
+   - `docs/engineering/` → `docs/engineering/`（更贴近职能语义）
    - `docs/小红书需求调研/Demo种子问题清单-100条.md` → `docs/research/`（D6 产出）
    - dedup 删 2 份合并重复文件（`小红书用户需求调研.md` / `Demo种子问题清单-20条.md`）
    - `scripts/smoke100.ts:25` SEED_FILE 路径同步更新
@@ -40,7 +56,7 @@
 3. **L2 grading 语义 root fix**（不是 UI 文案：no-data→gray、known+no-rule→green，写入 §10.2 + spec + 改 `judgmentEngine.ts:17-31` + 新增 `KnowledgeBaseLookup`）
 
 ## 当前 Sprint 阶段
-**D7 — 三分支整合日；L0 intake 代码已落；Phase 3.6 UI 三组件 + 主链联调 未开始**
+**D7 — 文档事实源重建完成；L0 intake 代码已落；Phase 3.6 UI 三组件 + 主链联调 未开始**
 
 - Sprint: 12 天 P0（2026-04-18 → 2026-04-29）
 - 初赛截止: 2026-04-30（WAIC 超级个体黑客松）
@@ -118,7 +134,7 @@
 ## ⏳ 未完成（Wave 2+ 候选）
 
 - **L3 LLM Client 接到 safetyTranslation 调用链**：`createLLMClient` 已就位，需在 `src/lib/capabilities/safetyTranslation/` 加 prompt builder + Zod 校验 + TemplateFallback 串起来
-- **API 路由**：`app/api/{query-intake,safety-judgment,safety-translation,archive-recheck}/route.ts`（W2-B 待启动）
+- **历史 API 命名说明**：旧会话里的 `app/api/{query-intake,safety-judgment,safety-translation,archive-recheck}/route.ts` 是 W2 旧计划，不再作为当前事实源。当前 implemented routes 是 `src/app/api/{intent,judgment,translation}/route.ts`；archive / recheck 仍是 planned。
 - **LLM fallback chain**：`LLM_FALLBACK_*` env 预留，代码 TODO；主链跑通后补 `createLLMClientWithFallback(primary, fallback)`
 - **Vision LLM endpoint 确认**：MiniMax 实际 vision endpoint/model 待用户测试时填入（P0 OCR 🟡 tier 不阻塞）
 - **openclaw branch wrap**：D9 SV 部署后进 13119 控制台拿 13121 鉴权 header，单独 wrap（不在 OpenAI-compat client 里）
@@ -138,15 +154,14 @@
 
 **D7 三分支对齐完成**（commit `a1cb8b2 → 691bf40 → 0969dea` 在新分支 `dev-merged-2026-04-24` 上）。下一步候选（按 deadline 倒数 5 天排序）：
 
-1. **推 `dev-merged-2026-04-24` 到 origin**（本会话最后一步）— 合伙人能在 GitHub 上看到这条集成分支。
-2. **D7 主链联调**（Phase 3.6 前置）— text input → /api/intent → /api/judgment → /api/translation → 渲染 RiskBadge + Disclaimer + DemoBanner，跑 60s end-to-end 时间预算；修复发现的集成问题。
-3. **Phase 3.6 L0 UI 三组件** — DESIGN §4.7-4.9 ClarifyBubble / IntentFallbackForm / SymptomCandidateList（L0 架构已落，UI 三件套把 user-visible 部分补上）。
+1. **D7 主链联调**（Phase 3.6 前置）— text input → /api/intent → /api/judgment → /api/translation → 渲染 RiskBadge + Disclaimer + DemoBanner，跑 60s end-to-end 时间预算；修复发现的集成问题。
+2. **Phase 3.6 L0 UI 三组件** — DESIGN §4.7-4.9 ClarifyBubble / IntentFallbackForm / SymptomCandidateList（L0 架构已落，UI 三件套把 user-visible 部分补上）。
+3. **P1/P2 细化文档** — 根据 `docs/DOCS-COVERAGE.md` 补 Reminder 属性查表、Feedback Ritual 文案库、Memory schema、Hermit Agent 任务设计。
 4. **D6 prompt tuning 真 LLM 验证**（暂挂）— `scripts/smokeIntent.ts` 真 LLM 跑 5 case（需联网 + minimax key）；4 few-shot 是否修复 A/C/D/E 失败 case，主链联调后再验。
 5. **P1/P2 L1 增量**（暂挂）— 🟡 8 条 / 🟢 9 条 missing-l1-substance 长尾；看 D7/D8 主链联调后是否有余量。
 
 **用户拍板需求**：
-- 大规模 rename（按 `docs/naming-conventions.md` 规则清 VitaMe-补剂安全翻译Agent- 冗长前缀）何时做？建议 D8-9 Sprint 末。
-- `main` 何时 force-update 到 `dev-merged-2026-04-24`？建议 D10-11 发版前（deploy target 锁定）。
+- `main` 何时更新到 `dev-merged-2026-04-24`？建议 D10-11 发版前（deploy target 锁定）。
 - Kevin 合并模型：codex/spec-hardening 未来如何同步到 dev？（单向 PR？定期 cherry-pick？）
 
 ---
@@ -183,11 +198,12 @@
 1. `CLAUDE.md`（根） — 工程规则，§11 红线
 2. `DESIGN.md`（根） — 视觉规范（UI 阶段才需要）
 3. **本文件** `docs/SESSION-STATE.md` — 当前进度
-4. `MIGRATION-2026-04-19.md`（根） — Superpowers + DESIGN + Tier 3 TDD 决策
-5. `docs/engineering/plans/2026-04-18-vitame-p0-plan.md` — 12 天主任务表
-6. `docs/engineering/plans/2026-04-18-vitame-数据接入与实现方案.md` — 数据层方案
-7. `docs/engineering/specs/*.md` — 5 份 design + demo acceptance
-8. `docs/research/Demo种子问题清单-20条.md` — MVP 边界
+4. `docs/decisions/VitaMe-Migration-Superpowers-DESIGN-TDD-2026-04-19.md` — Superpowers + DESIGN + Tier 3 TDD 决策
+5. `docs/START-HERE.md` — 当前唯一入口
+6. `docs/product/当前判断.md` — 最新思考和保留洞察
+7. `docs/DOCS-COVERAGE.md` — 文档完整性矩阵
+8. `docs/engineering/plans/p0-plan.md` — 12 天主任务表
+9. `docs/engineering/specs/*.md` — design + demo acceptance
 
 ---
 

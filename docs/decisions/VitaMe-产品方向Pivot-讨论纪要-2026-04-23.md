@@ -12,7 +12,7 @@ source_type: "recording_transcription"
 meeting_duration_min: 10
 participants: 2
 drives_decisions:
-  - "docs/product/VitaMe-长期北极星-Reminder驱动-2026-04-23.md"
+  - "docs/product/2026-04-23-长期北极星-Reminder驱动.md"
 ---
 
 # 面向普通用户的AI健康保健品Agent产品讨论

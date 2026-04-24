@@ -1,3 +1,15 @@
+---
+title: "文档命名规范"
+description: "VitaMe docs 目录的文件命名、日期、大小写、版本号和 rename 规则。"
+doc_type: "convention"
+status: "active"
+created: "2026-04-24"
+updated: "2026-04-24"
+canonical: true
+privacy: "internal"
+tags: ["docs", "naming", "conventions"]
+---
+
 # 文档命名规范
 
 > 适用于 `docs/` 下所有 markdown 文档。**新文件必须按本规范**；现有旧文件不大规模 rename（留 Sprint 末 D8-9 批量处理），合并期保持引用稳定。
@@ -11,7 +23,7 @@
 - **最大长度**：25 字符（不含扩展名），超长换位置不换描述
 - **分隔符**：`-`（横线），禁止空格 / 下划线
 - **删除冗余前缀**：
-  - ❌ `VitaMe-补剂安全翻译Agent-P0-PRD.md`
+  - ❌ `PRD.md`
   - ✅ `PRD.md`（在 `docs/product/` 里，项目名由仓库路径决定）
 
 ---
@@ -20,9 +32,9 @@
 
 | 目录 | 语言 | 模式 | 好例子 | 反例 |
 |---|---|---|---|---|
-| `product/` | 中文为主 | 主题直述 | `PRD.md` / `宏观设计.md` / `用户旅程.md` / `Aha-Moment.md` / `定位.md` | `VitaMe-补剂安全翻译Agent-宏观设计.md` |
-| `engineering/specs/` | 英文 kebab-case | 功能名 | `query-intake.md` / `safety-judgment.md` / `api-contract.md` | `2026-04-18-vitame-query-intake-design.md` |
-| `engineering/plans/` | 英文 kebab-case | 计划名 | `p0-plan.md` / `data-ingest.md` | `VitaMe-P0-统一执行总纲.md` |
+| `product/` | 中文为主 | 主题直述 | `PRD.md` / `宏观设计.md` / `用户旅程.md` / `Aha-Moment.md` / `定位.md` | `宏观设计.md` |
+| `engineering/specs/` | 英文 kebab-case | 功能名 | `query-intake.md` / `safety-judgment.md` / `api-contract.md` | `query-intake.md` |
+| `engineering/plans/` | 英文 kebab-case | 计划名 | `p0-plan.md` / `data-ingest.md` | `P0-执行总纲.md` |
 | `decisions/` | 中/英皆可 | `YYYY-MM-DD-主题` | `2026-04-17-anthropic会诊.md` / `2026-04-21-kevin-review-handoff.md` | `VitaMe-技术选型-Anthropic-会诊-2026-04-17.md` |
 | `research/` | 中文为主 | 主题直述 | `小红书用户需求调研.md` / `竞品调研报告.md` / `Demo种子问题清单-100条.md` | — |
 | `docs/` 根（运行态 + 经验）| 大写锚点 | 全大写 | `SESSION-STATE.md` / `MAIN-CC-LESSONS.md` / `CLAUDE.md-changelog.md` | — |

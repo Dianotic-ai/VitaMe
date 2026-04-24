@@ -561,7 +561,7 @@ Run this before any UI/illustration ships. Pass requires 9/10 yes.
   - §4.1 `RiskBadge`, §4.2 `DisclaimerBlock`, §4.3 `EvidenceSource` component specs
   - §4.7 `ClarifyBubble`, §4.8 `IntentFallbackForm`, §4.9 `SymptomCandidateList`（v2.8 — L0 意图层 UI）
   - §8.4–8.5 WeChat WebView and iOS Safari quirks
-  - §11–13 brand illustration system + AI prompts + review rubric (D7, merged from `UI设计/skill.md`)
+  - §11–13 brand illustration system + AI prompts + review rubric (D7, now governed by `docs/product/品牌视觉规范.md`)
 
 ---
 

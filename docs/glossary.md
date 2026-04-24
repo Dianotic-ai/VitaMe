@@ -1,3 +1,15 @@
+---
+title: "Glossary"
+description: "VitaMe 项目术语表，用于解释 DSLD、SUPP.AI、SourceRef 等术语。"
+doc_type: "glossary"
+status: "active"
+created: "2026-04-21"
+updated: "2026-04-24"
+canonical: true
+privacy: "internal"
+tags: ["glossary", "terms", "docs"]
+---
+
 # Glossary — VitaMe 术语表
 
 > 从 `CLAUDE.md` §17 拆出。CC 启动时不必读，遇到不认识的术语再查。

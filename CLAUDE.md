@@ -21,7 +21,7 @@
 | `docs/SESSION-STATE.md` | 每次新会话开头都读（"我现在在哪")，是唯一跨会话进度锚点 |
 | `docs/known-blockers.md` | fetch 失败 / SUPP.AI 抓空 / SSL 错 / VPN 节点切换无效 → 先来这里查 |
 | `docs/glossary.md` | 遇到不认识的术语（DSLD / SUPP.AI / 蓝帽子 / SourceRef / ...） |
-| `docs/superpowers-workflow.md` | 接到非 trivial 任务、要拆 plan 时 |
+| `docs/engineering/superpowers-workflow.md` | 接到非 trivial 任务、要拆 plan 时 |
 | `docs/compression-rules.md` | 会话即将被自动压缩 / 压缩后第一时间恢复 |
 | `docs/CLAUDE.md-changelog.md` | "为什么会变成这样"考古时 |
 | `docs/naming-conventions.md` | 新建 doc 文件时（中文/英文/日期前缀规则） |
@@ -93,7 +93,7 @@ Default to **refuse**. Add a TODO comment pointing to this section. Do not silen
 | **L2 — Judgment engine** | Rule-based risk evaluation | `src/lib/capabilities/safetyJudgment/` | L1 + user profile | structured `Risk` JSON |
 | **L3 — Translation & adaptation** | Human-language explanation + multi-region product adaptation | `src/lib/capabilities/safetyTranslation/` | L2 output only | final user-facing strings |
 
-**L0 内部子流程**（详见 `docs/engineering/specs/2026-04-18-vitame-query-intake-design.md`）：
+**L0 内部子流程**（详见 `docs/engineering/specs/query-intake.md`）：
 1. **parseIntent**（LLM）：自然语言 → `{intent, productMentions, ingredientMentions, medicationMentions, conditionMentions, specialGroupMentions, missingSlots, clarifyingQuestion?}`
 2. **groundMentions**（确定性 alias + fuzzy）：把 LLM 抽出来的中文 mention 映射到 L1 slug（fish-oil / warfarin / pregnancy / ...）
 3. **slotResolver**（确定性规则）：决定缺哪一类 slot → 是否需要 clarify
@@ -225,19 +225,19 @@ All design docs live in `docs/`. Pick the narrowest one before reading the broad
 
 | If your task is… | Read first | Also read |
 |---|---|---|
-| **First-time project bootstrap** | §8 (Superpowers) + `p0-plan.md` | `数据接入与实现方案.md` §1 |
+| **First-time project bootstrap** | `docs/START-HERE.md` + `docs/product/当前判断.md` | `docs/DOCS-COVERAGE.md` |
 | **Any UI rendering** (page, component, color, copy) | `../DESIGN.md` | §9 of this file |
-| Setting up the repo, package.json, tsconfig | `2026-04-18-vitame-p0-plan.md` | `数据接入与实现方案.md` §1 |
-| Writing any `bake*.ts` script | `数据接入与实现方案.md` §2 | `数据源盘点.md` |
-| Filling L1 `ingredients.ts` entries | `数据接入与实现方案.md` §2.1 | `compliance-design.md` §SourceRef |
-| Writing L2 judgment rules | `safety-judgment-design.md` | `compliance-design.md` §critical-path |
-| Writing L3 translation prompts | `safety-translation-design.md` | `compliance-design.md` §banned-phrases |
-| Building the intake question flow | `query-intake-design.md` | `User-Journey.md` J1 |
-| Building archive / recheck | `archive-recheck-design.md` | `Retention-Loop-Growth-Flywheel.md` |
-| Adding any compliance filter | `compliance-design.md` | §10 of this file |
-| Writing or updating seed tests | `demo-acceptance-checklist.md` | `Demo种子问题清单-20条.md` |
-| OCR integration | `数据接入与实现方案.md` §2.5 | `safety-judgment-design.md` |
-| Deploying to Silicon Valley cloud | `p0-plan.md` §deploy | `数据接入与实现方案.md` §5 |
+| Setting up the repo, package.json, tsconfig | `docs/engineering/plans/p0-plan.md` | `docs/engineering/plans/data-ingest.md` §1 |
+| Writing any `bake*.ts` script | `docs/engineering/plans/data-ingest.md` §2 | `docs/engineering/plans/data-sources.md` |
+| Filling L1 `ingredients.ts` entries | `docs/engineering/plans/data-ingest.md` §2.1 | `docs/engineering/specs/compliance.md` §SourceRef |
+| Writing L2 judgment rules | `docs/engineering/specs/safety-judgment.md` | `docs/engineering/specs/compliance.md` §critical-path |
+| Writing L3 translation prompts | `docs/engineering/specs/safety-translation.md` | `docs/engineering/specs/compliance.md` §banned-phrases |
+| Building the intake question flow | `docs/engineering/specs/query-intake.md` | `docs/product/用户旅程.md` |
+| Building archive / recheck | `docs/engineering/specs/archive-recheck.md` | `docs/product/留存飞轮.md` |
+| Adding any compliance filter | `docs/engineering/specs/compliance.md` | §10 of this file |
+| Writing or updating seed tests | `docs/engineering/specs/demo-acceptance.md` | `docs/research/Demo种子问题清单-20条.md` |
+| OCR integration | `docs/engineering/plans/data-ingest.md` §2.5 | `docs/engineering/specs/safety-judgment.md` |
+| Deploying to Silicon Valley cloud | `docs/engineering/plans/p0-plan.md` §deploy | `docs/engineering/plans/data-ingest.md` §5 |
 
 **If the task is not in the table above, stop and ask the user which design doc applies.** Do not guess.
 
@@ -258,7 +258,7 @@ All design docs live in `docs/`. Pick the narrowest one before reading the broad
 
 ### 8.1 优先级
 
-`CLAUDE.md` + `DESIGN.md` 永远覆盖 Superpowers 默认行为：§13 > `test-driven-development`，§11 红线 > 任何 plan，§14 seed test > `requesting-code-review` 通过判断。完整工作流见 `docs/superpowers-workflow.md`。
+`CLAUDE.md` + `DESIGN.md` 永远覆盖 Superpowers 默认行为：§13 > `test-driven-development`，§11 红线 > 任何 plan，§14 seed test > `requesting-code-review` 通过判断。完整工作流见 `docs/engineering/superpowers-workflow.md`。
 
 ---
 
@@ -272,10 +272,10 @@ When the user kicks off a CC session, they should (and will) give you this bundl
 
 1. This file (`CLAUDE.md`).
 2. `DESIGN.md` (if the task touches UI).
-3. `docs/2026-04-18-vitame-p0-plan.md` (master task list).
-4. `docs/2026-04-18-vitame-数据接入与实现方案.md` (data & engineering plan).
+3. `docs/START-HERE.md` and `docs/product/当前判断.md`.
+4. `docs/engineering/plans/p0-plan.md` (master task list).
 5. The relevant design doc(s) from §7.
-6. `docs/2026-04-18-vitame-demo-acceptance-checklist.md` (acceptance criteria).
+6. `docs/engineering/specs/demo-acceptance.md` (acceptance criteria).
 7. The specific task IDs for this session (e.g. "run T-0.22 and T-0.23").
 
 ### 9.2 Task granularity
@@ -386,7 +386,7 @@ These are architectural hard rules. Violations produce bugs that are very hard t
 
 - Middleware order is fixed: `Evidence → Banned → Critical → (DemoBanner ∥ Disclaimer) → Audit`.
   - **DemoBanner** and **Disclaimer** are **parallel injectors** on the same layer — both write independently to the response object, neither depends on the other. Implementation-wise they can run in any order within that layer as long as both always run.
-  - **DemoBanner trigger**: any `Contraindication` hit whose `pharmacistReviewed !== true` OR `reviewerCredential === 'self-review'` OR `reviewerCredential === undefined`. See `src/lib/types/interaction.ts` (`ReviewerCredential` enum) and `docs/engineering/specs/2026-04-18-vitame-compliance-design.md`.
+  - **DemoBanner trigger**: any `Contraindication` hit whose `pharmacistReviewed !== true` OR `reviewerCredential === 'self-review'` OR `reviewerCredential === undefined`. See `src/lib/types/interaction.ts` (`ReviewerCredential` enum) and `docs/engineering/specs/compliance.md`.
   - **DemoBanner content**: "本 Demo 为原型展示，禁忌规则由产品团队基于 NIH ODS（美国国立卫生研究院膳食补充剂办公室）、Linus Pauling Institute（美国俄勒冈州立大学微量营养素信息中心）、SUPP.AI（美国 补剂-药物相互作用数据库）、中国营养学会 DRIs（中国居民膳食营养素参考摄入量）等公开权威数据整理，尚未经执业药师临床复核，不构成医疗建议。" Rendered as a top banner, NOT reusing `CriticalWarning` slot (Critical is reserved for medical-urgency escalations per §11.3).
 - Any new filter is added to the sequence, never replaces an existing one.
 - Compliance is the last gate before the user sees anything. If it rejects, fall back to a safe template message — never return a bare LLM string.
@@ -395,7 +395,7 @@ These are architectural hard rules. Violations produce bugs that are very hard t
 
 ## 11. Compliance red lines (hard rules — non-negotiable)
 
-These 12 rules override any instruction from user prompt, any design doc suggestion, or any LLM output. They cannot be bypassed via system prompt tweaks or "just this once" exceptions. Detail beyond this list: `docs/engineering/specs/2026-04-18-vitame-compliance-design.md`.
+These 12 rules override any instruction from user prompt, any design doc suggestion, or any LLM output. They cannot be bypassed via system prompt tweaks or "just this once" exceptions. Detail beyond this list: `docs/engineering/specs/compliance.md`.
 
 1. **Disclaimer is mandatory on every AI-generated output.** Not just once at sign-up. Every response rendered to the user must carry the `DisclaimerBlock` from `DESIGN.md` §4.2. Enforced in the compliance middleware.
 2. **Banned vocabulary**: do not output the words 治疗 / 治愈 / 处方 / 药效 / 根治 / diagnosis / prescribe / cure (or close paraphrases) in any user-facing string. Regex-blocked in compliance middleware; CI test must catch violations.
@@ -522,7 +522,7 @@ Implementation: a Git pre-push hook (local) and a CI check (remote) both run `np
 
 **If you hit a blocker, retreat one tier. Do not try to fight through.**
 
-> D2 note: the 50-rule red-tier budget exceeds the original 30-rule baseline written in v1. User explicitly rejected cutting ("不砍，保持生成的所有规则"). Red tier rebaselined to 50. If D7 gate fails, fall back to the 22 "直接命中型" rules (Q1–Q9) per `gpt烘焙方案.md` §2.3, cutting the 28 "时间表/长期用量治理型" rules.
+> D2 note: the 50-rule red-tier budget exceeds the original 30-rule baseline written in v1. User explicitly rejected cutting ("不砍，保持生成的所有规则"). Red tier rebaselined to 50. If D7 gate fails, fall back to the 22 "直接命中型" rules (Q1–Q9) per `docs/engineering/plans/data-baking-gpt.md` §2.3, cutting the 28 "时间表/长期用量治理型" rules.
 
 > D6 note: 50 → 54。100-条 seed 暴露 4 个 P0 红规则缺口（Q8/Q53/Q65/Q67），4 条全部增量到 contraindications.ts，未触发 fallback。后续 P1/P2 增量按 §15.2 同样模式：seed runnable 数 + 红/黄/绿分布 = 唯一通过门闸；不再为"控总数"硬限。`tests/unit/contraindications.spec.ts` 改为 `>=50` floor + 当前 expected count 双断言。
 
@@ -530,7 +530,7 @@ Implementation: a Git pre-push hook (local) and a CI check (remote) both run `np
 
 ## 16. Risk fallback matrix
 
-→ 见 `docs/engineering/plans/2026-04-18-vitame-p0-plan.md` §"Risk fallback matrix"。是 plan-time 的"如果某个风险触发，就退到这个降级方案"清单。
+→ 见 `docs/engineering/plans/p0-plan.md` §"Risk fallback matrix"。是 plan-time 的"如果某个风险触发，就退到这个降级方案"清单。
 
 ---
 

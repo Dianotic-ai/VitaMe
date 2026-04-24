@@ -9,9 +9,9 @@ This file provides Codex-specific guidance for this repository.
 
 ## Codex Notes
 
-- This repo is still in the planning stage. Treat `docs/` as the canonical human-maintained workspace.
-- Start with [`docs/README.md`](./docs/README.md), then read the current product docs in `docs/product/`.
-- Treat `gstack-output/`, `_bmad/`, `_bmad-output/`, and `sessions/` as tool or history directories. Do not restructure them unless explicitly asked.
+- Treat `docs/` as the canonical human-maintained workspace.
+- Start with [`docs/START-HERE.md`](./docs/START-HERE.md), then read [`docs/product/当前判断.md`](./docs/product/当前判断.md) and [`docs/DOCS-COVERAGE.md`](./docs/DOCS-COVERAGE.md).
+- Treat `docs/_archive/` and `sessions/` as history directories. Do not restructure them unless explicitly asked.
 - Treat `sessions/` and private health materials such as `docs/research/gemini-health-consultation.md` as privacy-sensitive. Do not stage or push them unless the user explicitly asks.
 
 ## Skill Usage
@@ -24,12 +24,13 @@ This file provides Codex-specific guidance for this repository.
 
 ## Docs Conventions
 
-- `docs/product/` and `docs/decisions/` use `VitaMe-` as the filename prefix.
-- Keep only the minimum structural markers in filenames, such as `v1`, `v2`, `P0`, `PRD`, and `User-Journey`.
+- Follow [`docs/naming-conventions.md`](./docs/naming-conventions.md).
+- `docs/product/` uses short Chinese topic names such as `PRD.md`, `定位.md`, `用户旅程.md`, and `P0-执行总纲.md`.
+- `docs/engineering/specs/` and `docs/engineering/plans/` use English kebab-case such as `api-contract.md` and `p0-plan.md`.
 - Use Chinese topic words by default; keep English only for stable product or workflow terms such as `PRD`, `User-Journey`, and vendor names like `Anthropic`.
 - Keep dates only on time-bound records such as meeting notes, reviews, and consultations, using `YYYY-MM-DD`.
 - Do not put dates on current canonical product docs; rely on frontmatter for time metadata.
-- Every `docs/*.md` file must include the standard frontmatter fields: `title`, `description`, `doc_type`, `status`, `created`, `updated`, `canonical`, `privacy`, and `tags`.
+- Every non-archive `docs/**/*.md` file must include the standard frontmatter fields: `title`, `description`, `doc_type`, `status`, `created`, `updated`, `canonical`, `privacy`, and `tags`.
 - Use `status: active` for current source-of-truth docs, `reference` for historical context, and `superseded` for documents that are explicitly outdated and replaced by newer decisions.
 - Optional frontmatter fields are `source_doc`, `source_docs`, `external_sources`, `purpose`, and `superseded_by`.
 - Update `changelog.md` whenever filenames or frontmatter conventions change.

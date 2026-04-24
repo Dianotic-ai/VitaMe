@@ -1,3 +1,15 @@
+---
+title: "上下文压缩规则"
+description: "VitaMe 会话压缩前后应保留和恢复的关键信息规则。"
+doc_type: "runbook"
+status: "active"
+created: "2026-04-21"
+updated: "2026-04-24"
+canonical: true
+privacy: "internal"
+tags: ["context", "compression", "runbook"]
+---
+
 # 上下文压缩规则 — 何时可压、何时不可压、压后如何恢复
 
 > 从 `CLAUDE.md` §9.7 拆出。仅在「会话即将被自动压缩」或「压缩后第一时间恢复」时读。
