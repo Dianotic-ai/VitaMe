@@ -23,16 +23,23 @@
     "bake:bluehat": "tsx scripts/bakeBluehat.ts",
     "bake:symptom-ingredients": "tsx scripts/bakeSymptomIngredients.ts",
     "smoke:intent": "tsx scripts/smokeIntent.ts",
+    "smoke:agent": "tsx scripts/smokeAgent.ts",
+    "smoke:e2e": "tsx scripts/smokeE2E.ts",
+    "check:audit": "tsx scripts/checkAuditUpstash.ts",
     "smoke:100": "tsx scripts/smoke100.ts",
     "bake:all": "run-s bake:nih bake:lpi bake:cndri bake:pubchem bake:dsld bake:suppai bake:tga bake:jp bake:bluehat bake:symptom-ingredients"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.71",
     "@anthropic-ai/sdk": "^0.90.0",
+    "@upstash/redis": "^1.37.0",
+    "ai": "^6.0.168",
     "next": "^16.2.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "server-only": "^0.0.1",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

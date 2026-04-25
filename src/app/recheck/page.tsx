@@ -16,26 +16,57 @@ import {
   CTA_LABEL_ZH,
   DIMENSION_LABEL_ZH,
   EVIDENCE_GLYPH,
-  MOCK_ARCHIVE_ENTRIES,
   MOCK_PHARMACIST_REVIEWED,
-  MOCK_TRANSLATION_RESULT,
 } from '@/lib/mocks/uiMocks';
-import type { TranslatedRisk } from '@/lib/types/risk';
+import { useArchiveStore } from '@/lib/archive/archiveStore';
+import { ApiClientError, postJudgment, postTranslation } from '@/lib/api/client';
+import type { TranslatedRisk, RiskLevel, TranslationResult } from '@/lib/types/risk';
 
 type Status = 'loading' | 'ready' | 'error';
 
 function RecheckInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const archiveId = searchParams.get('id') ?? MOCK_ARCHIVE_ENTRIES[0]?.id ?? '';
-  const entry = MOCK_ARCHIVE_ENTRIES.find((e) => e.id === archiveId);
+  const archiveId = searchParams.get('id') ?? '';
+  const entry = useArchiveStore((s) => s.archive.entries.find((e) => e.id === archiveId));
 
   const [status, setStatus] = useState<Status>('loading');
+  const [translation, setTranslation] = useState<TranslationResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
   useEffect(() => {
-    const id = window.setTimeout(() => setStatus('ready'), 900);
-    return () => window.clearTimeout(id);
-  }, []);
+    if (!entry) {
+      // 给 Zustand 一个 tick 完成 LocalStorage rehydrate；100ms 后仍无 entry 才报 error
+      const tid = window.setTimeout(() => setStatus('error'), 800);
+      return () => window.clearTimeout(tid);
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const sessionId = `recheck-${Date.now()}`;
+        const judgment = await postJudgment({
+          sessionId,
+          request: {
+            ingredients: entry.queryInput.ingredients,
+            medications: entry.queryInput.contextSnapshot.medications,
+            conditions: entry.queryInput.contextSnapshot.conditions,
+            allergies: entry.queryInput.contextSnapshot.allergies,
+            specialGroups: entry.queryInput.contextSnapshot.specialGroups,
+            ...(entry.queryInput.contextSnapshot.genes ? { genes: entry.queryInput.contextSnapshot.genes } : {}),
+          },
+        });
+        const tr = await postTranslation({ sessionId, risks: judgment.risks });
+        if (cancelled) return;
+        setTranslation(tr);
+        setStatus('ready');
+      } catch (err) {
+        if (cancelled) return;
+        setErrorMsg(err instanceof ApiClientError ? `${err.kind}: ${err.message}` : String(err));
+        setStatus('error');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [entry]);
 
   if (status === 'loading') {
     return (
@@ -50,7 +81,7 @@ function RecheckInner() {
     );
   }
 
-  if (status === 'error' || !entry) {
+  if (status === 'error' || !entry || !translation) {
     return (
       <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 px-5 py-10">
         <h2 className="text-xl font-semibold text-text-primary">
@@ -58,7 +89,7 @@ function RecheckInner() {
         </h2>
         <p className="text-sm text-text-secondary">
           {entry
-            ? '重新判断时出了问题，你可以稍后再试。'
+            ? errorMsg || '重新判断时出了问题，你可以稍后再试。'
             : '这条档案可能已被清理，请回到档案列表选择另一条。'}
         </p>
         <button
@@ -78,8 +109,8 @@ function RecheckInner() {
   const lastDateLabel = `${lastDate.getFullYear()}-${String(lastDate.getMonth() + 1).padStart(2, '0')}-${String(
     lastDate.getDate(),
   ).padStart(2, '0')}`;
-  const { overallLevel: prevLevel } = entry;
-  const { overallLevel, translatedRisks } = MOCK_TRANSLATION_RESULT;
+  const prevLevel: RiskLevel = entry.overallLevel;
+  const { overallLevel, translatedRisks } = translation;
   const changed = prevLevel !== overallLevel;
 
   return (

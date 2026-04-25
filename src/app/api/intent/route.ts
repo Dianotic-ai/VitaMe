@@ -10,6 +10,7 @@ import type { LLMClient } from '@/lib/adapters/llm/types';
 import { createLLMClient } from '@/lib/adapters/llm/client';
 import { intakeOrchestrator } from '@/lib/capabilities/queryIntake/intakeOrchestrator';
 import { jsonError, jsonOk } from '@/lib/api/errorEnvelope';
+import { getAuditLogger } from '@/lib/capabilities/compliance/auditLogger';
 
 export const runtime = 'nodejs';
 
@@ -56,6 +57,7 @@ function defaultClient(): LLMClient {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  const audit = getAuditLogger();
   let body: unknown = null;
   try {
     body = await req.json();
@@ -68,5 +70,17 @@ export async function POST(req: Request): Promise<Response> {
   } catch (err) {
     return jsonError('internal', err instanceof Error ? err.message : 'LLM client init failed');
   }
-  return handleIntent(body, client);
+  // 审计：intent_parsed 事件（§11.10）。失败时仍要写 error 事件。
+  const sessionId = typeof (body as Record<string, unknown>)?.sessionId === 'string' ? (body as { sessionId: string }).sessionId : 'unknown';
+  const rawQuery = typeof (body as Record<string, unknown>)?.rawQuery === 'string' ? (body as { rawQuery: string }).rawQuery : '';
+  const res = await handleIntent(body, client);
+  audit
+    .log({
+      event: res.status === 200 ? 'intent_parsed' : 'error',
+      sessionId,
+      inputHash: audit.hash(rawQuery),
+      metadata: { route: '/api/intent', status: res.status },
+    })
+    .catch((e: unknown) => console.error('[auditLogger] intent write failed', e));
+  return res;
 }

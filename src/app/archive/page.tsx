@@ -8,7 +8,8 @@ import { useEffect, useState } from 'react';
 import { LogoMark } from '@/components/LogoMark';
 import { RiskBadge } from '@/components/RiskBadge';
 import { SeedSproutStage } from '@/components/SeedSproutStage';
-import { MOCK_ARCHIVE_ENTRIES, PERSON_LABEL_ZH } from '@/lib/mocks/uiMocks';
+import { useArchiveStore } from '@/lib/archive/archiveStore';
+import { PERSON_LABEL_ZH } from '@/lib/mocks/uiMocks';
 import type { ArchiveEntry } from '@/lib/types/archive';
 
 type Status = 'loading' | 'ready' | 'error';
@@ -16,11 +17,15 @@ type Status = 'loading' | 'ready' | 'error';
 export default function ArchivePage() {
   const router = useRouter();
   const [status, setStatus] = useState<Status>('loading');
+  const allEntries = useArchiveStore((s) => s.archive.entries);
 
   useEffect(() => {
-    const id = window.setTimeout(() => setStatus('ready'), 500);
+    // hydration 完成后即可显示（Zustand persist 在客户端会先 rehydrate）
+    const id = window.setTimeout(() => setStatus('ready'), 100);
     return () => window.clearTimeout(id);
   }, []);
+
+  const entries = [...allEntries].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   if (status === 'loading') {
     return (
@@ -83,11 +88,11 @@ export default function ArchivePage() {
         </div>
       </section>
 
-      {MOCK_ARCHIVE_ENTRIES.length === 0 ? (
+      {entries.length === 0 ? (
         <p className="text-sm text-text-secondary">还没有档案。先回到首页发起一次查询吧。</p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {MOCK_ARCHIVE_ENTRIES.map((entry) => (
+          {entries.map((entry) => (
             <li key={entry.id}>
               <ArchiveCard
                 entry={entry}

@@ -9,6 +9,7 @@ import type { LLMClient } from '@/lib/adapters/llm/types';
 import { createLLMClient } from '@/lib/adapters/llm/client';
 import { translateRisks } from '@/lib/capabilities/safetyTranslation/translateRisks';
 import { jsonError, jsonOk } from '@/lib/api/errorEnvelope';
+import { getAuditLogger } from '@/lib/capabilities/compliance/auditLogger';
 
 export const runtime = 'nodejs';
 
@@ -73,6 +74,7 @@ function defaultClient(): LLMClient {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  const audit = getAuditLogger();
   let body: unknown = null;
   try {
     body = await req.json();
@@ -85,5 +87,14 @@ export async function POST(req: Request): Promise<Response> {
   } catch (err) {
     return jsonError('internal', err instanceof Error ? err.message : 'LLM client init failed');
   }
-  return handleTranslation(body, client);
+  const sessionId = typeof (body as Record<string, unknown>)?.sessionId === 'string' ? (body as { sessionId: string }).sessionId : 'unknown';
+  const res = await handleTranslation(body, client);
+  audit
+    .log({
+      event: res.status === 200 ? 'translation_completed' : 'error',
+      sessionId,
+      metadata: { route: '/api/translation', status: res.status },
+    })
+    .catch((e: unknown) => console.error('[auditLogger] translation write failed', e));
+  return res;
 }

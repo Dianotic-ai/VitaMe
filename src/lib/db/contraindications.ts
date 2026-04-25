@@ -89,12 +89,15 @@ export const CONTRAINDICATIONS: Contraindication[] = [
     pharmacistReviewed: false,
   },
   {
+    // D8 产品拍板：yellow → red（CLAUDE.md §11.3 高风险组合硬编码红；用户拍板见 2026-04-24 决策日志）。
+    // 理由：鱼油 Omega-3 已记录增强华法林抗凝效应，INR 波动后出血风险非普通用户可自行管理，
+    //      CTA 必须是"先问医生"而非"监测"。
     id: 'vm-rule-fishoil-warfarin',
     substanceA: supp('fish-oil', '鱼油'),
     substanceB: drug('warfarin', '华法林'),
-    severity: 'yellow',
+    severity: 'red',
     reasonCode: 'bleeding_risk_anticoagulant',
-    reason: '抗凝药并用需警惕出血风险',
+    reason: '鱼油（高剂量 Omega-3）可增强华法林抗凝作用，增加出血风险；开始或停用鱼油前请先咨询医生并监测 INR',
     sourceRef: ref('vm-rule-fishoil-warfarin'),
     pharmacistReviewed: false,
   },

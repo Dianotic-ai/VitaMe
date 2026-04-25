@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import { judge } from '@/lib/capabilities/safetyJudgment/judgmentEngine';
 import { jsonError, jsonOk } from '@/lib/api/errorEnvelope';
+import { getAuditLogger } from '@/lib/capabilities/compliance/auditLogger';
 
 export const runtime = 'nodejs';
 
@@ -41,11 +42,21 @@ export async function handleJudgment(body: unknown): Promise<Response> {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  const audit = getAuditLogger();
   let body: unknown = null;
   try {
     body = await req.json();
   } catch {
     return jsonError('validation', 'request body is not valid JSON');
   }
-  return handleJudgment(body);
+  const sessionId = typeof (body as Record<string, unknown>)?.sessionId === 'string' ? (body as { sessionId: string }).sessionId : 'unknown';
+  const res = await handleJudgment(body);
+  audit
+    .log({
+      event: res.status === 200 ? 'judgment_completed' : 'error',
+      sessionId,
+      metadata: { route: '/api/judgment', status: res.status },
+    })
+    .catch((e: unknown) => console.error('[auditLogger] judgment write failed', e));
+  return res;
 }

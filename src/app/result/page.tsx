@@ -26,6 +26,7 @@ import {
   MOCK_TRANSLATION_RESULT,
 } from '@/lib/mocks/uiMocks';
 import { ApiClientError, postJudgment, postTranslation } from '@/lib/api/client';
+import { useArchiveStore } from '@/lib/archive/archiveStore';
 import type { LookupRequest } from '@/lib/types/adapter';
 import type { TranslatedRisk, TranslationResult } from '@/lib/types/risk';
 
@@ -40,6 +41,9 @@ export default function ResultPage() {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [usedMock, setUsedMock] = useState<boolean>(false);
   const [queryText, setQueryText] = useState<string>('');
+  const [savedSnapshot, setSavedSnapshot] = useState<{ sessionId: string; request: LookupRequest } | null>(null);
+  const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
+  const saveEntry = useArchiveStore((s) => s.saveEntry);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +67,7 @@ export default function ResultPage() {
         const translation = await postTranslation({ sessionId, risks: judgment.risks });
         if (cancelled) return;
         setResult(translation);
+        setSavedSnapshot({ sessionId, request });  // 留给 saveToArchive 用
         setStatus('ready');
       } catch (err) {
         if (cancelled) return;
@@ -167,17 +172,44 @@ export default function ResultPage() {
       <div className="flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
-          onClick={() => router.push('/archive')}
-          className="min-h-[48px] flex-1 rounded-lg bg-vita-brown px-5 text-base font-medium text-white shadow-elev-1 transition hover:shadow-elev-2"
+          disabled={!savedSnapshot || savedEntryId !== null}
+          onClick={() => {
+            if (!savedSnapshot) {
+              router.push('/archive');
+              return;
+            }
+            const entryId = `arc-${Date.now()}`;
+            saveEntry({
+              entryId,
+              personId: 'self',
+              personLabel: '自己',
+              sessionId: savedSnapshot.sessionId,
+              source: 'text',
+              ingredients: savedSnapshot.request.ingredients,
+              contextSnapshot: {
+                medications: savedSnapshot.request.medications,
+                conditions: savedSnapshot.request.conditions,
+                allergies: savedSnapshot.request.allergies ?? [],
+                specialGroups: savedSnapshot.request.specialGroups ?? [],
+                ...(savedSnapshot.request.genes ? { genes: savedSnapshot.request.genes } : {}),
+              },
+              risks: result.translatedRisks,
+              overallLevel: result.overallLevel,
+            });
+            setSavedEntryId(entryId);
+            // 给用户一个 tick 看到"已保存"再跳，避免感觉莫名跳页
+            window.setTimeout(() => router.push('/archive'), 600);
+          }}
+          className="min-h-[48px] flex-1 rounded-lg bg-vita-brown px-5 text-base font-medium text-white shadow-elev-1 transition hover:shadow-elev-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          保存到档案
+          {savedEntryId ? '✓ 已保存到档案' : '保存到档案'}
         </button>
         <button
           type="button"
-          onClick={() => router.push('/recheck?id=arc-001')}
+          onClick={() => router.push(savedEntryId ? `/recheck?id=${savedEntryId}` : '/query')}
           className="min-h-[48px] flex-1 rounded-lg border border-border-strong bg-surface px-5 text-base font-medium text-text-primary transition hover:bg-bg-warm"
         >
-          补充信息后重新检查
+          {savedEntryId ? '补充信息后重新检查' : '发起新查询'}
         </button>
       </div>
 

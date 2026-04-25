@@ -11,6 +11,8 @@
 //   BASE_URL=http://localhost:3001 npm run smoke:intent     # 改端口
 //   ONLY=A,C npm run smoke:intent                            # 只跑某几个 case
 
+export {}; // tsconfig isolatedModules 要求每个文件是 module
+
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000';
 const ONLY = process.env.ONLY?.split(',').map((s) => s.trim()).filter(Boolean);
 

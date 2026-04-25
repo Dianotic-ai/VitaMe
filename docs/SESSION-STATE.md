@@ -19,6 +19,36 @@ tags: ["session-state", "progress", "p0", "engineering"]
 ---
 
 ## 最后更新
+**2026-04-24（D8 凌晨加班，11 task 完成 / 19，58%）** — 用户睡后 24×7 推进，实测 minimax Anthropic-compat **支持完整 tool use**（端到端 35s、5 tool 按序调用、overallLevel=red）。
+
+**完成清单**：
+- T-D8.1 ✅ 3 Vercel skill（ai-sdk + nextjs 安装，react-best-practices SSL 失败搁置）+ `ai@6.0.168` / `@ai-sdk/anthropic@3.0.71` / `@upstash/redis@1.37.0` / `zustand@5.0.12` 入 deps
+- T-D8.2 ✅ CLAUDE.md §3.3 +agent 第 3 LLM 点 / §4 SV→Vercel + Upstash audit / §8 临时开 parallel-agents
+- T-D8.3 ✅ Agent shell 脚手架（9 文件：provider / vitameAgent / 5 tool / route）
+- T-D8.4 ✅ 3 wrap tool 真实实现（parseIntent/runJudgment/translateRisk 直调 capability）+ factory.ts 抽 LLMClient 公共工厂
+- T-D8.5 ✅ createActionPlanTool + createMemoryPreviewTool 实装 + 11 新单测（actionPlan.spec / memoryPreview.spec）
+- T-D8.6 ✅ **Agent shell 真 LLM smoke PASS** — 35s / 5 tool / red verdict / disclaimer 齐备。关键发现：Vercel SDK 补 `/messages`，Anthropic SDK 补 `/v1/messages`，`provider.ts` 帮 Vercel 侧补 `/v1`
+- T-D9.1 ✅ archive save：Zustand persist store + saveFlow 纯函数 helpers + /api/archive/save 路由 + 4 个单测
+- T-D9.2 ✅ archive recheck：POST /api/archive/recheck 合并 archived context + 新 ingredient/medication/condition → judge()
+- T-D9.3 ✅ auditLogger 三级路由（Upstash > FS > console）+ 5 单测 + wire 进全部 6 个 API 路由（/api/agent / intent / judgment / translation / archive/save / archive/recheck）
+- T-D9.4 ✅ fish oil × warfarin yellow→red（文案升级"咨询医生并监测 INR"）
+- T-D9.5 ✅ **主链 e2e smoke PASS** — 18.6s 总时长（intent 9.3s + judgment 9ms + translation 9.3s），低于 60s SLA，overallLevel=red 对齐预期
+- T-D11.3 ✅ docs/product/demo-pitch-ppt-outline.md 起草 5 分钟汇报 7 片段 + speaker notes + 出处
+
+**验证**：typecheck 0 error / test:unit **307 pass**（+21 vs D7） / test:seed **29 pass**（+0） / npm run build **12 路由全绿**（6 static + 6 dynamic，新增 /api/agent + /api/archive/save + /api/archive/recheck）。
+
+**待用户人工**（5 task 剩余全部卡在这）：
+1. **Upstash 免费 Redis**：去 upstash.com 建 → 把 `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` 加入 `.env.local`（dev 现在用 FS fallback，prod 必需）
+2. **Vercel SSO 登录**（T-D10.1）：`vercel link` + `vercel env add`（需人工一次）
+3. **vitame.live DNS CNAME**（T-D10.2）：Vercel dashboard 加域 → Cloudflare 改 CNAME
+4. **微信 WebView 真机**（T-D11.1）：iPhone + 安卓扫码访问 vitame.live
+5. **录 90s demo 视频**（T-D11.2）：按 demo-script-map.md §2 脚本录
+6. **WAIC 报名材料**（T-D12.1）：D11-12 提交
+
+**API key 安全提醒**：你在聊天里明文贴过 minimax key，会话历史里有一份；demo 录完建议到 minimax 控制台 rotate。
+
+**2026-04-24（D7 / 12，Agent v2 文档体系）** — **长期方向正式升级为 Agent app**：在 P0 补剂安全判断楔子之上，新增并重写一套 canonical 文档，明确 P1/P2 为 Reminder、Feedback、Memory、Hermit Agent 自我进化闭环。新增 `docs/product/Agent-北极星.md`、`docs/product/指标体系.md`、`docs/product/demo-script-map.md`、`docs/engineering/specs/system-architecture.md`、`data-flow.md`、`implementation-map.md`、`medical-review-workflow.md`、`data-source-status.md`、`compliance-audit-status.md`、`launch-checklist.md`。API contract 已区分 implemented (`/api/intent`、`/api/judgment`、`/api/translation`) 和 planned（archive、recheck、reminder、feedback、memory、hermit-cycle）。
+
 **2026-04-24（D7 / 12，Agent v2 文档体系）** — **长期方向正式升级为 Agent app**：在 P0 补剂安全判断楔子之上，新增并重写一套 canonical 文档，明确 P1/P2 为 Reminder、Feedback、Memory、Hermit Agent 自我进化闭环。新增 `docs/product/Agent-北极星.md`、`docs/product/指标体系.md`、`docs/product/demo-script-map.md`、`docs/engineering/specs/system-architecture.md`、`data-flow.md`、`implementation-map.md`、`medical-review-workflow.md`、`data-source-status.md`、`compliance-audit-status.md`、`launch-checklist.md`。API contract 已区分 implemented (`/api/intent`、`/api/judgment`、`/api/translation`) 和 planned（archive、recheck、reminder、feedback、memory、hermit-cycle）。
 
 **2026-04-24（D7 / 12，文档重建）** — **唯一事实源重建**：新增 `docs/START-HERE.md`、`docs/product/当前判断.md`、`docs/DOCS-COVERAGE.md`；产品/工程文档按短路径重命名；重复根目录文档和过期 strategy 文档归档到 `docs/_archive/`；当前阅读路径改为 START-HERE → 当前判断 → DOCS-COVERAGE → P0-执行总纲。
