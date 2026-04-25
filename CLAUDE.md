@@ -1,560 +1,302 @@
-# CLAUDE.md
+# CLAUDE.md v3.0 — RAG Chatbot Pivot
 
-> This file provides operational guidance to Claude Code when working in the `vitame-p0/` repository.
-> It is **a set of action rules, not a product introduction** — every section tells you what to do when writing code.
-> **Version**: v2.10 · Last updated: 2026-04-24 (D7 下午 / 12). Change log → `docs/CLAUDE.md-changelog.md`.
+> **Version**: v3.0 (草稿) · **Branch**: `v0.3-rag-chatbot` · **Updated**: 2026-04-25
+> **Predecessor**: v2.10 (代码状态 = git tag `v0.2` = `0ff1c4a`)
+> **Pivot**: 「窄安全检查工具」→「对话式补剂选择 Agent + RAG 引证」
+> Change log → `docs/CLAUDE.md-changelog.md`
 
----
+## 0. How to read
 
-## 0. How to read this file
+- 新会话首读：本文件 §1 → §3 → §9 → 任务相关 spec
+- UI 任务额外读 `DESIGN.md`
+- 冲突以本文件为准；不确定时按 §17 停下来问
 
-- If you are Claude Code starting a new task, read §1 → §7 → §8 → §9, then the specific design doc referenced in §7, in that order.
-- **If your task renders anything a user will see (page, component, copy, color)** → also read `DESIGN.md` in this same directory.
-- If your task touches LLM calls, OCR, compliance filters, or any user-visible output → you must also read §10, §11, and §13 before writing code.
-- If you find any conflict between this file and another doc in `docs/`, **this file wins**. Flag the conflict in your response and keep going.
-- When in doubt, stop and ask the user (see §9.6).
-
-### 0.1 按需读文档清单（CC 启动时**不读**，下列触发条件来时才读）
+### 0.1 按需读文档（触发时再读）
 
 | 文档 | 何时读 |
 |---|---|
-| `docs/SESSION-STATE.md` | 每次新会话开头都读（"我现在在哪")，是唯一跨会话进度锚点 |
-| `docs/known-blockers.md` | fetch 失败 / SUPP.AI 抓空 / SSL 错 / VPN 节点切换无效 → 先来这里查 |
-| `docs/glossary.md` | 遇到不认识的术语（DSLD / SUPP.AI / 蓝帽子 / SourceRef / ...） |
-| `docs/engineering/superpowers-workflow.md` | 接到非 trivial 任务、要拆 plan 时 |
-| `docs/compression-rules.md` | 会话即将被自动压缩 / 压缩后第一时间恢复 |
-| `docs/CLAUDE.md-changelog.md` | "为什么会变成这样"考古时 |
-| `docs/naming-conventions.md` | 新建 doc 文件时（中文/英文/日期前缀规则） |
+| `docs/SESSION-STATE.md` | 每次新会话开头 |
+| `docs/known-blockers.md` | 部署 / fetch / SSL 错时 |
+| `docs/glossary.md` | 遇到陌生术语 |
+| `docs/engineering/specs/conversational-shell.md` | 改 `/api/chat` |
+| `docs/engineering/specs/kb-retriever.md` | 改 RAG 检索 |
 
 ---
 
-## 1. Project context & current phase
+## 1. Project context
 
-### 1.1 One-line positioning
+### 1.1 一句话定位
 
-**VitaMe is a supplement-safety translation Agent.** Before a user buys or takes a supplement, it tells them whether they can take it, why, and what to avoid — based on their history, medications, and ingredient form.
+VitaMe 是**补剂选择对话 Agent**。用户用自然语言聊补剂 — 该买什么成分、剂型、剂量、时间、品牌、跟用户身体状况（体检报告/口述症状）、现有用药/疾病冲不冲突。Agent 综合权威知识源 + LLM 训练知识 + 多轮对话给出可执行决策。
 
-It is **not**: a disease diagnosis tool, a symptom tracker, a supplement e-commerce store, or a long-term wellness companion.
+### 1.2 当前里程碑
 
-### 1.2 Current milestone
+WAIC 黑客松，截止 **2026-04-30**。v0.3 重构 4 天（D1=2026-04-25 → D4=2026-04-29）。
+Deliverable：流式对话 + RAG 引证 + 多轮深入 + 5-10 个核心场景人工 review 通过 + 90s demo 视频。
 
-- **Target**: WAIC 2026 "Super Individual Hackathon" (超级个体创业黑客松), submission deadline **2026-04-30**.
-- **Sprint**: 12-day P0, 2026-04-18 → 2026-04-29. Today is **D2** (2026-04-19).
-- **Team**: 2 people — PM (Sunny) + 1 engineer partner.
-- **Deliverable**: a working demo at `https://vitame.live` openable in WeChat WebView, 90-second demo video, 20 seed questions passing 100%.
+### 1.3 对 CC 的含义
 
-### 1.3 What this means for you (CC)
-
-- Every code change must serve the core UX: **"a user completes one safety check in ≤ 60 seconds and understands why"**. If a change does not serve this, push back.（D5 调整：原 30s 目标在自然语言 query → LLM 解析 → adapter 并发 → L3 翻译完整链路下不现实；用户 D5 拍板「demo 视频可以剪辑，产品要稳定可靠」，把目标降到 60s。原 30s 目标见 v2.7 及之前。）
-- We are not building a platform. Do not add abstractions, plugin systems, or config layers "for future flexibility" unless explicitly required by a current task.
-- Scope creep is the #1 risk, not code quality. Ship working > ship elegant.
+- 每改一行代码都问一句"这服务于'用户聊 5+ 轮拿到选择保健品、保健品是用时间剂量的决策'吗？"
+- 对话质量 > 代码优雅度
 
 ---
 
-## 2. Core narrative & product boundary
+## 2. Product scope
 
-### 2.1 What the product does (in scope for P0)
+### 2.1 What it does
 
-1. Accept a product name / ingredient name / drug name as input.
-2. Collect 2–4 key context questions (history, current medications, risk tags).
-3. Output a **red / yellow / gray / green** safety verdict per ingredient.
-4. Explain **why** in plain language (ingredient form, mechanism, interaction reason).
-5. Show evidence source and strength per claim.
-6. Suggest "what to avoid" or "a safer direction" — never a prescriptive plan.
-7. Save the result to a personal or family archive for next-time recheck.
+1. 自然语言多轮对话（5+ 轮直到用户决策）
+2. 推荐成分 + 剂型 + 剂量范围 + 服用时间
+3. 提供当前推荐的补剂成分的生产厂商的品牌及具体的药物名称，这部分可以去全球的保健品购买平台上去搜。
+4. 检查与现有用药/疾病/孕期/哺乳冲突
+5. 引证 8 权威源（剂量/相互作用必引；品牌可凭训练知识）
+6. archive 跨会话恢复
+7. 文字描述症状 / 体检数值 → 综合分析
+8. **跨会话健康档案**：自动记忆用户疾病 / 用药 / 过敏 / 特殊人群，下次自然引用不重复追问
 
-### 2.2 What the product does NOT do in P0
+### 2.2 Hard limits（仅 8 条合规底线，详 §9）
 
-- No disease diagnosis.
-- No full symptom intake.
-- No long-term checkin / daily companion.
-- No lifestyle plans.
-- No CPS / affiliate / e-commerce linkouts.
-- No Chinese patent medicine (中成药) full coverage.
-- No lab-report OCR (only supplement bottle OCR).
-- No multi-member family collaboration features.
+不能去掉：disclaimer / banned word / critical 硬编码 / sourceRefs / 数据最小化 / audit log / DemoBanner / 健康档案仅本地
 
-### 2.3 When a user request is ambiguous
+### 2.3 P0 不做
 
-Default to **refuse**. Add a TODO comment pointing to this section. Do not silently expand scope to "cover the edge case". Scope creep in a 12-day sprint is fatal.
+实时价格 / 体检 OCR / 主动提醒 cron / 服务端用户账号系统（健康档案走客户端 LocalStorage）
 
 ---
 
-## 3. Product architecture — 3 layers × 8 core objects
+## 3. Architecture v3.0
 
-### 3.1 Four layers (strict)
+### 3.1 主路径流程
 
-> **D5 重构（v2.8）**：原 3 层 + queryIntake 沦为「关键词 includes() 字典查询」无法解析自然语言（实测 "感冒期间可以吃维生素 AD 软胶囊吗" → 全部"证据不足"）。新增 **L0 意图识别层**，把"听懂用户的话"独立成一层，下游三层契约不变。
+```
+用户输入 + 多轮 history
+  → /api/chat (Vercel Edge + streamText)
+  → KB Retriever (keyword grep L1 8 源, ~100ms)
+  → System prompt 注入 (角色 + retrieved facts + 引证规则 + disclaimer)
+  → streamText (minimax 国际版) → token 流
+  → 后置：audit log + disclaimer 校验 + banned word 后置 regex
+  → 前端 useChat 接 token 流，气泡逐字蹦
+```
 
-| Layer | Role | Lives in | Reads from | Writes to |
-|---|---|---|---|---|
-| **L0 — Query intake & intent** | Natural-language → structured intent + grounded slugs | `src/lib/capabilities/queryIntake/` | L1（grounding）+ user input | structured `IntentResult` + `LookupRequest` |
-| **L1 — Knowledge dictionary** | Static, pre-baked data | `src/lib/db/*.ts` | nothing at runtime | nothing |
-| **L2 — Judgment engine** | Rule-based risk evaluation | `src/lib/capabilities/safetyJudgment/` | L1 + user profile | structured `Risk` JSON |
-| **L3 — Translation & adaptation** | Human-language explanation + multi-region product adaptation | `src/lib/capabilities/safetyTranslation/` | L2 output only | final user-facing strings |
+### 3.2 KB Retriever（详见 spec doc）
 
-**L0 内部子流程**（详见 `docs/engineering/specs/query-intake.md`）：
-1. **parseIntent**（LLM）：自然语言 → `{intent, productMentions, ingredientMentions, medicationMentions, conditionMentions, specialGroupMentions, missingSlots, clarifyingQuestion?}`
-2. **groundMentions**（确定性 alias + fuzzy）：把 LLM 抽出来的中文 mention 映射到 L1 slug（fish-oil / warfarin / pregnancy / ...）
-3. **slotResolver**（确定性规则）：决定缺哪一类 slot → 是否需要 clarify
-4. **clarify-style follow-up**（混合 deterministic + LLM）：业务规则决定 **WHEN/WHAT** 问，LLM 决定 **HOW** 问
+输入：query + history → 抽 entity（先用 `aliases.ts` 关键词匹配，后续可升级 LLM NER） → grep L1 8 源（每源 ≤10 条）→ 输出 JSON facts 数组（带 `sourceRefs`）→ 注入 prompt。
 
-### 3.2 Eight core objects
+### 3.3 8 知识源（L1 KB）
 
-Defined in `src/lib/types/`. Do not reinvent these or put equivalent shapes elsewhere.
+| 源 | 文件 | 用途 |
+|---|---|---|
+| NIH ODS / LPI / DRIs / PubChem | `ingredients.ts` | 剂量 / 机制 / 形式 |
+| SUPP.AI | `suppai-interactions.ts` | 补×药相互作用 + pubmed |
+| Hardcoded contraindications | `contraindications.ts` | 药师精筛禁忌 |
+| DSLD / TGA / 蓝帽子 / 日本机能性 | 各产品库文件 | 区域注册产品 |
 
-| Object | Purpose |
-|---|---|
-| `Query` | One lookup instance |
-| `Product` | A branded item (Doctor's Best Magnesium, Swisse Fish Oil…) |
-| `Ingredient` | A standardized ingredient (magnesium glycinate, EPA…) |
-| `Person` | The subject of the query (self / mom / dad…) |
-| `Risk` | A structured verdict with level + reason ref + evidence refs |
-| `Reason` | A plain-language explanation with one-to-one mapping to a rule |
-| `Evidence` | A `SourceRef` pointing to origin data (DSLD ID, SUPP.AI pair ID, NIH fact sheet URL…) |
-| `Archive` | A saved snapshot of Query + Person + Risk[], for recheck |
+### 3.4 SourceRef 类型
 
-### 3.3 Hard rule: no cross-layer bypass
+```ts
+// src/lib/types/sourceRef.ts
+export type SourceRef = {
+  source: 'nih-ods' | 'lpi' | 'cn-dri' | 'pubchem' | 'chebi' | 'suppai'
+        | 'hardcoded-contraindication' | 'dsld' | 'tga' | 'jp-kinosei' | 'cn-bluehat';
+  id: string;
+  url?: string;
+  retrievedAt: string;
+};
+```
 
-See §10 for detail. In short: L0 outputs grounded slugs only（绝不直接判风险）; L1 has no imports from `adapters/`; L2 returns JSON only; L3 consumes L2 and never writes back; LLM calls 只允许出现在三处：`safetyTranslation/`（L3 翻译）、`queryIntake/`（L0 意图识别）、`agent/`（D7 新增，Agent shell 做 tool 路由，详 `docs/engineering/specs/agent-runtime-decision.md`）—— **Agent shell 的 LLM 仅做工具选择，禁止自行输出 level/risk，风险等级只能来自 `runJudgmentTool` 调的 L2**。
+每条 retrieved fact 必带 sourceRefs，prompt 中要求 LLM 引证格式 `[来源: NIH ODS Vitamin D]`。
+
+### 3.5 User Profile Layer
+
+**存储**：客户端 zustand persist → LocalStorage。sessionId = 首访生成 UUID 永久存。
+**Schema**：`{conditions, medications, specialGroups, allergies, ageRange, sex, notes, conversationSummaries}`，每条带 `firstMentionedAt` / `lastConfirmedAt`。
+**抽取**：每轮对话结束自动跑一次轻 LLM call，从本轮上下文提取新健康信息（疾病/用药/过敏），merge 进 profile。
+**注入**：跟当前 query 相关的字段以 XML scaffold 注入 system prompt：
+
+```xml
+<user_profile>
+  <conditions>糖尿病(2026-04-22)、肾结石(2026-04-25)</conditions>
+  <medications>二甲双胍(长期)</medications>
+  <allergies>甲壳类</allergies>
+  <recent_topics>Q10 × 他汀, 维生素 D 剂量</recent_topics>
+</user_profile>
+```
+
+LLM 行为规则（写在 system prompt 里）：自然引用"我记得你提过 X..."；不重复追问已记录信息；超 30 天的字段礼貌确认是否仍有效。
 
 ---
 
 ## 4. Tech stack
 
-- **Frontend**: Next.js 14 App Router + TypeScript (strict) + Tailwind CSS. SSR mode.
-- **Backend**: Next.js API routes (Node runtime, not Edge — 我们需要长时超时 + Node-only 依赖；Vercel Node runtime 默认 10 s，P0 路由调 LLM 要显式 `export const maxDuration = 30`)。
-- **LLM client** (single Anthropic-Messages-compatible client, switched by env vars — Claude Code 模式):
-  - 一个 `LLMClient`（`@anthropic-ai/sdk` + Zod 校验 + TemplateFallback），不再每个 provider 写一个 class
-  - 协议固定 **Anthropic Messages**（minimax / Kimi K2 / 智谱 GLM 等都提供 Anthropic-compat 入口；走 Bearer authToken）
-  - `LLM_PROVIDER` 仅作 audit log tag（§11.10），不进 if/else 分支
-  - 默认主链：minimax (`https://api.minimaxi.com/anthropic` + `MiniMax-M2.7`)
-  - **fallback 链 P0 暂不做**（env 预留 `LLM_FALLBACK_*` 字段，代码 TODO；DeepSeek 只 OpenAI 兼容，要走 fallback 需单独 wrap）
-  - openclaw（on-box，13121 端口非标 schema）不在 P0 client 内，D9 SV 部署后单独 wrap
-- **OCR**: Minimax multimodal（vision endpoint 单独 env 配置）。No other provider for P0.
-- **Data**: 8 sources baked offline into `src/lib/db/*.ts`. Total bundle target **< 5 MB**. Runtime does **not** hit any external data source.
-- **Deploy**: **Vercel**（Next.js 14 原生宿主，D7 从 SV self-host 迁移）。domain `vitame.live` 通过 Cloudflare CNAME 到 Vercel；环境变量经 Vercel dashboard 注入（`LLM_*` / `VISION_*` / `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` / `NEXT_PUBLIC_DEMO_MODE`）。免 Nginx / pm2 / Let's Encrypt（Vercel 自动签）。openclaw 仍跑在 SV box 作为 P1 LLM fallback，P0 不阻塞。
-- **Access path**: user opens `https://vitame.live` inside WeChat WebView（Cloudflare 前置，vercel.app 子域不暴露给用户）。
-- **Audit log**: **Upstash Redis**（`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`，免费层 10K req/day，key = `vitame:audit:yyyymmdd` 列表追加 JSONL 行）。local dev 仍写 `./var/audit/*.jsonl`（`auditLogger.ts` 按 env 自动路由）。Vercel serverless 无持久 FS — 本地 JSONL 方案在 prod 跑不了，这是选 Upstash 的根因。
+- Next.js 16 App Router + TS strict + Tailwind
+- Frontend：`@ai-sdk/react` 的 `useChat` + zustand persist 多轮 history
+- `/api/chat` = **Vercel Edge runtime + streamText**（流式不受 60s 限制）
+- 老路由保持 Node runtime
+- LLM：minimax 国际版（`api.minimax.io/anthropic`，Anthropic Messages 协议）
+- Audit：Upstash Redis（`UPSTASH_REDIS_REST_URL` + `_TOKEN`）
+- Deploy：Vercel main 自动部署，自动 SSL
 
 ---
 
-## 5. Repository structure
-
-核心路径（细节自己 `ls` / `glob`）：
+## 5. Repo structure（新增）
 
 ```
-src/lib/db/              L1 — baked data, static imports only, 每个文件首行 'server-only'
-src/lib/adapters/        LLM / OCR / input-normalizer factories
-src/lib/capabilities/    5 capabilities — queryIntake / safetyJudgment / safetyTranslation / archiveRecheck / compliance
-src/lib/types/           global TS types — Risk / Reason / SourceRef / Person / ...
-src/app/api/             Next.js API routes — query-intake / safety-judgment / safety-translation / archive-recheck
-src/components/          UI components (follow DESIGN.md)
-scripts/bake*.ts         offline baking, 9 个 source —— NIH / LPI / CnDri / PubChem / DSLD / SUPP.AI / TGA / JP / Bluehat (见 §6.2)
-tests/unit/              adapter + capability unit tests (§13.1 强 TDD)
-tests/seed-questions.spec.ts  20 seed E2E (§14, merge gate)
-docs/                    design docs (5 份 spec + plan + acceptance + 按需读 5 份, 见 §0)
+src/app/api/chat/route.ts              Edge streaming
+src/app/chat/page.tsx                  chat UI 入口
+src/lib/chat/retriever.ts              KB 检索器
+src/lib/chat/systemPrompt.ts           对话型 system prompt
+src/lib/chat/conversationStore.ts      zustand history persist
+src/lib/profile/profileStore.ts        zustand persist 健康档案
+src/lib/profile/memoryExtractor.ts     post-turn LLM 抽取
+src/lib/profile/profileInjector.ts     按相关性筛字段注入 prompt
+src/components/chat/                   气泡 / 输入框 / loading
+src/app/profile/page.tsx               档案查看 + 编辑 + 一键清空
+docs/engineering/specs/conversational-shell.md
+docs/engineering/specs/kb-retriever.md
+docs/engineering/specs/user-profile.md
 ```
+
+旧目录全部保留，chat 路径不调。
 
 ---
 
-## 6. Environments & commands
-
-### 6.1 Required env vars (`.env.local.example` is the source of truth)
-
-**Claude Code 模式**：`provider + model + baseURL + key` 通用 shape，单 `LLMClient` 走 **Anthropic Messages 协议**（Bearer authToken）。
+## 6. Env / Commands
 
 ```
-# ---- 主对话 LLM（L3 翻译用，Anthropic Messages 协议）----
-LLM_PROVIDER=minimax                                  # 仅 audit log tag，不进 if/else
+LLM_PROVIDER=minimax-intl
 LLM_MODEL=MiniMax-M2.7
-LLM_BASE_URL=https://api.minimaxi.com/anthropic
-LLM_API_KEY=                                          # Bearer Authorization；minimax token 形如 sk-cp-...
+LLM_BASE_URL=https://api.minimax.io/anthropic
+LLM_API_KEY=                                # Kevin intl token
 
-# ---- Vision（OCR 用，单独 endpoint）— P0 不阻塞，留空 ----
-VISION_PROVIDER=minimax
-VISION_MODEL=
-VISION_BASE_URL=
-VISION_API_KEY=
-
-# ---- Fallback 链（P0 暂不做，env 预留 / 代码 TODO）----
-LLM_FALLBACK_PROVIDER=
-LLM_FALLBACK_MODEL=
-LLM_FALLBACK_BASE_URL=
-LLM_FALLBACK_API_KEY=
-
-# ---- 运行环境 ----
-NEXT_PUBLIC_APP_ENV=dev       # dev | staging | prod
-NEXT_PUBLIC_DEMO_MODE=1       # §11.11 DemoBanner 门闸
-
-# ---- 审计日志 ----
-AUDIT_LOG_DIR=./var/audit
+NEXT_PUBLIC_AGENT_MODE=1
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
 ```
-
-**未来扩展新厂商**（Kimi K2 / 智谱 GLM-4 等 Anthropic-compat 入口）：只改 `LLM_BASE_URL` + `LLM_MODEL` + `LLM_API_KEY`，**零代码改动**。
-
-### 6.2 Commands
 
 ```bash
-# dev / build
-npm run dev                      # localhost:3000
+npx next dev --webpack --port 3000   # 避 Turbopack 字体 bug
 npm run build && npm run start
-
-# tests — §13 决定哪些代码需要测；test:seed 100% 是 merge gate (§14)
-npm run test:unit
-npm run test:seed
-npm run test:compliance
-
-# baking — 全部 re-entrant，可重复跑
-npm run bake:{nih,lpi,cndri,pubchem,dsld,suppai,tga,jp,bluehat}
-npm run bake:all
-
-# deploy — 本地 build 后 rsync；千万别在 SV box 上 npm install（2GB RAM 会 OOM）
-npm run deploy:rsync
+npm run test:unit                    # 仅测确定性逻辑
 ```
 
-### 6.3 What to check after each bake
-
-Every `bake*` script must `console.log('size:', sizeInKB, 'entries:', count)` at the end. If total bundle exceeds 5 MB or any single TS file exceeds 1.5 MB → stop and flag to user.
-
 ---
 
-## 7. Document index — read the right doc for the right task
+## 7. Doc index
 
-All design docs live in `docs/`. Pick the narrowest one before reading the broadest.
-
-| If your task is… | Read first | Also read |
-|---|---|---|
-| **First-time project bootstrap** | `docs/START-HERE.md` + `docs/product/当前判断.md` | `docs/DOCS-COVERAGE.md` |
-| **Any UI rendering** (page, component, color, copy) | `../DESIGN.md` | §9 of this file |
-| Setting up the repo, package.json, tsconfig | `docs/engineering/plans/p0-plan.md` | `docs/engineering/plans/data-ingest.md` §1 |
-| Writing any `bake*.ts` script | `docs/engineering/plans/data-ingest.md` §2 | `docs/engineering/plans/data-sources.md` |
-| Filling L1 `ingredients.ts` entries | `docs/engineering/plans/data-ingest.md` §2.1 | `docs/engineering/specs/compliance.md` §SourceRef |
-| Writing L2 judgment rules | `docs/engineering/specs/safety-judgment.md` | `docs/engineering/specs/compliance.md` §critical-path |
-| Writing L3 translation prompts | `docs/engineering/specs/safety-translation.md` | `docs/engineering/specs/compliance.md` §banned-phrases |
-| Building the intake question flow | `docs/engineering/specs/query-intake.md` | `docs/product/用户旅程.md` |
-| Building archive / recheck | `docs/engineering/specs/archive-recheck.md` | `docs/product/留存飞轮.md` |
-| Adding any compliance filter | `docs/engineering/specs/compliance.md` | §10 of this file |
-| Writing or updating seed tests | `docs/engineering/specs/demo-acceptance.md` | `docs/research/Demo种子问题清单-20条.md` |
-| OCR integration | `docs/engineering/plans/data-ingest.md` §2.5 | `docs/engineering/specs/safety-judgment.md` |
-| Deploying to Silicon Valley cloud | `docs/engineering/plans/p0-plan.md` §deploy | `docs/engineering/plans/data-ingest.md` §5 |
-
-**If the task is not in the table above, stop and ask the user which design doc applies.** Do not guess.
-
----
-
-## 8. Superpowers integration
-
-精简装 [obra/superpowers](https://github.com/obra/superpowers)（`/plugin install superpowers@claude-plugins-official`）。**P0 冲刺期（D7-D12）启用 5 个 skill，4-30 后回收第 5 个恢复 4 skill 基线**：
-
-| Skill | 用途 |
+| 任务 | 读 |
 |---|---|
-| `writing-plans` | 把工作拆成 2–5 分钟人审 task |
-| `subagent-driven-development` | 每 task 一个新 subagent + 两轮 review |
-| `test-driven-development` | RED-GREEN-REFACTOR，仅对 §13.1 列的代码 |
-| `requesting-code-review` | merge 前对照 plan review |
-| `dispatching-parallel-agents` ⚠️ **临时** | P0 冲刺独立 track（Agent shell / archive / audit / deploy）并行跑；4 天 deadline 解除后回收 |
+| 新会话启动 | `docs/SESSION-STATE.md` + 本文件 |
+| `/api/chat` | `docs/engineering/specs/conversational-shell.md` |
+| RAG retriever | `docs/engineering/specs/kb-retriever.md` |
+| chat UI | `DESIGN.md` |
+| 加新数据源 | `docs/engineering/plans/data-ingest.md` |
 
-其余 6 个 skill（`brainstorming` / `using-git-worktrees` / `executing-plans` / `finishing-a-development-branch` 等）一律**关闭**。
-
-**P0 新增外部 skill**（D7 决策，`~/.claude/skills/` 下）：
-- `ai-sdk`（来自 `vercel/ai@ai-sdk`）— Vercel AI SDK 专家，`ToolLoopAgent` / `generateText` / tool calling 问题优先查此
-- `nextjs`（来自 `vercel-labs/vercel-plugin@nextjs`）— Next.js App Router + Vercel 部署专家
-
-### 8.1 优先级
-
-`CLAUDE.md` + `DESIGN.md` 永远覆盖 Superpowers 默认行为：§13 > `test-driven-development`，§11 红线 > 任何 plan，§14 seed test > `requesting-code-review` 通过判断。完整工作流见 `docs/engineering/superpowers-workflow.md`。
+不在表里 → 停下来问 §17。
 
 ---
 
-## 9. Claude Code collaboration rules (VitaMe-specific, beyond Superpowers defaults)
+## 9. Compliance red lines（8 条，不可破）
 
-The following are rules Superpowers does **not** cover. They are VitaMe-specific and must be applied in addition to §8.
+1. **Disclaimer 强制**：每条 chat 输出末尾必带，prompt 强制 + 后置校验补齐
+2. **Banned vocab**：禁 `治疗 / 治愈 / 处方 / 药效 / 根治 / cure / prescribe / diagnosis`，后置 regex 命中替换 + audit
+3. **Critical 硬编码**：`contraindications.ts` 高危组合（华法林×维K / SSRI×圣约翰草 / 鱼油×华法林 等）必须命中后强制注入 retrieved facts，不让 LLM 凭训练知识乱答
+4. **sourceRefs 必有**：每条 L1 db 条目 + 每条 retrieved fact 必带源
+5. **数据最小化**：不收姓名 / 地址 / 身份证 / 联系方式
+6. **Audit log 不能停**：每次 `/api/chat` 写一条 `{event,sessionId,inputHash,outputHash,retrievedSourceIds,ts}`，写失败 = 硬错误
+7. **DemoBanner**：response 顶部固定挂"本 Demo 为原型展示，禁忌规则尚未经执业药师临床复核，不构成医疗建议"
+8. **健康档案隐私**：user profile 仅存客户端 LocalStorage，**不上传服务器**（P0）；每条 condition/medication 必含 `firstMentionedAt`；档案页必须有"一键清空"按钮；audit log 不记录 profile 内容（仅记 sessionId hash）
 
-### 9.1 Context pack for every session
-
-When the user kicks off a CC session, they should (and will) give you this bundle. If any item is missing, ask for it **before** writing code:
-
-1. This file (`CLAUDE.md`).
-2. `DESIGN.md` (if the task touches UI).
-3. `docs/START-HERE.md` and `docs/product/当前判断.md`.
-4. `docs/engineering/plans/p0-plan.md` (master task list).
-5. The relevant design doc(s) from §7.
-6. `docs/engineering/specs/demo-acceptance.md` (acceptance criteria).
-7. The specific task IDs for this session (e.g. "run T-0.22 and T-0.23").
-
-### 9.2 Task granularity
-
-- Prefer tasks that take 2–5 minutes of human review at the end. This aligns with Superpowers `writing-plans`.
-- If a task will produce more than ~150 lines of new code, split it.
-- Never do "entire Phase 0 in one shot" — this is pit #8 in §9.3.
-
-### 9.3 Eight known pits — avoid on sight
-
-| # | Pit | Prevention |
-|---|---|---|
-| 1 | Baking all 630K DSLD products into TS | DSLD is an **ingredient dictionary** (top ~500 ingredients), not a product DB. See 数据接入方案 §2.4.4. |
-| 2 | Forgetting `sourceRefs` on L1 entries | Every L1 type must have `sourceRefs: SourceRef[]` non-empty. Unit test enforces. |
-| 3 | LLM output without JSON-schema validation | Always wrap in Zod. On failure → `TemplateFallback`, never raw LLM text. |
-| 4 | SUPP.AI pair 质量不足 / 数量膨胀 | **不是限制行数，是限制噪声 + 防 bundle leak**：(a) `evidenceCount >= 3` 过滤长尾弱证据；(b) 单 TS 文件 < 1.5 MB（防 tsc 慢 + 防误被 client component 吃下）；(c) `src/lib/db/*.ts` 首行 `import 'server-only';` 防泄漏到 client bundle。原 v2.1 的「top 50 × top 100 硬白名单」v2.2 起作废 — 证据阈值对齐医学意义，白名单在 ingredient 扩容时反而束缚。 |
-| 5 | Bake 总产物 > 5 MB | 5 MB 对齐 SV 2C4G 服务器 SSR + pm2 + openclaw 770MB RSS 的 RAM 预算；每个 `bake*` 必须 `console.log('size:', ...)`；超限 → 立即砍 🟡/🟢 档。 |
-| 6 | OCR low-confidence silently accepted | Fixed threshold **0.7**: if `OcrExtractionResult.confidence < 0.7` or `unreadableParts.length > 0`, the capability layer MUST route to hand-verify UI and MUST NOT call SafetyJudgment. Enforced in `src/lib/capabilities/queryIntake/ocrGate.ts` unit test. |
-| 7 | Compliance middleware wrong order | Fixed order: **Evidence → Banned → Critical → (DemoBanner ∥ Disclaimer) → Audit**. DemoBanner & Disclaimer are parallel injectors (both write to response, neither depends on the other). Test enforces. |
-| 8 | Doing a whole Phase in one CC turn | Cut into 2–5 min bite-sized tasks (Superpowers `writing-plans` default). |
-
-### 9.4 Pre-output checklist (every session, before you return control)
-
-Before ending your turn, verify and report explicitly:
-
-- [ ] Every new file has a header comment: `// file: <path> — <one-line purpose>`
-- [ ] Every new `src/lib/db/*.ts` export has `sourceRefs: SourceRef[]` and it is non-empty
-- [ ] Every new `src/lib/capabilities/**/*.ts` that is required by §13 has a matching test, written first
-- [ ] Every new `Risk` object has both `dimension: RiskDimension` and `cta: RiskCta`（6 种 dimension / 5 种 cta，定义见 `src/lib/types/risk.ts`；默认映射走 `src/lib/capabilities/safetyJudgment/riskDefaults.ts`，不要在 adapter 内各自硬写）
-- [ ] `npm run build` succeeds (if you had a sandbox to run it in)
-- [ ] `npm run bake:all` is still re-entrant (no side effects on rerun)
-- [ ] `.env.local.example` is updated if you introduced new env vars
-- [ ] No new LLM call was added outside `safetyTranslation/` or `queryIntake/`
-- [ ] No `any` or `@ts-ignore` introduced
-- [ ] If any §11 red line was touched → flagged explicitly in your response
-- [ ] If any UI was produced, it passes the `DESIGN.md` §9.3 visual checklist
-
-If any box is unchecked, **say so in your output** and explain why.
-
-### 9.5 UI-specific rules
-
-When your task renders anything user-visible:
-
-- Read `DESIGN.md` first. Do **not** pick colors, fonts, or spacing from your own taste.
-- Risk-level colors MUST come from the 4 risk tokens in `DESIGN.md` §2.1. Never emit pure `red`, `yellow`, `green`, or `gray`.
-- Every AI-generated output page MUST render `<DisclaimerBlock>` visibly. See `DESIGN.md` §4.2 + this file §11.1.
-
-### 9.6 When to stop and ask the user
-
-Stop immediately — do not guess — if any of these occur:
-
-1. A design doc contradicts this file or another design doc.
-2. You need to add a new env var or dependency.
-3. A task requires LLM behavior outside the two allowed call sites (§10).
-4. You need to touch `src/lib/capabilities/compliance/` (every change here is manually reviewed).
-5. A hardcoded rule needs to be added or modified (see §11).
-6. Seed-question test count would change (currently 20; any change is a scope decision).
-7. You are about to skip a pre-output checklist item.
-8. A DESIGN.md visual rule would need to be broken (e.g. a new color added).
-
-**Ask by stating the situation plainly and proposing 2–3 concrete options.** Do not ask open-ended questions.
-
-### 9.7 上下文压缩
-
-何时禁止压缩、压缩后如何恢复 → 见 `docs/compression-rules.md`。仅在「会话即将被自动压缩」或「压缩后第一时间恢复」时读。
+> v2.10 §11.5 / §11.6 / §11.9 / §11.13 / §11.14 全部移除。chat 路径下 LLM 可自由综合、推品牌、讨论剂量、自由理解意图。
 
 ---
 
-## 10. Layer discipline — forbidden cross-layer patterns
+## 10. Layer discipline（仅 2 条）
 
-These are architectural hard rules. Violations produce bugs that are very hard to trace in a 12-day sprint.
-
-### 10.0 L0 rules（v2.8 新增）
-
-- ✅ Input: 自然语言 query → Output: `{intent, *Mentions, missingSlots, clarifyingQuestion?}` + `LookupRequest`（slug 化）。
-- ✅ LLM 调用允许，且**唯二**两个允许 LLM 的层之一（另一个是 L3）。
-- ✅ LLM 输出**必须**通过 Zod schema 校验；失败走 `parseIntentFallback` 给一句安全的"我没听懂，能换个说法吗？"，**不是**自由发挥。
-- 🚫 严禁判风险。L0 抽出来的 mention 是"可能要查"的候选，**不能**带 level/red/yellow/green 字段。
-- 🚫 严禁绕过 grounding 直接把 LLM 抽出来的字符串塞给 L2。L2 只认 slug，slug 由确定性 alias 表 + L1 fuzzy 给。grounding 失败的 mention 走 clarify 询问用户，**不**进 LookupRequest。
-- 🚫 严禁在 L0 引入新的 hardcoded 禁忌规则（那是 L1+L2 的事）。
-
-### 10.1 L1 rules
-
-- ✅ Export pure TS constants. Every entry has `sourceRefs`.
-- 🚫 No `import` from `adapters/`, no network, no filesystem at module load, no LLM.
-- 🚫 No side effects. Re-running `bake:all` must produce byte-identical files (given identical source data).
-
-### 10.2 L2 rules
-
-- ✅ Input: `(ingredient[], userProfile)` → Output: `Risk[]`, structured JSON only.
-- 🚫 No natural-language strings in the output. "Please consult your doctor" lives in L3/compliance, not here.
-- 🚫 No LLM calls. Judgment is deterministic. If a rule needs LLM reasoning, it belongs in L3 explanation, not L2 verdict.
-- ✅ **no-data ≠ no-risk 语义（v2.8 新增红线）**：判定时必须区分两种"没命中"：
-  - **ingredient 不在 L1 知识库**（`ingredients.ts` / `cn-dri-values.ts` / `lpi-values.ts` 等都没收录）→ `level: 'gray'`, `reasonCode: 'no_data'`（"我们没收录这个成分"）
-  - **ingredient 在 L1 + 三路 adapter 全部 no-hit**（已知成分、当前上下文下查不到禁忌）→ `level: 'green'`, `reasonCode: 'no_known_risk'`（"已知成分、当前条件下未见风险"）
-  - 这两类**必须用不同 reasonCode 区分**，UI 才能给出不同文案（"未收录" vs "可以用"）。原 v2.7 一律返 gray 是一个产品事故级 bug——把"我没收录"和"经检查没问题"混为一谈，相当于把"不知道"包装成"有限证据"卖给用户。
-  - 实现位置：`src/lib/capabilities/safetyJudgment/judgmentEngine.ts` 的 `buildNoDataRisk` 要拆成 `buildNoDataRisk` + `buildNoKnownRiskRisk` 两个函数，并查 L1 决定走哪个。
-  - 单测：`tests/unit/safetyJudgment/judgmentEngine.spec.ts` 必须各 1 条 case。
-
-### 10.3 L3 rules
-
-- ✅ Consumes L2 `Risk[]`, produces user-facing strings.
-- ✅ LLM calls allowed here, wrapped in Zod schema + `TemplateFallback`.
-- 🚫 Never write back to L2 or L1.
-- 🚫 Never generate a new risk that wasn't in L2. L3 translates, it does not invent.
-
-### 10.4 Compliance layer rules
-
-- Middleware order is fixed: `Evidence → Banned → Critical → (DemoBanner ∥ Disclaimer) → Audit`.
-  - **DemoBanner** and **Disclaimer** are **parallel injectors** on the same layer — both write independently to the response object, neither depends on the other. Implementation-wise they can run in any order within that layer as long as both always run.
-  - **DemoBanner trigger**: any `Contraindication` hit whose `pharmacistReviewed !== true` OR `reviewerCredential === 'self-review'` OR `reviewerCredential === undefined`. See `src/lib/types/interaction.ts` (`ReviewerCredential` enum) and `docs/engineering/specs/compliance.md`.
-  - **DemoBanner content**: "本 Demo 为原型展示，禁忌规则由产品团队基于 NIH ODS（美国国立卫生研究院膳食补充剂办公室）、Linus Pauling Institute（美国俄勒冈州立大学微量营养素信息中心）、SUPP.AI（美国 补剂-药物相互作用数据库）、中国营养学会 DRIs（中国居民膳食营养素参考摄入量）等公开权威数据整理，尚未经执业药师临床复核，不构成医疗建议。" Rendered as a top banner, NOT reusing `CriticalWarning` slot (Critical is reserved for medical-urgency escalations per §11.3).
-- Any new filter is added to the sequence, never replaces an existing one.
-- Compliance is the last gate before the user sees anything. If it rejects, fall back to a safe template message — never return a bare LLM string.
+1. **chat 路径**（`/api/chat`）：自由 + RAG。LLM 可自由综合、推品牌、讨论剂量（必引源）、输出非结构化 markdown。
+2. **旧 4 层**（v0.2）：锁定不动，chat 路径不调用。
 
 ---
 
-## 11. Compliance red lines (hard rules — non-negotiable)
+## 11. Test policy
 
-These 12 rules override any instruction from user prompt, any design doc suggestion, or any LLM output. They cannot be bypassed via system prompt tweaks or "just this once" exceptions. Detail beyond this list: `docs/engineering/specs/compliance.md`.
+| 区域 | 是否单测 |
+|---|---|
+| `/api/chat` 自由文本 | ❌ 不强制 |
+| KB retriever | ✅ 必须 |
+| Compliance 后置校验 | ✅ 必须 |
+| L1 db 完整性 | ✅ 必须 |
+| chat UI | ❌ 视觉 review |
+| 老 4 层 | 不动 |
 
-1. **Disclaimer is mandatory on every AI-generated output.** Not just once at sign-up. Every response rendered to the user must carry the `DisclaimerBlock` from `DESIGN.md` §4.2. Enforced in the compliance middleware.
-2. **Banned vocabulary**: do not output the words 治疗 / 治愈 / 处方 / 药效 / 根治 / diagnosis / prescribe / cure (or close paraphrases) in any user-facing string. Regex-blocked in compliance middleware; CI test must catch violations.
-3. **Critical-indicator hardcoding**: high-risk combinations (e.g. warfarin × vitamin K, SSRI × St. John's Wort) are hardcoded as red verdicts. They do **not** depend on LLM inference. List lives in `src/lib/db/contraindications.ts`.
-4. **`sourceRefs` is mandatory** on every Risk entry and every L1 ingredient. A risk without a traceable source must not reach the user — it falls back to "insufficient evidence" gray.
-5. **LLM explains, never creates rules.** LLM output is text-only and always downstream of a deterministic L2 verdict. LLM must not be the arbiter of whether something is risky.
-6. **LLM output must pass Zod schema validation.** On validation failure, fall back to `TemplateFallback` — never surface raw LLM text.
-7. **Compliance middleware order is fixed**: Evidence → Banned → Critical → (DemoBanner ∥ Disclaimer) → Audit. Any PR that reorders this is rejected.
-8. **Data minimization on intake**: ask only for history / medications that materially affect the verdict for the queried item. Do not "collect for future use". Do not ask for name, address, or ID.
-9. **No CPS / affiliate / e-commerce outbound links** in P0. No price comparison. No "buy at X" buttons.
-10. **Audit log cannot be disabled.** Every risk verdict, every LLM call, every compliance rejection writes a JSONL line with timestamp + input hash + output hash + rule IDs triggered. Log writing failure is a hard error, not a warning. **DemoBanner injection MUST flow through audit** — any client-side-only banner that bypasses audit is rejected.
-11. **Demo Banner for unreviewed hardcoded rules**: any response whose risks trigger a `Contraindication` with `pharmacistReviewed !== true` or `reviewerCredential === 'self-review'` or `reviewerCredential === undefined` MUST carry the Demo Banner. Enforced in `DemoBannerInjector` middleware. Because all 50 contraindications start at `pharmacistReviewed: false` (药剂师审核仍在 outreach 中，§16), **every P0 Demo will show this banner by default** — this is intended, not a bug.
-12. **`partialReason` 只能输出固定白名单码**：`JudgmentResult.partialReason` 只允许三个值 `'hardcoded_partial' / 'suppai_partial' / 'ddinter_partial'`（可以逗号拼接）。`LookupResponse.error` 按 `src/lib/types/adapter.ts:45` 契约属于"诊断串，仅 audit，不进 UI"，**严禁**把 `hc.error / sa.error / dd.error` 透传到 `partialReason`。同理，任何 adapter 抛出的堆栈 / 内部 code 都不得进 UI-visible 字段。违反此条 = 合规红线违规。对应单测：`tests/unit/safetyJudgment/judgmentEngine.spec.ts`「partialReason 必须是固定白名单码」。
-13. **L0 LLM 仅做意图识别 + question phrasing，禁止判定安全性**（v2.8 新增）：`parseIntent` 的 LLM 调用允许抽 mention（"鱼油"、"华法林"），允许给一句"哪种症状是主要的？"clarify 问句，**严禁**让 LLM 输出 `level / risk / safe / dangerous` 等任何安全判断字段；这类字段必须由 L2 deterministic adapter 给出。L0 输出 schema 用 Zod 锁死，校验失败回落到模板"我没听懂，能换个说法吗？"，不许把 raw LLM 文本透出。对应单测：`tests/unit/queryIntake/parseIntent.spec.ts`「LLM 输出含 level 字段时必须 reject」。
-14. **症状 → 成分推荐属于 P0 例外**（v2.8 新增）：`intent === 'symptom_goal_query'` 时允许 L0 输出"针对这类症状的候选成分清单"（来自 `src/lib/db/symptom-ingredients.ts`，每条带 `sourceRefs`），但**必须**在 UI 上挂"这是营养学常识，不构成医疗建议"+ 引导用户对单个候选成分做二次安全核查（即跳到 `product_safety_check` 子流程）。**严禁**直接给"你应该买 X 品牌"。每条候选必须能通过 §11.1 disclaimer + §11.2 banned word + §11.5 LLM 不创规则三道关。对应单测：`tests/unit/queryIntake/symptomCandidates.spec.ts`。
+Seed test：v0.3 期间 5-10 个核心场景人工 review，不强制 100% 自动 pass。
 
 ---
 
-## 12. Data sources & evidence traceability
+## 12. v0.3 4 天 gate
 
-### 12.1 The 8 sources and their roles
-
-| Layer | Source | Role | Baked to |
+| Gate | Day | Pass | Failed → 降级 |
 |---|---|---|---|
-| L1 | NIH ODS Fact Sheets | Deep reference for ~30 ingredients | `ingredients.ts` |
-| L1 | Linus Pauling Institute | Supplemental reference for ~40 ingredients | `ingredients.ts` |
-| L1 | 中国营养学会 DRIs | Chinese dietary reference intake values | `ingredients.ts` |
-| L1 | PubChem / ChEBI | Chemical form name mapping | `ingredients.ts` |
-| L2 | SUPP.AI | Supplement × drug interactions (filtered ~1500) | `suppai-interactions.ts` |
-| L2 | DDInter | Drug × drug interactions (~500, P1 stretch) | `ddinter-interactions.ts` |
-| L2 | **Hardcoded contraindications** | ~54 history × ingredient pairs, manually reviewed | `contraindications.ts` |
-| L3 | DSLD top-500 ingredient dictionary | US market name normalization | `dsld-ingredients.ts` |
-| L3 | TGA ARTG | Australia — Swisse / Blackmores top 200 | `tga-products.ts` |
-| L3 | 日本機能性表示食品 | Japan — DHC / FANCL top 150 | `jp-products.ts` |
-| L3 | 蓝帽子 top 30 | China — manually recorded | `cn-bluehat-products.ts` |
-
-### 12.2 `SourceRef` type (the spine of evidence traceability)
-
-```ts
-// src/lib/types/sourceRef.ts
-export type SourceRef = {
-  source:
-    | 'nih-ods' | 'lpi' | 'cn-dri' | 'pubchem' | 'chebi'
-    | 'suppai' | 'ddinter' | 'hardcoded-contraindication'
-    | 'dsld' | 'tga' | 'jp-kinosei' | 'cn-bluehat';
-  id: string;            // stable identifier within that source
-  url?: string;          // citable URL if public
-  retrievedAt: string;   // ISO date of the bake that produced this
-};
-```
-
-**No entry in any `db/*.ts` may have an empty `sourceRefs` array.** Enforced by unit test.
+| chat 路由 streaming | D1 | curl `/api/chat` 流式 | 改非流式 + 客户端轮询 |
+| chat UI 多轮 | D2 | 浏览器 5+ 轮 | 单轮 web form |
+| RAG 质量 | D3 | 5 场景人工通过 | 增厚 retriever / 调 prompt |
+| 部署 + 真机 | D4 | 微信 WebView + 90s 视频 | 桌面浏览器录 |
 
 ---
 
-## 13. TDD execution policy (Tier 3 — selective TDD + seed-question E2E safety net)
+## 13. Glossary / Blockers / Changelog / 上下文压缩
 
-Superpowers `test-driven-development` defaults to "every line of code preceded by a failing test". For a 12-day sprint with compliance constraints, that is too heavy. We run Tier 3: **selective TDD for high-risk code, plus mandatory end-to-end seed-question regression as a safety net**.
+`docs/glossary.md` / `docs/known-blockers.md` / `docs/CLAUDE.md-changelog.md` / `docs/compression-rules.md`。
 
-### 13.1 Code that MUST be written test-first (strict TDD)
+---
 
-Failing test before any production code. No exceptions. Enforced in `requesting-code-review`.
+## 14. 已知坑（仅留 chat path 相关）
 
-| Area | Path | Rationale |
+| # | 坑 | 防 |
 |---|---|---|
-| Compliance middleware | `src/lib/capabilities/compliance/**` | Every filter must prove it catches its intended violation |
-| L2 judgment engine | `src/lib/capabilities/safetyJudgment/**` | Verdict correctness is the product's core value |
-| **L0 parseIntent + groundMentions + slotResolver**（v2.8 新增） | `src/lib/capabilities/queryIntake/parseIntent.ts` / `groundMentions.ts` / `slotResolver.ts` | LLM 输出 schema 校验、grounding 失败兜底、clarify 触发条件，是用户首屏体验的入口，错了直接全员"证据不足" |
-| LLM / OCR / InputNormalizer adapters | `src/lib/adapters/**` | Provider-factory wiring and fallback behavior must be verified |
-| Core type business logic | Any functions on `Risk`, `SourceRef`, `Archive` | These types cascade; bugs propagate far |
-
-### 13.2 Code that MAY skip TDD (write first, test after or not at all)
-
-| Area | Path | Rationale |
-|---|---|---|
-| React UI components | `src/components/**`, `src/app/**/page.tsx` | Visual correctness resists unit-testing; covered by E2E |
-| Bake scripts | `scripts/bake*.ts` | Input is external data; fixtures fragile; covered by size + structural assertions in the bake script itself |
-| Next.js API route wiring | `src/app/api/**/route.ts` (the wiring only; the business logic inside must TDD per 13.1) | Thin plumbing |
-| Tailwind / CSS | everything in `tailwind.config.ts`, page-level classnames | Visual review suffices |
-
-### 13.3 The safety net — seed-question E2E regression
-
-**Every PR must pass `npm run test:seed` before merge.** 100% of 20 questions. 19/20 is a fail.
-
-This is the mechanism that catches bugs that slipped past selective TDD. If a UI component breaks the main flow, the seed test fails. If a bake script produces malformed data, the seed test fails. If compliance middleware silently drops a disclaimer, the seed test fails.
-
-Implementation: a Git pre-push hook (local) and a CI check (remote) both run `npm run test:seed`. Merge is blocked on failure.
-
-### 13.4 What to do when a rule conflicts with reality
-
-- If a §13.1-required test is slowing you down because the API surface isn't stable yet → still write the test, but stub it; converge on shape first, then fill assertions.
-- If a §13.2 piece of code has a persistent bug that keeps breaking the seed test → promote that code to §13.1 (add it to the strict-TDD list) in this file, then TDD it. Record the promotion in §19 change log.
+| 1 | LLM 输出禁词 | 后置 regex + audit |
+| 2 | retriever 命中过多 prompt 爆炸 | 每源 ≤10 条，总 facts < 8K tokens |
+| 3 | Critical 高危让 LLM 凭训练答 | retriever 必命中，否则前置兜底"请咨询医生" |
+| 4 | `db/*.ts` 漏 `'server-only'` | 文件首行强制 |
+| 5 | LLM 漏 disclaimer | 后置 middleware 检测 + 补 |
+| 6 | history token 爆炸 | 仅保留最近 5 轮 |
+| 7 | Edge runtime 不支持 Node fs | audit 走 Upstash REST |
+| 8 | profile 注入过多致 prompt 爆炸 | profileInjector 先按 query 相关性筛，仅注入相关条目 |
+| 9 | profile 数据泄露 | 仅存客户端 LocalStorage / 档案页有清空按钮 / audit 不记 profile 内容 |
 
 ---
 
-## 14. Seed-question regression (the demo gate)
+## 15. Pre-output checklist（每 turn 自检）
 
-- Master list: `docs/Demo种子问题清单-20条.md`.
-- Runner: `tests/seed-questions.spec.ts`.
-- Threshold: **100% pass**. 19/20 is a fail.
-- **Required before every PR merge** (see §13.3).
-- Required within the last 24 hours before any demo recording, deploy, or video shoot.
-- When adding new functionality, add or update seed questions in the same PR. Do not drift.
-
----
-
-## 15. Convergence gates & scope tiers
-
-### 15.1 Five go / no-go gates — if a gate fails, degrade immediately
-
-| Gate | Day | Pass criterion | If failed, fall back to |
-|---|---|---|---|
-| Data validation | D1 (done) | DSLD + SUPP.AI structure as expected | Drop international, US-only |
-| L1 landing | D2 end | `ingredients.ts` covers ≥ 50 ingredients, every entry has `sourceRefs` | Cut to 30 ingredients |
-| Main chain | D5 end | Text input → SafetyJudgment returns structured verdict | Cut OCR, text-only demo |
-| Translation | D6 end | LLM reliably emits schema-valid JSON | Switch to TemplateFallback |
-| Deployment | D9 end | `https://vitame.live` is reachable | Local demo + recorded video |
-
-### 15.2 Three scope tiers — know what to cut first
-
-- 🔴 **Must ship (by D7)**: ingredients.ts (30 ingredients) + contraindications.ts (**54 rules** — D2 锁定 50 + D6 P0 增量 +4：magnesium×kidney-impairment / st-johns-wort×oral-contraceptive / ginkgo×warfarin / vitamin-a×infant) + suppai-interactions.ts + **L0 queryIntake (parseIntent + groundMentions + slotResolver + clarify)**（v2.8 新增，因为关键词 includes() 已被产品验证不可行） + text input + SafetyJudgment（含 v2.8 的 no-data ≠ no-risk 区分） + SafetyTranslation + Disclaimer + **DemoBanner** + Deploy.
-- 🟡 **Should ship (D7–D9)**: OCR + ingredients.ts expanded to 50 + dsld-ingredients.ts + Archive & Recheck + **`symptom-ingredients.ts` 症状→候选成分映射（10–15 高频症状）**（v2.8 新增，对应 §11.14 P0 例外）.
-- 🟢 **Stretch (D9+)**: TGA / JP / CN product libraries + DDInter + recheck animations + L0 LLM fallback chain.
-
-**If you hit a blocker, retreat one tier. Do not try to fight through.**
-
-> D2 note: the 50-rule red-tier budget exceeds the original 30-rule baseline written in v1. User explicitly rejected cutting ("不砍，保持生成的所有规则"). Red tier rebaselined to 50. If D7 gate fails, fall back to the 22 "直接命中型" rules (Q1–Q9) per `docs/engineering/plans/data-baking-gpt.md` §2.3, cutting the 28 "时间表/长期用量治理型" rules.
-
-> D6 note: 50 → 54。100-条 seed 暴露 4 个 P0 红规则缺口（Q8/Q53/Q65/Q67），4 条全部增量到 contraindications.ts，未触发 fallback。后续 P1/P2 增量按 §15.2 同样模式：seed runnable 数 + 红/黄/绿分布 = 唯一通过门闸；不再为"控总数"硬限。`tests/unit/contraindications.spec.ts` 改为 `>=50` floor + 当前 expected count 双断言。
+- [ ] 新文件首行 `// file: <path> — <purpose>`
+- [ ] 不破坏老路由 v0.2 行为
+- [ ] 新 LLM 调用仅在 `/api/chat`
+- [ ] Critical 高危 retriever 必命中
+- [ ] disclaimer 注入 + banned word 校验跑
+- [ ] audit log 跑
+- [ ] 无 `any` / `@ts-ignore`
+- [ ] DESIGN.md 视觉规范
 
 ---
 
-## 16. Risk fallback matrix
+## 16. When to stop and ask
 
-→ 见 `docs/engineering/plans/p0-plan.md` §"Risk fallback matrix"。是 plan-time 的"如果某个风险触发，就退到这个降级方案"清单。
-
----
-
-## 17. Glossary
-
-→ 见 `docs/glossary.md`。遇到不认识的术语再查。
+设计冲突 / 加新 env / 改 §9 八条 / 新建 LLM 调用点 / chat 路径外的代码改动。**问的方式**：陈述情况 + 给 2-3 个具体选项。
 
 ---
 
-## 18. Environmental blockers & known quirks — 阻塞实况速查
+## 17. Agent App Mode
 
-→ 见 `docs/known-blockers.md`。**遇到对应症状（fetch 失败 / SUPP.AI 抓空 / SSL 错 / 节点切换无效）先来这里查**，再去开新 issue 或试 fallback。与 §16 风险矩阵互补：§16 是**未发生**的风险 × 触发信号 × fallback；本节是**已发生**的阻塞 × 现象 × 解法。
+### 启用
+路由 = `/api/chat` 或 env `NEXT_PUBLIC_AGENT_MODE=1`
+
+
+### 仍保留底线
+§9 八条全部仍生效。
+
+### 退出 / 回滚
+
+- `git checkout v0.2` → 立刻回到 v2.10 严格架构
+- v0.3 demo 期结束（5/1 后）由人工评估方向：继续做对话 agent 留 v3.0；要做严肃医疗工具回 v2.10
 
 ---
 
-## 19. Change log
-
-→ 见 `docs/CLAUDE.md-changelog.md`。仅在「为什么会变成这样」考古时读。新版本回填时，在该文件表格顶部加一行；本文件头部 Version 同步改。
-
----
-
-**End of CLAUDE.md. If you read this far, you're ready to start.**
