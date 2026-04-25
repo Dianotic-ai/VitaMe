@@ -37,6 +37,12 @@ var/
 # Codex dev runtime logs
 .codex-dev.*.log
 
+# 本地 smoke test payloads（含临时 sessionId）
+.smoke-*.json
+
+# Vercel env 导入用临时文件（含真 token）
+vercel-env-import.env
+
 # IDE
 .vscode/
 .idea/
