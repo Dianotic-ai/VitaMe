@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { createVitameAgent } from '@/lib/agent/vitameAgent';
 import { getAuditLogger } from '@/lib/capabilities/compliance/auditLogger';
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const AgentRequestSchema = z.object({
   sessionId: z.string(),
