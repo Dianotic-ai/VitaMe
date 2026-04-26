@@ -31,12 +31,16 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.71",
+    "@ai-sdk/react": "^3.0.170",
     "@anthropic-ai/sdk": "^0.90.0",
     "@upstash/redis": "^1.37.0",
     "ai": "^6.0.168",
+    "nanoid": "^5.1.9",
     "next": "^16.2.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-markdown": "^9.1.0",
+    "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",
     "zod": "^3.23.8",
     "zustand": "^5.0.12"
