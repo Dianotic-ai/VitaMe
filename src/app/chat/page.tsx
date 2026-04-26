@@ -9,6 +9,7 @@ import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
 import { useProfileStore } from '@/lib/profile/profileStore';
 import { useConversationStore } from '@/lib/chat/conversationStore';
+import { useEventStore } from '@/lib/memory/eventStore';
 import { personToSnapshot } from '@/lib/profile/profileInjector';
 import { DemoBanner } from '@/components/chat/DemoBanner';
 import { MessageList } from '@/components/chat/MessageList';
@@ -42,6 +43,7 @@ export default function ChatPage() {
 function ChatBody() {
   const profile = useProfileStore((s) => s.profile);
   const applyDelta = useProfileStore((s) => s.applyDelta);
+  const appendEvent = useEventStore((s) => s.appendEvent);
   const activePerson = profile.people.find((p) => p.id === profile.activePersonId) ?? profile.people[0]!;
 
   const storedMessages = useConversationStore((s) => s.messages);
@@ -89,6 +91,26 @@ function ChatBody() {
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { delta?: import('@/lib/profile/types').ProfileDelta } | null) => {
+        // 北极星 §5：每轮对话都写一个 verify event 到 active person 的时间轴
+        const entityRefs: string[] = [];
+        if (data?.delta) {
+          const d = data.delta;
+          for (const c of d.newConditions ?? []) entityRefs.push(c.slug ?? c.mention);
+          for (const m of d.newMedications ?? []) entityRefs.push(m.slug ?? m.mention);
+        }
+        appendEvent({
+          eventType: 'verify',
+          personId: activePerson.id,
+          entityRefs,
+          userText: userText.slice(0, 500),
+          agentText: assistantText.length > 240 ? assistantText.slice(0, 240) + '…' : assistantText,
+          tags: data?.delta?.conversationSummary?.topics ?? [],
+          metadata: {
+            sessionId: profile.sessionId,
+            summaryTopics: data?.delta?.conversationSummary?.topics ?? [],
+          },
+        });
+
         if (!data?.delta) return;
         const d = data.delta;
         const hasAnything =
@@ -139,6 +161,17 @@ function ChatBody() {
           >
             <PlusLineIcon className="w-4 h-4" />
           </button>
+          <Link
+            href="/memory"
+            className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
+            title="Memory 时间轴"
+            aria-label="Memory 时间轴"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="8" cy="8" r="5.5" />
+              <path d="M8 5 L 8 8 L 10.5 9.5" />
+            </svg>
+          </Link>
           <Link
             href="/profile"
             className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
