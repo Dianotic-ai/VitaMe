@@ -1,4 +1,4 @@
-/* file: src/app/globals.css — Tailwind base + 全站基础层；设计 token 见 tailwind.config.ts + DESIGN.md §2 */
+/* file: src/app/globals.css — Tailwind base + Seed Within 字体 / 引证书脊样式 */
 
 @tailwind base;
 @tailwind components;
@@ -11,4 +11,41 @@
 html,
 body {
   height: 100%;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-warm-2 text-text-primary antialiased;
+    font-family: var(--font-pingfang), 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', system-ui, sans-serif;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif), 'Noto Serif SC', Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+  /* 单线插画专用 svg 类 — strokeWidth 1.4-1.6 */
+  .botanical-line {
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+  }
+}
+
+@layer utilities {
+  /* 书脊引证 chip — JS-free 版本 */
+  .citation-spine {
+    @apply inline-flex items-center gap-1.5 mx-0.5 px-1.5 py-0.5 rounded-chip border border-seed bg-white/60 align-baseline;
+    font-family: var(--font-serif), 'Noto Serif SC', Georgia, serif;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .citation-spine::before {
+    content: '';
+    display: inline-block;
+    width: 2px;
+    height: 12px;
+    background: theme('colors.seed.DEFAULT');
+    border-radius: 1px;
+  }
 }

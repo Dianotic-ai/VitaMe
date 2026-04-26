@@ -1,6 +1,5 @@
-// file: src/app/chat/page.tsx — v0.3 chat 主入口（多 person + 历史持久化版）
-//
-// CLAUDE.md §3.5 polish #4: chat 注入只发 active person 的 snapshot
+// file: src/app/chat/page.tsx — Seed Within chat 主入口
+// PR-PLAN.md §3.6
 'use client';
 
 import Link from 'next/link';
@@ -15,6 +14,9 @@ import { DemoBanner } from '@/components/chat/DemoBanner';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { PersonSwitcher } from '@/components/chat/PersonSwitcher';
+import { EmptyState } from '@/components/chat/EmptyState';
+import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
+import { PlusLineIcon, DotsLineIcon } from '@/components/brand/Icons';
 
 function extractText(m: UIMessage): string {
   return (m.parts ?? [])
@@ -28,9 +30,9 @@ export default function ChatPage() {
 
   if (!hasHydrated) {
     return (
-      <div className="flex flex-col h-screen bg-bg-warm">
+      <div className="flex flex-col h-screen bg-bg-warm-2">
         <DemoBanner />
-        <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">载入中…</div>
+        <div className="flex-1 flex items-center justify-center text-text-tertiary text-sm">载入中…</div>
       </div>
     );
   }
@@ -52,7 +54,6 @@ function ChatBody() {
       api: '/api/chat',
       body: () => ({
         sessionId: profile.sessionId,
-        // 只发 active person 的 snapshot，避免家人档案串扰
         profile: personToSnapshot(activePerson),
       }),
     }),
@@ -68,7 +69,6 @@ function ChatBody() {
   const lastMsg = messages[messages.length - 1];
   const lastIsAssistant = lastMsg?.role === 'assistant';
 
-  // 流结束后异步抽 memory 到 active person
   useEffect(() => {
     if (status !== 'ready') return;
     if (!lastIsAssistant || messages.length < 2) return;
@@ -123,32 +123,38 @@ function ChatBody() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-bg-warm">
+    <div className="flex flex-col h-screen bg-bg-warm-2">
       <DemoBanner />
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <h1 className="text-base font-semibold text-text-primary leading-tight">VitaMe</h1>
-          <p className="text-[11px] text-gray-500">补剂选择对话顾问</p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
+      <header className="bg-surface border-b border-border-subtle px-4 py-2.5 flex items-center justify-between gap-2">
+        <Link href="/chat" className="shrink-0">
+          <VitaMeLogo size={22} />
+        </Link>
+        <div className="flex items-center gap-1.5 shrink-0">
           <PersonSwitcher />
           <button
             onClick={handleNewChat}
-            className="text-xs text-gray-600 px-2 py-1 rounded-full border border-gray-300 hover:bg-gray-50"
-            title="清空当前对话，健康档案保留"
+            className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
+            title="新对话"
+            aria-label="新对话"
           >
-            ＋ 新对话
+            <PlusLineIcon className="w-4 h-4" />
           </button>
           <Link
             href="/profile"
-            className="text-xs text-emerald-700 px-2 py-1 rounded-full border border-emerald-200 hover:bg-emerald-50"
+            className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
+            title="档案管理"
+            aria-label="档案管理"
           >
-            档案
+            <DotsLineIcon className="w-4 h-4" />
           </Link>
         </div>
       </header>
 
-      <MessageList messages={messages} isStreaming={isStreaming} />
+      {messages.length === 0 ? (
+        <EmptyState onSeed={handleSend} />
+      ) : (
+        <MessageList messages={messages} isStreaming={isStreaming} />
+      )}
 
       <ChatInput disabled={isStreaming} onSend={handleSend} />
     </div>

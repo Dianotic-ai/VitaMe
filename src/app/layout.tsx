@@ -12,8 +12,8 @@ const notoSerifSC = Noto_Serif_SC({
 });
 
 export const metadata: Metadata = {
-  title: 'VitaMe — 补剂安全翻译',
-  description: '买之前、吃之前，先问 VitaMe：能不能吃，为什么，避开什么。',
+  title: 'VitaMe — 懂你身体的补剂选择对话顾问',
+  description: '聊聊你想了解的保健品 — 成分、剂量、跟现有用药冲不冲突，我帮你辨别。',
 };
 
 export default function RootLayout({
@@ -23,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN" className={notoSerifSC.variable}>
-      <body className="min-h-screen bg-bg-warm text-text-primary antialiased">
+      <body className="min-h-screen">
         <div className="min-h-screen pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
           {children}
         </div>
