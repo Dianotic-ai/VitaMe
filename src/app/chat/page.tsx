@@ -19,7 +19,6 @@ import { profileToSnapshot } from '@/lib/profile/profileInjector';
 import { DemoBanner } from '@/components/chat/DemoBanner';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
-import { ProfileBadge } from '@/components/chat/ProfileBadge';
 
 function extractText(m: UIMessage): string {
   return (m.parts ?? [])
@@ -131,14 +130,10 @@ function ChatBody() {
   return (
     <div className="flex flex-col h-screen bg-bg-warm">
       <DemoBanner />
-      <header className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="min-w-0">
-            <h1 className="text-base font-semibold text-text-primary leading-tight">VitaMe</h1>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <ProfileBadge profile={profile} />
-            </div>
-          </div>
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div>
+          <h1 className="text-base font-semibold text-text-primary leading-tight">VitaMe</h1>
+          <p className="text-[11px] text-gray-500">补剂选择对话顾问</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -152,7 +147,7 @@ function ChatBody() {
             href="/profile"
             className="text-xs text-emerald-700 px-2 py-1 rounded-full border border-emerald-200 hover:bg-emerald-50"
           >
-            档案
+            我的档案
           </Link>
         </div>
       </header>
