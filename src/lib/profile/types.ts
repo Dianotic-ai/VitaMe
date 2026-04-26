@@ -1,27 +1,28 @@
-// file: src/lib/profile/types.ts — UserProfile schema（CLAUDE.md §3.5 + §9.8）
+// file: src/lib/profile/types.ts — UserProfile schema v2（多人档案）
 //
-// 客户端独有，永不上服务端持久化。
-// 每条 condition / medication 必含 firstAt（CLAUDE.md §9.8 硬要求）。
+// v2 设计动机：v1 单档案会把"我自己"和"我妈/我爸"的健康信息混进同一份 profile，
+// 导致 LLM 推荐时引用错位（如把妈的高血压算到自己头上）。
+// v2 改为 people[]，每个 Person 一份独立档案，chat 注入只发 activePerson 的 snapshot。
+//
+// CLAUDE.md §3.5 + §9.8: 全部仅 LocalStorage，永不上服务端。
 
 export type SpecialGroup = 'pregnancy' | 'breastfeeding' | 'infant' | 'elderly';
 export type AgeRange = '<18' | '18-30' | '30-45' | '45-60' | '60+';
 export type Sex = 'M' | 'F';
 
+export type Relation = 'self' | 'mother' | 'father' | 'spouse' | 'child' | 'other';
+
 export interface ProfileCondition {
-  /** 已知 slug（如 'diabetes'）；自由 mention 时为空 */
   slug?: string;
-  /** 用户原话（如 '糖尿病' / '我妈有高血压'） */
   mention: string;
   /** 首次提及时间 ISO，CLAUDE.md §9.8 硬要求 */
   firstAt: string;
-  /** 用户最近一次确认（用于 prompt "30 天前的字段礼貌确认是否仍有效"） */
   lastConfirmedAt?: string;
 }
 
 export interface ProfileMedication {
   slug?: string;
   mention: string;
-  /** 长期用药 vs 短期 */
   isLongTerm?: boolean;
   firstAt: string;
   lastConfirmedAt?: string;
@@ -32,49 +33,69 @@ export interface ProfileAllergy {
   firstAt: string;
 }
 
-/** 一次会话结束后的简要 summary，跨会话作为 recent_topics 引用 */
 export interface ConversationSummary {
   sessionId: string;
-  /** 一句话摘要（如 "讨论 Q10 + 他汀，确认剂量 100mg/天"） */
   summary: string;
-  /** 关键 topic tag（"Q10"、"他汀"、"剂量"） */
   topics: string[];
-  /** 当时 ISO 时间 */
   ts: string;
 }
 
-export interface UserProfile {
-  /** 永久 sessionId，首访生成 UUID 存 LocalStorage */
-  sessionId: string;
+/** 单个家庭成员的档案 */
+export interface Person {
+  id: string;
+  /** 显示名（"我自己" / "妈妈" / "爸爸" / 自定义） */
+  name: string;
+  /** 关系，影响默认 specialGroups 推断（如 'mother' 默认偏 elderly 区间） */
+  relation: Relation;
   conditions: ProfileCondition[];
   medications: ProfileMedication[];
   allergies: ProfileAllergy[];
   specialGroups: SpecialGroup[];
   ageRange?: AgeRange;
   sex?: Sex;
-  /** 用户在 /profile 页手动添加的备注 */
   notes: string[];
-  /** 跨会话历史 summary（Memory extractor 写入） */
   conversationSummaries: ConversationSummary[];
-  /** profile 更新时间 */
+  createdAt: string;
   updatedAt: string;
 }
 
-export function emptyProfile(sessionId: string): UserProfile {
+/** v2 schema：多 Person + activePersonId */
+export interface UserProfile {
+  schemaVersion: 2;
+  /** 永久 sessionId，跨所有 person 共享（用于 audit log 关联浏览器实例） */
+  sessionId: string;
+  people: Person[];
+  /** 当前 chat 注入哪个 person 的档案 */
+  activePersonId: string;
+}
+
+export function emptyPerson(opts: { id: string; name: string; relation: Relation }): Person {
   const now = new Date().toISOString();
   return {
-    sessionId,
+    id: opts.id,
+    name: opts.name,
+    relation: opts.relation,
     conditions: [],
     medications: [],
     allergies: [],
     specialGroups: [],
     notes: [],
     conversationSummaries: [],
+    createdAt: now,
     updatedAt: now,
   };
 }
 
-/** Memory extractor 输出（部分字段，用于 merge） */
+export function emptyProfile(opts: { sessionId: string; selfPersonId: string }): UserProfile {
+  return {
+    schemaVersion: 2,
+    sessionId: opts.sessionId,
+    people: [emptyPerson({ id: opts.selfPersonId, name: '我自己', relation: 'self' })],
+    activePersonId: opts.selfPersonId,
+  };
+}
+
+/** Memory extractor 输出 */
 export interface ProfileDelta {
   newConditions?: { mention: string; slug?: string }[];
   newMedications?: { mention: string; slug?: string; isLongTerm?: boolean }[];
@@ -83,4 +104,20 @@ export interface ProfileDelta {
   ageRange?: AgeRange;
   sex?: Sex;
   conversationSummary?: { summary: string; topics: string[] };
+}
+
+// ---------- v1 → v2 迁移用类型（只读历史 LocalStorage） ----------
+
+/** v1 schema（单档案，遗留） */
+export interface UserProfileV1 {
+  sessionId: string;
+  conditions: ProfileCondition[];
+  medications: ProfileMedication[];
+  allergies: ProfileAllergy[];
+  specialGroups: SpecialGroup[];
+  ageRange?: AgeRange;
+  sex?: Sex;
+  notes: string[];
+  conversationSummaries: ConversationSummary[];
+  updatedAt: string;
 }

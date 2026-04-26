@@ -1,11 +1,6 @@
-// file: src/app/chat/page.tsx — v0.3 chat 主入口（持久化 + profile 注入可视化版）
+// file: src/app/chat/page.tsx — v0.3 chat 主入口（多 person + 历史持久化版）
 //
-// 持久化：
-// - profile 在 useProfileStore（zustand persist）→ LocalStorage key vitame-profile-v1
-// - chat messages 在 useConversationStore（zustand persist）→ LocalStorage key vitame-conversation-v1
-// - 刷新浏览器后，对话历史 + 健康档案都恢复
-//
-// 注入可视化：header 显示 ProfileBadge "📋 已记住 N 条 · ..."
+// CLAUDE.md §3.5 polish #4: chat 注入只发 active person 的 snapshot
 'use client';
 
 import Link from 'next/link';
@@ -15,10 +10,11 @@ import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
 import { useProfileStore } from '@/lib/profile/profileStore';
 import { useConversationStore } from '@/lib/chat/conversationStore';
-import { profileToSnapshot } from '@/lib/profile/profileInjector';
+import { personToSnapshot } from '@/lib/profile/profileInjector';
 import { DemoBanner } from '@/components/chat/DemoBanner';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
+import { PersonSwitcher } from '@/components/chat/PersonSwitcher';
 
 function extractText(m: UIMessage): string {
   return (m.parts ?? [])
@@ -30,7 +26,6 @@ function extractText(m: UIMessage): string {
 export default function ChatPage() {
   const hasHydrated = useConversationStore((s) => s.hasHydrated);
 
-  // 等 conversation store hydrate 完才渲染 ChatBody，避免 useChat 用空数组初始化后又被覆盖
   if (!hasHydrated) {
     return (
       <div className="flex flex-col h-screen bg-bg-warm">
@@ -39,13 +34,13 @@ export default function ChatPage() {
       </div>
     );
   }
-
   return <ChatBody />;
 }
 
 function ChatBody() {
   const profile = useProfileStore((s) => s.profile);
   const applyDelta = useProfileStore((s) => s.applyDelta);
+  const activePerson = profile.people.find((p) => p.id === profile.activePersonId) ?? profile.people[0]!;
 
   const storedMessages = useConversationStore((s) => s.messages);
   const setStoredMessages = useConversationStore((s) => s.setMessages);
@@ -57,23 +52,23 @@ function ChatBody() {
       api: '/api/chat',
       body: () => ({
         sessionId: profile.sessionId,
-        profile: profileToSnapshot(profile),
+        // 只发 active person 的 snapshot，避免家人档案串扰
+        profile: personToSnapshot(activePerson),
       }),
     }),
   });
 
   const isStreaming = status === 'streaming' || status === 'submitted';
 
-  // 把 useChat 内部 messages 同步到 conversation store（每次变化都持久化）
   useEffect(() => {
-    if (status === 'streaming') return; // 流过程中不写，等 stop 后一次写入，避免抖动
+    if (status === 'streaming') return;
     setStoredMessages(messages as UIMessage[]);
   }, [messages, status, setStoredMessages]);
 
   const lastMsg = messages[messages.length - 1];
   const lastIsAssistant = lastMsg?.role === 'assistant';
 
-  // 流结束后异步抽 memory
+  // 流结束后异步抽 memory 到 active person
   useEffect(() => {
     if (status !== 'ready') return;
     if (!lastIsAssistant || messages.length < 2) return;
@@ -130,12 +125,13 @@ function ChatBody() {
   return (
     <div className="flex flex-col h-screen bg-bg-warm">
       <DemoBanner />
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div>
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-2">
+        <div className="min-w-0">
           <h1 className="text-base font-semibold text-text-primary leading-tight">VitaMe</h1>
           <p className="text-[11px] text-gray-500">补剂选择对话顾问</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <PersonSwitcher />
           <button
             onClick={handleNewChat}
             className="text-xs text-gray-600 px-2 py-1 rounded-full border border-gray-300 hover:bg-gray-50"
@@ -147,7 +143,7 @@ function ChatBody() {
             href="/profile"
             className="text-xs text-emerald-700 px-2 py-1 rounded-full border border-emerald-200 hover:bg-emerald-50"
           >
-            我的档案
+            档案
           </Link>
         </div>
       </header>

@@ -1,19 +1,14 @@
-// file: src/lib/profile/profileInjector.ts — 把 UserProfile 序列化为 ProfileSnapshot 注入 chat 请求
+// file: src/lib/profile/profileInjector.ts — 把 active Person 序列化为 ProfileSnapshot
 //
-// 关键：按相关性筛字段（CLAUDE.md §14 坑 #8 防 prompt 爆炸）
-// 当前 v0.3 简化策略：
-//   - conditions / medications / allergies / specialGroups 全部带（量级小，<10 条）
-//   - conversationSummaries 仅取最近 3 条作为 recent_topics
-//   - ageRange / sex 总是带
-// 未来优化：用 query keyword 跟 conditions 做 relevance 过滤
+// CLAUDE.md §3.5 + §14 坑 #8: profile 注入过多致 prompt 爆炸 → 仅注入 active person 的相关字段
+// CLAUDE.md §9.8 + 多 person 设计：chat 注入只发当前 active person 的 snapshot，避免家人档案串扰
 
 import type { ProfileSnapshot } from '@/lib/chat/types';
-import type { UserProfile } from './types';
+import type { Person } from './types';
 
 const MAX_RECENT_TOPICS = 3;
 
-export function profileToSnapshot(p: UserProfile): ProfileSnapshot {
-  // 仅在有内容时输出对应字段（避免空数组在 prompt 里看着像"用户没病史"，反而误导 LLM）
+export function personToSnapshot(p: Person): ProfileSnapshot {
   const snap: ProfileSnapshot = {};
 
   if (p.conditions.length) {
@@ -51,3 +46,6 @@ export function profileToSnapshot(p: UserProfile): ProfileSnapshot {
 
   return snap;
 }
+
+/** 兼容旧名 / 旧调用点（v0.3 polish #4 之前调的是 profileToSnapshot(profile)） */
+export const profileToSnapshot = personToSnapshot;
