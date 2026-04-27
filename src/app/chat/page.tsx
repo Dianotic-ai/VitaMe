@@ -3,7 +3,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
@@ -16,6 +16,7 @@ import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { PersonSwitcher } from '@/components/chat/PersonSwitcher';
 import { EmptyState } from '@/components/chat/EmptyState';
+import { PromptInspector } from '@/components/chat/PromptInspector';
 import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
 import { PlusLineIcon, DotsLineIcon } from '@/components/brand/Icons';
 
@@ -45,6 +46,7 @@ function ChatBody() {
   const applyDelta = useProfileStore((s) => s.applyDelta);
   const appendEvent = useEventStore((s) => s.appendEvent);
   const activePerson = profile.people.find((p) => p.id === profile.activePersonId) ?? profile.people[0]!;
+  const [inspectorOpen, setInspectorOpen] = useState(false);
 
   const storedMessages = useConversationStore((s) => s.messages);
   const setStoredMessages = useConversationStore((s) => s.setMessages);
@@ -154,6 +156,17 @@ function ChatBody() {
         <div className="flex items-center gap-1.5 shrink-0">
           <PersonSwitcher />
           <button
+            onClick={() => setInspectorOpen(true)}
+            className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
+            title="AI 看到什么"
+            aria-label="AI 看到什么"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="7" cy="7" r="4" />
+              <path d="M10 10 L 13 13" />
+            </svg>
+          </button>
+          <button
             onClick={handleNewChat}
             className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
             title="新对话"
@@ -190,6 +203,8 @@ function ChatBody() {
       )}
 
       <ChatInput disabled={isStreaming} onSend={handleSend} />
+
+      {inspectorOpen && <PromptInspector onClose={() => setInspectorOpen(false)} />}
     </div>
   );
 }
