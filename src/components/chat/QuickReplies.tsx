@@ -8,7 +8,10 @@
 // 视觉：复刻 PersonSwitcher sheet 那种圆角行 + 边框 + hover
 'use client';
 
-import { ChevronRightLineIcon } from '@/components/brand/Icons';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
+import { ChevronRightLineIcon, ArrowUpLineIcon, CloseLineIcon } from '@/components/brand/Icons';
+
+const SKIP_MESSAGE = '都可以，你帮我选吧';
 
 const CHOICE_LINE_RE = /^\s*(\d+)[.、)]\s+(.+?)\s*$/;
 const BOLD_ARROW_RE = /^\s*\*\*([^*]{1,24})\*\*\s*[→:：]/;
@@ -127,7 +130,34 @@ interface QuickRepliesProps {
 }
 
 export function QuickReplies({ choices, onPick }: QuickRepliesProps) {
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [otherText, setOtherText] = useState('');
+
   if (choices.length === 0) return null;
+
+  const otherIdx = choices.length + 1; // 4 if 3 choices
+  const skipIdx = choices.length + 2;  // 5 if 3 choices
+
+  function submitOther(e?: FormEvent) {
+    e?.preventDefault();
+    const txt = otherText.trim();
+    if (!txt) return;
+    setOtherText('');
+    setOtherOpen(false);
+    onPick(txt);
+  }
+
+  function onOtherKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submitOther();
+    }
+    if (e.key === 'Escape') {
+      setOtherOpen(false);
+      setOtherText('');
+    }
+  }
+
   return (
     <div className="my-2 space-y-1.5">
       {choices.map((c, i) => (
@@ -148,6 +178,79 @@ export function QuickReplies({ choices, onPick }: QuickRepliesProps) {
           <ChevronRightLineIcon className="w-3.5 h-3.5 text-text-tertiary group-hover:text-forest shrink-0" />
         </button>
       ))}
+
+      {/* 其他（自己说） — 点击展开输入框 */}
+      {!otherOpen ? (
+        <button
+          type="button"
+          onClick={() => setOtherOpen(true)}
+          className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-card bg-surface border border-dashed border-border-subtle text-left hover:border-forest/40 hover:bg-bg-warm transition-colors group"
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <span className="shrink-0 w-5 h-5 rounded-full bg-bg-warm border border-border-subtle text-[11px] text-text-tertiary flex items-center justify-center font-mono">
+              {otherIdx}
+            </span>
+            <span className="text-[13.5px] text-text-secondary leading-snug">
+              其他（自己说）
+            </span>
+          </span>
+          <ChevronRightLineIcon className="w-3.5 h-3.5 text-text-tertiary group-hover:text-forest shrink-0" />
+        </button>
+      ) : (
+        <form
+          onSubmit={submitOther}
+          className="flex items-center gap-2 px-2 py-1.5 rounded-card bg-surface border border-forest/40"
+        >
+          <span className="shrink-0 w-5 h-5 rounded-full bg-forest text-white text-[11px] flex items-center justify-center font-mono">
+            {otherIdx}
+          </span>
+          <input
+            autoFocus
+            type="text"
+            value={otherText}
+            onChange={(e) => setOtherText(e.target.value)}
+            onKeyDown={onOtherKeyDown}
+            placeholder="你的答案…"
+            className="flex-1 bg-transparent text-[13.5px] text-text-primary outline-none placeholder:text-text-tertiary"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setOtherOpen(false);
+              setOtherText('');
+            }}
+            className="shrink-0 p-1 text-text-tertiary hover:text-text-primary"
+            aria-label="取消"
+          >
+            <CloseLineIcon className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="submit"
+            disabled={!otherText.trim()}
+            className="shrink-0 w-7 h-7 rounded-full bg-forest text-white flex items-center justify-center disabled:opacity-40"
+            aria-label="发送"
+          >
+            <ArrowUpLineIcon className="w-3.5 h-3.5" />
+          </button>
+        </form>
+      )}
+
+      {/* 跳过 — 让 AI 帮选 */}
+      <button
+        type="button"
+        onClick={() => onPick(SKIP_MESSAGE)}
+        className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-card bg-bg-warm/50 border border-dashed border-border-subtle text-left hover:bg-bg-warm transition-colors group"
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="shrink-0 w-5 h-5 rounded-full bg-bg-warm border border-border-subtle text-[11px] text-text-tertiary flex items-center justify-center font-mono">
+            {skipIdx}
+          </span>
+          <span className="text-[13.5px] text-text-tertiary leading-snug">
+            跳过 · 你帮我选
+          </span>
+        </span>
+        <ChevronRightLineIcon className="w-3.5 h-3.5 text-text-tertiary group-hover:text-forest shrink-0" />
+      </button>
     </div>
   );
 }
