@@ -16,6 +16,7 @@ import {
   type ProfileCondition,
   type ProfileDelta,
   type ProfileMedication,
+  type ProfileSupplement,
   type Relation,
   type Sex,
   type UserProfile,
@@ -39,9 +40,13 @@ interface ProfileState {
   removeCondition: (idx: number) => void;
   removeMedication: (idx: number) => void;
   removeAllergy: (idx: number) => void;
+  removeSupplement: (supplementId: string) => void;
   addCondition: (mention: string) => void;
   addMedication: (mention: string, isLongTerm?: boolean) => void;
   addAllergy: (mention: string) => void;
+  addSupplement: (input: { mention: string; brand?: string; dosage?: string; schedule?: string }) => string;
+  updateSupplement: (supplementId: string, patch: Partial<Omit<ProfileSupplement, 'supplementId' | 'startedAt'>>) => void;
+  markSupplementFedback: (supplementId: string) => void;
   setBasic: (patch: Partial<Pick<Person, 'ageRange' | 'sex'>>) => void;
 
   // ---- 全局 ----
@@ -147,6 +152,24 @@ export const useProfileStore = create<ProfileState>()(
           }));
           p.medications = dedupeByMention([...p.medications, ...adds]);
         }
+        if (delta.newSupplements?.length) {
+          // 用 mention 去重避免重复加同一补剂
+          const existingMentions = new Set(p.currentSupplements.map((s) => s.mention.toLowerCase().trim()));
+          for (const s of delta.newSupplements) {
+            const key = s.mention.toLowerCase().trim();
+            if (!existingMentions.has(key)) {
+              p.currentSupplements.push({
+                supplementId: nanoid(),
+                slug: s.slug,
+                mention: s.mention,
+                brand: s.brand,
+                dosage: s.dosage,
+                startedAt: now,
+              });
+              existingMentions.add(key);
+            }
+          }
+        }
         if (delta.newAllergies?.length) {
           const adds: ProfileAllergy[] = delta.newAllergies.map((a) => ({ mention: a.mention, firstAt: now }));
           p.allergies = dedupeByMention([...p.allergies, ...adds]);
@@ -181,6 +204,9 @@ export const useProfileStore = create<ProfileState>()(
       removeAllergy: (idx) => set((state) => mutateActive(state, (p) => {
         p.allergies = p.allergies.filter((_, i) => i !== idx);
       })),
+      removeSupplement: (supplementId) => set((state) => mutateActive(state, (p) => {
+        p.currentSupplements = p.currentSupplements.filter((s) => s.supplementId !== supplementId);
+      })),
       addCondition: (mention) => set((state) => mutateActive(state, (p) => {
         p.conditions = dedupeByMention([...p.conditions, { mention, firstAt: nowISO() }]);
       })),
@@ -189,6 +215,30 @@ export const useProfileStore = create<ProfileState>()(
       })),
       addAllergy: (mention) => set((state) => mutateActive(state, (p) => {
         p.allergies = dedupeByMention([...p.allergies, { mention, firstAt: nowISO() }]);
+      })),
+      addSupplement: (input) => {
+        const supplementId = nanoid();
+        set((state) => mutateActive(state, (p) => {
+          p.currentSupplements.push({
+            supplementId,
+            mention: input.mention,
+            brand: input.brand,
+            dosage: input.dosage,
+            schedule: input.schedule,
+            startedAt: nowISO(),
+          });
+        }));
+        return supplementId;
+      },
+      updateSupplement: (supplementId, patch) => set((state) => mutateActive(state, (p) => {
+        p.currentSupplements = p.currentSupplements.map((s) =>
+          s.supplementId === supplementId ? { ...s, ...patch } : s
+        );
+      })),
+      markSupplementFedback: (supplementId) => set((state) => mutateActive(state, (p) => {
+        p.currentSupplements = p.currentSupplements.map((s) =>
+          s.supplementId === supplementId ? { ...s, lastFeedbackAt: nowISO() } : s
+        );
       })),
       setBasic: (patch) => set((state) => mutateActive(state, (p) => {
         if ('ageRange' in patch) p.ageRange = patch.ageRange as AgeRange | undefined;
@@ -217,10 +267,22 @@ export const useProfileStore = create<ProfileState>()(
       version: 2,
       storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : (undefined as never))),
       // 兼容老 v1 数据：v2 第一次加载时如果发现 LocalStorage 还有 v1 key，把 v1 wrap 成 v2 people[0]='我自己'
+      // 同时给 v0.4 D2 之前创建的 person 补 currentSupplements: [] 字段
       onRehydrateStorage: () => (state, error) => {
         if (error) return;
         if (typeof window === 'undefined') return;
         if (!state) return;
+        // 为 D2 之前的 person 补 currentSupplements 字段（防止 undefined 报错）
+        let needsBackfill = false;
+        for (const p of state.profile.people) {
+          if (!Array.isArray((p as Person & { currentSupplements?: ProfileSupplement[] }).currentSupplements)) {
+            (p as Person & { currentSupplements: ProfileSupplement[] }).currentSupplements = [];
+            needsBackfill = true;
+          }
+        }
+        if (needsBackfill) {
+          state.profile = { ...state.profile, people: [...state.profile.people] };
+        }
         const v1Raw = window.localStorage.getItem('vitame-profile-v1');
         if (!v1Raw) return;
         // 如果 v2 已经有用户填的内容，不覆盖
@@ -239,6 +301,7 @@ export const useProfileStore = create<ProfileState>()(
             relation: 'self',
             conditions: v1.conditions ?? [],
             medications: v1.medications ?? [],
+            currentSupplements: [],
             allergies: v1.allergies ?? [],
             specialGroups: v1.specialGroups ?? [],
             ageRange: v1.ageRange,

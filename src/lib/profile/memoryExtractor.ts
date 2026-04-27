@@ -26,9 +26,21 @@ const EXTRACTOR_PROMPT = `你是健康档案抽取器。从下方一轮对话中
 ## medications（长期用药）— 只接受处方药 / OTC 西药 / 中成药
 ✅ 抽：华法林、二甲双胍、优甲乐（左甲状腺素）、阿司匹林、降压药、SSRI、他汀、奥美拉唑、抗生素 等
 ❌ 不抽：
-  - **保健品 / 补剂**：维生素 A/B/C/D/E/AD、钙片、鱼油、Q10、益生菌、叶酸、褪黑素、蛋白粉、葡萄糖胺、所有带"软胶囊/软糖/片剂"的保健品名
+  - **保健品 / 补剂** → 这些走 **newSupplements**，**不进 medications**
   - 用户偶尔吃的非处方："偶尔吃点感冒药"
   - 助手**推荐**的成分（用户还没买/没吃的）
+
+## newSupplements（用户**已经在吃**的保健品 / 补剂）— 区别于 medications
+✅ 抽：
+  - 维生素 A/B/C/D/E/AD、钙片、鱼油、Q10、益生菌、叶酸、褪黑素、蛋白粉、葡萄糖胺、辅酶 Q10
+  - 任何带"软胶囊/软糖/片剂"的保健品名
+  - 用户原话："我在吃 X" / "我现在还在补 Y" / "我每天吃 Z"
+✅ 如果用户提到品牌（汤臣倍健 / Swisse / Nordic Naturals 等），抽到 brand 字段
+✅ 如果用户提到剂量（"1000mg/天"），抽到 dosage 字段
+❌ 不抽：
+  - 助手**推荐**的成分（用户还没买/没吃的）
+  - 用户**问要不要吃**的（"我想买 Q10" 还没买，不抽）
+  - 用户问"该不该吃 X"（疑问态，不抽）
 
 ## allergies — 只接受用户明确说"我对 X 过敏"
 ✅ 抽：海鲜、青霉素、花粉、芒果
@@ -51,6 +63,7 @@ const EXTRACTOR_PROMPT = `你是健康档案抽取器。从下方一轮对话中
 {
   "newConditions": [{"mention":"糖尿病"}] | [],
   "newMedications": [{"mention":"二甲双胍","isLongTerm":true}] | [],
+  "newSupplements": [{"mention":"维生素 AD","brand":"汤臣倍健","dosage":"1 颗/天"}] | [],
   "newAllergies": [{"mention":"甲壳类"}] | [],
   "newSpecialGroups": ["pregnancy"] | [],
   "ageRange": "30-45" | null,
@@ -71,11 +84,11 @@ USER: 我有糖尿病，长期吃二甲双胍。想补点 Q10。
 ASSISTANT: 好的，Q10 跟二甲双胍一般无冲突...
 → 输出: {"newConditions":[{"mention":"糖尿病"}],"newMedications":[{"mention":"二甲双胍","isLongTerm":true}],"newAllergies":[],"newSpecialGroups":[],"ageRange":null,"sex":null,"conversationSummary":{"summary":"糖尿病患者咨询 Q10 补充，已确认与二甲双胍无禁忌","topics":["糖尿病","二甲双胍","Q10"]}}
 
-## 示例 C — 用户已经在吃保健品（不算 medication）
-USER: 我现在还在吃维生素 AD 软胶囊
+## 示例 C — 用户已经在吃保健品（进 newSupplements）
+USER: 我现在还在吃维生素 AD 软胶囊，汤臣倍健的，每天 1 颗
 ASSISTANT: 好，那叶黄素和 AD 间隔 2 小时...
-→ 输出: {"newConditions":[],"newMedications":[],"newAllergies":[],"newSpecialGroups":[],"ageRange":null,"sex":null,"conversationSummary":{"summary":"用户已在补充维生素 AD，需注意与叶黄素的吸收间隔","topics":["维生素AD","叶黄素"]}}
-（维生素 AD 是保健品，不进 medications）
+→ 输出: {"newConditions":[],"newMedications":[],"newSupplements":[{"mention":"维生素 AD 软胶囊","brand":"汤臣倍健","dosage":"1 颗/天"}],"newAllergies":[],"newSpecialGroups":[],"ageRange":null,"sex":null,"conversationSummary":{"summary":"用户已在补充维生素 AD，需注意与叶黄素的吸收间隔","topics":["维生素AD","叶黄素"]}}
+（维生素 AD 是保健品 → newSupplements，不进 medications）
 
 ## 示例 D — 助手推测疾病（不抽）
 USER: 我最近视力下降了，看东西模糊
@@ -88,6 +101,7 @@ ASSISTANT: 视力下降可能是近视加深、散光变化或老花，建议先
 interface ExtractorRawOutput {
   newConditions?: { mention: string; slug?: string }[];
   newMedications?: { mention: string; slug?: string; isLongTerm?: boolean }[];
+  newSupplements?: { mention: string; slug?: string; brand?: string; dosage?: string }[];
   newAllergies?: { mention: string }[];
   newSpecialGroups?: string[];
   ageRange?: string | null;
@@ -108,6 +122,14 @@ function sanitize(raw: ExtractorRawOutput): ProfileDelta {
       mention: String(m.mention).trim(),
       slug: m.slug,
       isLongTerm: typeof m.isLongTerm === 'boolean' ? m.isLongTerm : undefined,
+    }));
+  }
+  if (Array.isArray(raw.newSupplements) && raw.newSupplements.length > 0) {
+    delta.newSupplements = raw.newSupplements.filter((s) => s?.mention).map((s) => ({
+      mention: String(s.mention).trim(),
+      slug: s.slug,
+      brand: s.brand ? String(s.brand).trim() : undefined,
+      dosage: s.dosage ? String(s.dosage).trim() : undefined,
     }));
   }
   if (Array.isArray(raw.newAllergies) && raw.newAllergies.length > 0) {

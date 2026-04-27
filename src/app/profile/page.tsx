@@ -32,6 +32,8 @@ export default function ProfilePage() {
   const removeCondition = useProfileStore((s) => s.removeCondition);
   const addMedication = useProfileStore((s) => s.addMedication);
   const removeMedication = useProfileStore((s) => s.removeMedication);
+  const addSupplement = useProfileStore((s) => s.addSupplement);
+  const removeSupplement = useProfileStore((s) => s.removeSupplement);
   const addAllergy = useProfileStore((s) => s.addAllergy);
   const removeAllergy = useProfileStore((s) => s.removeAllergy);
   const setBasic = useProfileStore((s) => s.setBasic);
@@ -42,6 +44,10 @@ export default function ProfilePage() {
 
   const [newCond, setNewCond] = useState('');
   const [newMed, setNewMed] = useState('');
+  const [newSupp, setNewSupp] = useState('');
+  const [newSuppDosage, setNewSuppDosage] = useState('');
+  const [newSuppSchedule, setNewSuppSchedule] = useState('');
+  const [showSuppDetails, setShowSuppDetails] = useState(false);
   const [newAllergy, setNewAllergy] = useState('');
   const [showAddPerson, setShowAddPerson] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
@@ -60,6 +66,19 @@ export default function ProfilePage() {
     if (!newMed.trim()) return;
     addMedication(newMed.trim(), true);
     setNewMed('');
+  }
+  function submitSupplement(e: FormEvent) {
+    e.preventDefault();
+    if (!newSupp.trim()) return;
+    addSupplement({
+      mention: newSupp.trim(),
+      dosage: newSuppDosage.trim() || undefined,
+      schedule: newSuppSchedule.trim() || undefined,
+    });
+    setNewSupp('');
+    setNewSuppDosage('');
+    setNewSuppSchedule('');
+    setShowSuppDetails(false);
   }
   function submitAllergy(e: FormEvent) {
     e.preventDefault();
@@ -353,6 +372,83 @@ export default function ProfilePage() {
             onSubmit={submitMedication}
             placeholder="如：二甲双胍 / 优甲乐 / 华法林"
           />
+        </Section>
+
+        {/* 正在吃的补剂（北极星 §3 Reminder 数据源）*/}
+        <Section title="正在吃的补剂" count={active.currentSupplements.length}>
+          {active.currentSupplements.length === 0 && (
+            <p className="text-[12px] text-text-tertiary mb-2">
+              暂无 — 加进来后才能用 Reminder + Feedback 跟踪服用
+            </p>
+          )}
+          <ul className="space-y-1.5 mb-2">
+            {active.currentSupplements.map((s) => (
+              <li
+                key={s.supplementId}
+                className="flex items-center justify-between bg-surface px-3 py-2 rounded-card border border-stream/30 border-l-[3px] border-l-stream"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-[13.5px] text-text-primary font-medium">{s.mention}</span>
+                    {s.brand && <span className="text-[11px] text-stream">{s.brand}</span>}
+                  </div>
+                  <div className="flex gap-2 text-[10.5px] text-text-tertiary mt-0.5">
+                    {s.dosage && <span>剂量: {s.dosage}</span>}
+                    {s.schedule && <span>时间: {s.schedule}</span>}
+                    <span>从 {s.startedAt.slice(0, 10)} 开始</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => removeSupplement(s.supplementId)}
+                  className="text-text-tertiary hover:text-risk-red p-1 shrink-0"
+                  aria-label="删除"
+                >
+                  <TrashLineIcon className="w-3.5 h-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <form onSubmit={submitSupplement} className="bg-bg-warm border border-border-subtle rounded-card overflow-hidden">
+            <div className="flex">
+              <input
+                value={newSupp}
+                onChange={(e) => setNewSupp(e.target.value)}
+                placeholder="如：维生素 D / 鱼油 / Q10"
+                className="flex-1 px-3 py-2 text-[13px] bg-transparent outline-none placeholder:text-text-tertiary"
+              />
+              <button
+                type="button"
+                onClick={() => setShowSuppDetails((v) => !v)}
+                className="text-[10.5px] text-text-tertiary px-2 hover:text-text-primary border-l border-border-subtle"
+                title="展开剂量/时间"
+              >
+                {showSuppDetails ? '收起' : '+ 剂量/时间'}
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-1 px-3 py-2 text-[12px] text-stream border-l border-border-subtle hover:bg-stream-soft transition-colors"
+              >
+                <PlusLineIcon className="w-3 h-3" />
+                添加
+              </button>
+            </div>
+            {showSuppDetails && (
+              <div className="border-t border-border-subtle px-3 py-2 flex gap-2 bg-stream-soft/30">
+                <input
+                  value={newSuppDosage}
+                  onChange={(e) => setNewSuppDosage(e.target.value)}
+                  placeholder="剂量（如 1000mg/天）"
+                  className="flex-1 px-2 py-1 text-[12px] bg-surface border border-border-subtle rounded outline-none placeholder:text-text-tertiary"
+                />
+                <input
+                  value={newSuppSchedule}
+                  onChange={(e) => setNewSuppSchedule(e.target.value)}
+                  placeholder="时间（如 早餐后）"
+                  className="flex-1 px-2 py-1 text-[12px] bg-surface border border-border-subtle rounded outline-none placeholder:text-text-tertiary"
+                />
+              </div>
+            )}
+          </form>
         </Section>
 
         {/* 过敏 */}

@@ -28,6 +28,23 @@ export interface ProfileMedication {
   lastConfirmedAt?: string;
 }
 
+/** 用户在吃的补剂（区别于 medications 处方药）— 北极星 §3 Reminder 的数据来源 */
+export interface ProfileSupplement {
+  /** 唯一 id（用于 Reminder rule 关联） */
+  supplementId: string;
+  slug?: string;
+  /** 用户原话 "汤臣倍健 鱼油 1000mg" */
+  mention: string;
+  brand?: string;
+  /** "1000mg/天" */
+  dosage?: string;
+  /** "早餐后" / "睡前" */
+  schedule?: string;
+  startedAt: string;
+  /** 上次反馈时间，feedback ritual 用来决定是否弹 prompt */
+  lastFeedbackAt?: string;
+}
+
 export interface ProfileAllergy {
   mention: string;
   firstAt: string;
@@ -49,6 +66,8 @@ export interface Person {
   relation: Relation;
   conditions: ProfileCondition[];
   medications: ProfileMedication[];
+  /** 北极星 §3 Reminder 数据源：用户在吃的补剂 */
+  currentSupplements: ProfileSupplement[];
   allergies: ProfileAllergy[];
   specialGroups: SpecialGroup[];
   ageRange?: AgeRange;
@@ -77,6 +96,7 @@ export function emptyPerson(opts: { id: string; name: string; relation: Relation
     relation: opts.relation,
     conditions: [],
     medications: [],
+    currentSupplements: [],
     allergies: [],
     specialGroups: [],
     notes: [],
@@ -99,6 +119,7 @@ export function emptyProfile(opts: { sessionId: string; selfPersonId: string }):
 export interface ProfileDelta {
   newConditions?: { mention: string; slug?: string }[];
   newMedications?: { mention: string; slug?: string; isLongTerm?: boolean }[];
+  newSupplements?: { mention: string; slug?: string; brand?: string; dosage?: string }[];
   newAllergies?: { mention: string }[];
   newSpecialGroups?: SpecialGroup[];
   ageRange?: AgeRange;
