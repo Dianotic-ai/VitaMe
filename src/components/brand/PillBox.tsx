@@ -31,7 +31,7 @@ import {
 } from '@/lib/reminder/slot';
 import type { ReminderRule } from '@/lib/reminder/types';
 import type { ProfileSupplement } from '@/lib/profile/types';
-import { renderBloomInline } from './SeedStages';
+import { renderBloomInline } from './SeedSproutStage';
 
 // ---------- 共享 token ----------
 
