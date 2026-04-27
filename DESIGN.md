@@ -475,7 +475,7 @@ VitaMe uses **two illustration registers in the same page**, kept coherent throu
 
 **Rules**:
 - 主角永远只有一个视觉中心；配角永远不抢主角。
-- 同色系：暖米背景 (`#FAF7F2`) + 鼠尾绿 (`#2D5A3D`) + 种子棕 (`#8B6B4A`) + 极少量溪水蓝点缀 (`#4A90B8`)。装饰带可以多元素，但**色彩必须 ≤4 种**。
+- 同色系：暖米背景 (`#FAF7F2`) + 深林绿 (`#2D5A3D`) + 种子棕 (`#8B6B4A`) + 极少量溪水蓝点缀 (`#4A90B8`)。装饰带可以多元素，但**色彩必须 ≤4 种**。
 - 装饰带（配角）不可使用：写实植物堆叠、强阴影、强渐变、噪点纹理、卡通拟人。
 - 任何一页内：主角 1 个 + 配角带 ≤2 处。超过则砍。
 
@@ -490,6 +490,55 @@ VitaMe uses **two illustration registers in the same page**, kept coherent throu
 - `docs/assets/brand-seed-sprout-hero.jpg` — canonical hero / icon-set style anchor
 - `docs/assets/brand-page-layered-A.png` — page-decoration density reference (preferred)
 - `docs/assets/brand-page-layered-B.png` — alternate page-decoration density (more lush; use sparingly)
+
+### 11.5 Pill Box × Seed signature object
+
+The pill box is VitaMe's **second signature object** alongside the seed. It is a four-cell container (早 / 中 / 晚 / 睡前) where each pill renders as a seed — making the daily routine literally a planting tray. Brand-side definition lives at `docs/product/品牌视觉规范.md` §11; product-principle binding at `docs/action-first-mvp/00-product-principles.md` §4.7.
+
+#### When agents must render the pill box
+
+| Surface | Render mode |
+|---|---|
+| `RoutineSummaryStrip` (top of `/chat` after routine saved) | Compact 4-cell strip with seed-pill icons |
+| `DetailDrawer` "今天怎么吃" entry | Full pill-box illustration |
+| Marketing landing hero (when routine + seed shown together) | Large pill-box with sprouting seeds |
+| First-visit P0 (no routine saved) | **Do not render** — use seed-only illustration |
+| Symptom-answer messages | Do not render — six-section answer text only |
+
+#### Visual contract (must satisfy)
+
+- **Container**: 4 cells, equal width; outer line 1.5px in `#2D5A3D` or `#8B6B4A`.
+- **Cell base**: warm cream `#FAF7F2` with optional Klee-style short hand-drawn lines at ≤8% gray opacity (soil texture).
+- **Pills as seeds**: solid filled circles. Default `#8B6B4A`; use `#2D5A3D` when emphasizing growth.
+- **Slot labels**: 早 / 中 / 晚 / 睡前 in `#1C1C1C`, 10–12px, beneath each cell — never inside.
+- **Empty cell**: hyphen `-` only. **Never** a placeholder ghost-pill.
+- **Shadow**: ≤6% opacity, soft, single layer. Never multi-layer.
+- **Corner radius**: 8–12px on container; pills are perfect circles.
+
+#### Don'ts (skeuomorphism boundary — light skeuo only)
+
+- ❌ Glossy plastic highlight on pills or container.
+- ❌ Pharmaceutical capsule render (two-tone elongated capsule).
+- ❌ Real product photography of medicine boxes.
+- ❌ More than 4 cells. (We do not render breakfast/lunch/dinner/snack/bedtime.)
+- ❌ Apple-style 3D depth, lens flares, particle effects, gradient fills.
+- ❌ Pill drop shadows above 6% opacity.
+
+#### AI image prompt (Pill Box × Seed signature)
+
+```
+Design a fine-line illustrated pill box in editorial minimal style.
+Composition: a four-cell container labeled 早 / 中 / 晚 / 睡前 (morning,
+midday, evening, bedtime). Inside each cell sit one or two solid round
+"pills" that visually read as seeds. Cell base has faint hand-drawn soil
+texture. Background warm cream (#FAF7F2). Lines in deep forest green
+(#2D5A3D) or seed brown (#8B6B4A), 1.5px. Pills filled with seed brown
+(#8B6B4A) or forest green (#2D5A3D). Klee-influenced single-line botanical
+feel — hand-drawn, calm, alive. Generous whitespace.
+Avoid: glossy plastic, 3D capsule render, pharmaceutical product
+photography, lens flares, drop shadows over 6% opacity, more than four cells.
+Feel: a small garden you tend for your family — not a medicine container.
+```
 
 ---
 

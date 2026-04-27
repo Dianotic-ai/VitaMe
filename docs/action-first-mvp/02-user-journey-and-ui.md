@@ -147,6 +147,7 @@ P1 后显示：
 - 空 slot 显示 `-`。
 - 点击打开 RoutineDrawer。
 - 不作为首访装饰。
+- 视觉契约：按 `DESIGN.md` §11.5（Pill Box × Seed signature object）渲染——4 格、轻拟物、药丸即种子。不可被简化或省略。
 
 ## 6. Product Inspect Inline
 
@@ -206,3 +207,4 @@ DetailDrawer 用于透明度，不是主路径：
 - 不用单一紫蓝或深蓝渐变主题。
 - 文字必须在移动端不溢出。
 - CTA 用上下文内联 chip 或确认卡，不做固定功能 dock。
+- Signature 物件（药盒 / 种子）按 `DESIGN.md` §11.1（种子四阶段）和 §11.5（药盒）渲染，受 `00-product-principles.md` §4.7 保护——不可因信息密度或简化空状态被省略。
