@@ -297,15 +297,16 @@ function ChatBody() {
     <div className="flex flex-col h-screen bg-bg-warm-2">
       <DemoBanner />
       <PillBoxStrip />
-      <header className="bg-surface border-b border-border-subtle px-4 py-2.5 flex items-center justify-between gap-2">
+      <header className="bg-surface border-b border-border-subtle px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-1.5">
         <Link href="/chat" className="shrink-0">
           <VitaMeLogo size={22} />
         </Link>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
           <PersonSwitcher />
+          {/* AI 看到什么 + 新对话 在小屏隐藏，避免 header 挤爆；从 /profile 入口可达 */}
           <button
             onClick={() => setInspectorOpen(true)}
-            className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
+            className="hidden sm:flex w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm items-center justify-center transition-colors"
             title="AI 看到什么"
             aria-label="AI 看到什么"
           >
@@ -316,7 +317,7 @@ function ChatBody() {
           </button>
           <button
             onClick={handleNewChat}
-            className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
+            className="hidden sm:flex w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm items-center justify-center transition-colors"
             title="新对话"
             aria-label="新对话"
           >
@@ -324,29 +325,29 @@ function ChatBody() {
           </button>
           <Link
             href="/reminders"
-            className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
+            className="w-9 h-9 sm:w-8 sm:h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
             title="提醒中心"
             aria-label="提醒中心"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="sm:w-4 sm:h-4">
               <path d="M8 2.5 C 5.5 2.5 4 4.3 4 7 L 4 9 L 3 11.5 L 13 11.5 L 12 9 L 12 7 C 12 4.3 10.5 2.5 8 2.5 Z" />
               <path d="M6.5 12.5 C 6.5 13.4 7.2 14 8 14 C 8.8 14 9.5 13.4 9.5 12.5" />
             </svg>
           </Link>
           <Link
             href="/memory"
-            className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
+            className="w-9 h-9 sm:w-8 sm:h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
             title="Memory 时间轴"
             aria-label="Memory 时间轴"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="sm:w-4 sm:h-4">
               <circle cx="8" cy="8" r="5.5" />
               <path d="M8 5 L 8 8 L 10.5 9.5" />
             </svg>
           </Link>
           <Link
             href="/profile"
-            className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
+            className="w-9 h-9 sm:w-8 sm:h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
             title="档案管理"
             aria-label="档案管理"
           >

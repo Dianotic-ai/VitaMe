@@ -38,7 +38,8 @@ export function ChatInput({ disabled, onSend }: ChatInputProps) {
           }}
           placeholder={disabled ? '正在回复…' : '问我吧，比如：维生素 D 该补多少'}
           rows={1}
-          className="flex-1 bg-transparent outline-none resize-none text-[14.5px] placeholder:text-text-tertiary text-text-primary max-h-32 leading-relaxed py-1"
+          /* DESIGN.md §8.4: input 字号 ≥16px，否则 iOS Safari focus 时自动 zoom */
+          className="flex-1 bg-transparent outline-none resize-none text-[16px] sm:text-[14.5px] placeholder:text-text-tertiary text-text-primary max-h-32 leading-relaxed py-1"
           style={{ minHeight: '24px' }}
           disabled={disabled}
         />
