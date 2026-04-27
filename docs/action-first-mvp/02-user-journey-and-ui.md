@@ -172,6 +172,8 @@ P1 后显示：
 缺失字段：...
 ```
 
+这条消息是本轮临时上下文，不自动写 action memory。只有用户保存由该商品生成的 routine，或显式保存商品判断时，才写入 action memory。
+
 失败时：
 
 ```text
@@ -188,6 +190,11 @@ DetailDrawer 用于透明度，不是主路径：
 - 官网解析结果。
 - 本地 action memory。
 - 清空本地数据。
+
+清空规则：
+
+- “清空今天药盒”只清空 routine，让主路径回到 P0。
+- “清空全部本地数据”清空 routine、action memory、商品解析缓存和对话。
 
 禁止在 DetailDrawer 展示多人档案表单。即使测试覆盖家人场景，也只能作为对话上下文处理。
 

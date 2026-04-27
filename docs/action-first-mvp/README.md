@@ -38,6 +38,7 @@ P0 clean chat-only
   - 不提供多人档案
   - 不展示 PersonSwitcher
   - /api/chat 不带 profile
+  - /api/chat 不带 safetyMemory
   - 不调用 /api/extract
   - 用户可直接描述症状或粘贴商品 URL
 
@@ -46,7 +47,7 @@ P0 clean chat-only
 P1 local action materialized
   - 显示早 / 中 / 晚 / 睡前
   - 写入 routine
-  - 写入 action memory event
+  - 写入用户显式确认的 action memory event
   - 可记录 3 天后效果
 ```
 
@@ -58,6 +59,7 @@ P1 local action materialized
 - P0 不能形成 profile，也不能把 profile 注入 LLM。
 - 不允许每轮对话后调用 LLM 抽取健康档案。
 - 长期上下文只能来自用户显式动作产生的 action memory event。
+- 高危 pre-check 默认只在本轮使用，不自动写长期 memory。
 - 商品输入 P0 以 URL 为核心；拍照/OCR 不进入首版核心范围。
 - 商品 URL 必须有实际抓取尝试，不能只提示用户手动粘贴。
 - Agent 回答必须服务于购买和服用行动，不是泛泛健康问答。

@@ -33,7 +33,7 @@ tags: ["action-first", "functional-design"]
 行为：
 
 - P0 请求体只包含 `sessionId` 和 `messages`。
-- P1 后可增加由 action memory 汇总出的 `safetyMemory`，但只能来自用户显式保存或反馈，不做档案抽取。
+- P1 后可增加由 action memory 汇总出的 `safetyMemory`，但只能来自用户显式保存的安全声明，不做档案抽取。
 - 不允许把完整 profile 注入 system prompt。
 
 ## 2. Safety Red Flags
@@ -55,6 +55,7 @@ tags: ["action-first", "functional-design"]
 - 不展示保存提醒 CTA。
 - 写 audit 事件。
 - 不创建任何 profile 或家人档案。
+- 不写 actionMemory，除非用户之后显式点击“记录这条安全声明”一类动作。P0 首版不提供该 CTA。
 
 ## 3. Product Inspect
 
@@ -109,11 +110,13 @@ interface ProductInspectResult {
 抓取策略：
 
 1. fetch + realistic headers。
-2. crawl4ai helper，如果本地环境已安装 Python runtime 和依赖。
-3. HTML meta / JSON-LD / visible text parser。
+2. HTML meta / JSON-LD / visible text parser。
+3. crawl4ai helper，如果本地环境已安装 Python runtime 和依赖。
 4. 用户粘贴文本 fallback。
 
 抓取失败不能假装成功。必须把失败原因和 fallback 告诉用户。
+
+crawl4ai 是增强项，不是 P0 阻塞项。它必须有超时和失败降级：失败后继续走 fetch/parser 或文本 fallback，不能让 URL 检查卡死。
 
 ## 4. Routine
 
@@ -147,12 +150,12 @@ vitame-routine-v1
 
 ## 5. Action Memory
 
-P0 不创建 profile。P1 保存 routine 或提交反馈后，写事件式 action memory。Memory 用来记录用户确认过的行动，不用来抽取健康档案。
+P0 不创建 profile。P1 保存 routine、提交反馈或显式记录判断后，写事件式 action memory。Memory 用来记录用户确认过的行动，不用来抽取健康档案。
 
 ```ts
 interface ActionMemoryEvent {
   id: string;
-  type: "routine_saved" | "product_inspected" | "feedback_recorded" | "safety_user_declared";
+  type: "routine_saved" | "product_judgment_saved" | "feedback_recorded" | "safety_user_declared";
   occurredAt: string;
   source: "explicit_user_action" | "system_safety_check";
   summary: string;
@@ -173,6 +176,8 @@ interface ActionMemoryEvent {
 - 自动疾病推断。
 
 如果用户说“我妈在吃华法林”，可以在当前对话和 safety event 中记录 anticoagulant 风险，但不能创建“妈妈”档案。
+
+`safety_user_declared` 只能来自显式保存，不来自高危 pre-check 自动命中。`product_judgment_saved` 只能来自用户保存商品判断或由商品判断生成的 routine。单纯粘贴 URL 和解析页面只写临时 Product Inspect cache。
 
 ## 6. NextActionChip
 

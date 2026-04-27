@@ -16,6 +16,15 @@ tags: ["action-first", "prd", "requirements"]
 
 在本地跑通一个可测的 Action-First MVP，让用户不建档也能完成从“症状/商品”到“怎么选、怎么买前看什么、怎么吃、怎么记录效果”的闭环。
 
+## 1.1 可衡量目标
+
+| 指标 | P0 目标 | 测量方式 |
+|---|---|---|
+| 首轮行动建议完成率 | 本地手测 5 个症状场景全部得到六段式回答 | 验收记录 M2 + 额外 seed 场景 |
+| URL 解析链路可用率 | 至少 1 个静态 fixture 成功解析，1 个 403 页面进入 fallback | Unit tests + M7/M8 |
+| Routine 保存闭环 | 症状场景能从建议进入 RoutineConfirmCard 并保存成功 | M3/M4/M5 |
+| 高危零 LLM 调用 | 华法林/孕期等高危输入不触发 LLM provider 请求 | Network 检查 M9 |
+
 ## 2. 目标用户
 
 ### 主用户
@@ -89,9 +98,8 @@ P0 禁止进入主路径：
 ## 5. 核心状态机
 
 ```text
-P0: clean chat-only
+P0: clean chat-only, no routine materialized
   routine.items = []
-  actionMemory.events = []
   /api/chat body = { sessionId, messages }
   header: logo + new chat + detail
   no PersonSwitcher
@@ -101,10 +109,14 @@ P0: clean chat-only
 P1: local action materialized
   routine.items.length > 0
   actionMemory.events contains user-confirmed routine event
-  /api/chat body may include compact safetyMemory only after explicit user action
+  /api/chat body may include compact safetyMemory only from explicit saved action memory
   header still has no PersonSwitcher
   RoutineSummaryStrip shows real slot counts
 ```
+
+状态判定只看 `routine.items.length`。`actionMemory` 是显式行动日志，不决定 P0/P1，也不能驱动 UI 进入档案模式。
+
+清空 routine 后，主路径回到 P0：顶部药盒条消失，`/api/chat` 不再携带 `safetyMemory`。历史 actionMemory 默认保留在 DetailDrawer 里，只有“清空全部本地数据”才删除。
 
 ## 6. MVP 用户流程
 
@@ -127,10 +139,12 @@ P1: local action materialized
 用户粘贴官网 URL
   → ChatInput 自动识别 URL
   → /api/product/inspect 抓取并解析
-  → 把商品事实作为用户消息发送
+  → 把商品事实作为本轮临时上下文发送
   → Agent 输出“页面写了什么 / 规格够不够 / 怎么吃 / 还缺什么”
   → 可继续整理成早 / 中 / 晚 / 睡前
 ```
+
+单纯粘贴 URL 不写 actionMemory。只有用户保存由该商品生成的 routine，或主动记录这次判断，才写 actionMemory。
 
 ### 高危拦截
 
@@ -141,6 +155,8 @@ P1: local action materialized
   → 直接返回硬路由
   → 不展示保存提醒 CTA
 ```
+
+高危输入默认只作为本轮 transient safety context，不落 actionMemory，不创建个人或家人档案。只有用户后续显式保存“安全声明”时，才允许写 `safety_user_declared` event。
 
 ## 7. Agent 回答必须包含
 
@@ -170,3 +186,14 @@ P1: local action materialized
 - 高危命中不调用 LLM。
 - 保存提醒是显式确认，不是 LLM 自动帮用户保存。
 - 清空 routine 后主路径回到干净状态。
+
+## 9. 已关闭的产品决策
+
+| 问题 | 决策 |
+|---|---|
+| 高危输入是否持久化 | 默认不持久化，只做本轮 pre-check；显式保存安全声明才写 actionMemory |
+| 清空 routine 是否删除 actionMemory | 不默认删除；主路径回 P0，历史只在 DetailDrawer；“清空全部本地数据”才删除 |
+| Product Inspect 是否写 memory | 单纯 URL 解析不写；保存方案或主动记录判断才写 |
+| crawl4ai 是否必须 | 不是必须，不能阻塞 P0；fetch/parser 先满足 fixture 和 fallback |
+| `safetyMemory` 是否进入 LLM | 仅 P1 且仅来自显式 actionMemory 摘要；P0 永不注入 |
+| 旧 `vitame-profile-v2` 如何处理 | 不迁移、不读取、不展示为 MVP 状态源 |

@@ -82,7 +82,7 @@ Routine saved
   ↓
 append actionMemory event
   ↓
-future /api/chat may include compact safetyMemory summary only
+future /api/chat may include compact safetyMemory summary only when routine exists
 ```
 
 P1 请求体可选：
@@ -118,10 +118,12 @@ return ProductInspectResult
   ↓
 formatProductInspectMessage
   ↓
-send as user message
+send as temporary product context message
   ↓
 LLM compares product facts with user need
 ```
+
+这条流程默认不写 actionMemory。商品事实只缓存到 `vitame-product-inspect-v1`，用于透明展示和 DetailDrawer。只有用户保存 routine 或显式保存商品判断时，才写 actionMemory。
 
 抓取失败：
 
@@ -157,14 +159,16 @@ RoutineSummaryStrip appears
 
 保存是唯一物化点。不能由 LLM tool-call 自动写入 routine。
 
+RoutineDrawer 的“清空今天药盒”只清空 `vitame-routine-v1`，让主路径回到 P0。它不删除 `vitame-action-memory-v1`。DetailDrawer 的“清空全部本地数据”才同时清空 routine、actionMemory、productInspect cache 和 conversation。
+
 ## 5. LocalStorage Keys
 
 | Key | 内容 | P0 初始 |
 |---|---|---|
 | `vitame-conversation-v1` | 对话历史 | 可为空 |
 | `vitame-routine-v1` | 早 / 中 / 晚 / 睡前条目 | `items=[]` |
-| `vitame-action-memory-v1` | 显式行动事件 | `events=[]` |
-| `vitame-product-inspect-v1` | 最近一次解析结果缓存 | 可为空 |
+| `vitame-action-memory-v1` | 显式行动事件，不决定 P0/P1 | `events=[]` |
+| `vitame-product-inspect-v1` | 最近一次解析结果缓存，不是 memory | 可为空 |
 
 现有 `vitame-profile-v2` 不能作为 Action-First MVP 状态源。若旧数据存在，P0 UI 仍不能展示 profile 主路径，也不能自动迁移成多人档案。
 
@@ -176,7 +180,7 @@ P0：
 <retrieved_facts>...</retrieved_facts>
 ```
 
-P1 可选：
+P1 可选，仅当 `routine.items.length > 0` 且存在显式保存的 safety action memory：
 
 ```xml
 <safety_memory>
@@ -205,6 +209,7 @@ P1 可选：
 | Product parse empty | 返回 missingFields，不进入推荐 |
 | Safety red flag | 静态硬路由 |
 | LocalStorage unavailable | 降级为本轮 session 内存状态 |
+| crawl4ai timeout/error | 降级到 fetch/parser 或文本 fallback，不阻塞 URL 流程 |
 
 ## 8. 隐私约束
 
@@ -214,3 +219,4 @@ P1 可选：
 - 本地提醒不上传。
 - 商品 URL 可以发给服务器抓取，但必须由用户主动提供。
 - 官网抓取结果作为商品事实，不作为健康档案。
+- 高危 pre-check 默认不持久化用户原话。

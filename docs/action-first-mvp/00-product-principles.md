@@ -85,12 +85,14 @@ Memory 可以做，但必须是事件式：
 
 ```text
 routine_saved
-product_inspected
+product_judgment_saved
 feedback_recorded
 safety_user_declared
 ```
 
 禁止把每轮对话抽取为 conditions、ageRange、sex、conversationSummary。这样的抽取隐私压力大、成本高，也会把产品重新推回档案系统。
+
+单纯粘贴 URL 和解析商品页不写 action memory；只有用户保存方案、保存商品判断或提交反馈时才写。高危 pre-check 命中默认只在本轮使用，不持久化用户原话。
 
 ### 4.4 Product facts before recommendation
 

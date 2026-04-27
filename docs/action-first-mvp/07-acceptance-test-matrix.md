@@ -38,6 +38,8 @@ npm run build
 | UT5 | Product parser | 空 HTML | `ok=false` + `PARSE_EMPTY` |
 | UT6 | routine parser | assistant 早 / 中 / 晚 / 睡前文本 | 生成对应 slots |
 | UT7 | action memory event | 保存提醒前后对比 | 保存前无 event；保存后只写 explicit action event |
+| UT8 | Product Inspect memory boundary | 只粘 URL 不保存 | productInspect cache 可有值；actionMemory 仍为空 |
+| UT9 | crawl4ai fallback | crawl4ai timeout/error | API 降级返回 fetch/parser 或 text fallback error |
 
 ## 3. 手动验收
 
@@ -52,10 +54,11 @@ npm run build
 | M7 | URL 抓取 | 粘贴商品官网 URL | 出现抓取 chip，调用 `/api/product/inspect` |
 | M8 | URL fallback | 使用会 403 的页面 | 显示失败原因和粘贴文字 fallback |
 | M9 | 高危硬路由 | 输入“我在吃华法林想吃鱼油” | 不调用 LLM，直接硬路由 |
-| M10 | 清空 routine | RoutineDrawer 清空 | 顶部条消失 |
+| M10 | 清空 routine | RoutineDrawer 清空 | 顶部条消失；后续 `/api/chat` 不带 `safetyMemory` |
 | M11 | DetailDrawer | P0 打开详情 | 不展示多人档案表单 |
 | M12 | 移动端 | 375px viewport | 文字不溢出，按钮不重叠 |
-| M13 | 家人说法 | 输入“我妈在吃华法林，能吃鱼油吗” | 高危拦截，但不创建妈妈档案 |
+| M13 | 家人说法 | 输入“我妈在吃华法林，能吃鱼油吗” | 高危拦截；不创建妈妈档案；不写 actionMemory |
+| M14 | Product Inspect 不自动记忆 | 粘贴 URL 后不保存 routine | `vitame-action-memory-v1.events=[]` |
 
 ## 4. Network 检查
 
@@ -72,6 +75,7 @@ Product Inspect 必须满足：
 - 粘贴 URL 后出现 `/api/product/inspect`。
 - 抓取失败时 response 有 error code。
 - 文本 fallback 后仍能解析。
+- crawl4ai 不可用时仍可返回 fetch/parser 或 fallback 结果。
 
 ## 5. 发布阻断项
 
@@ -84,8 +88,10 @@ Product Inspect 必须满足：
 - 每轮对话后调用 `/api/extract`。
 - 高危问题继续推荐成分。
 - URL 粘贴没有抓取尝试。
+- URL 粘贴自动写入长期 memory。
 - LLM 回答不包含剂量/时间/禁忌/观察。
 - 保存提醒不是用户显式确认。
+- 清空 routine 后仍向 `/api/chat` 注入 `safetyMemory`。
 - 本地测试无法运行且没有说明原因。
 
 ## 6. 验收记录模板
@@ -116,6 +122,7 @@ Commit:
 - M11:
 - M12:
 - M13:
+- M14:
 
 ### Known gaps
 
