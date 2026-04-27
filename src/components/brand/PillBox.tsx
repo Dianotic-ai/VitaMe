@@ -225,6 +225,13 @@ export function PillBoxStrip({ forceHide }: StripProps) {
     });
   }
 
+  // v0.4 D14.3 自适应（Sunny 选 A）：只渲染有 rule 的 slot，避免单提醒下 3 格空白
+  const visibleSlots = SLOTS.filter((slot) => grouped[slot.key].length > 0);
+  if (visibleSlots.length === 0) return null;
+
+  // viewBox 宽随活的 slot 数自适应；最小 160 保证单格也不太窄
+  const STRIP_WIDTH = Math.max(160, visibleSlots.length * 80);
+
   return (
     <div
       className="bg-surface border-b border-border-subtle px-3 py-2 flex justify-center animate-slide-up"
@@ -233,7 +240,7 @@ export function PillBoxStrip({ forceHide }: StripProps) {
     >
       <svg
         width="100%"
-        viewBox="0 0 320 76"
+        viewBox={`0 0 ${STRIP_WIDTH} 76`}
         preserveAspectRatio="xMidYMid meet"
         style={{ maxWidth: 360, height: STRIP_HEIGHT }}
         aria-hidden="true"
@@ -242,9 +249,8 @@ export function PillBoxStrip({ forceHide }: StripProps) {
           <SoilTexture />
         </defs>
 
-        {/* 容器：4 格等宽，外框 1.5px */}
-        {SLOTS.map((slot, i) => {
-          const cellWidth = (320 - 8) / 4; // 8px 总外边距
+        {visibleSlots.map((slot, i) => {
+          const cellWidth = (STRIP_WIDTH - 8) / visibleSlots.length;
           const x = 4 + i * cellWidth;
           const y = 4;
           const w = cellWidth - 2;
@@ -254,8 +260,8 @@ export function PillBoxStrip({ forceHide }: StripProps) {
           return (
             <g key={slot.key}>
               {/* 格底 + 土壤纹 */}
-              <rect x={x} y={y} width={w} height={h} rx={9} ry={9} fill={CELL_BG} />
-              <rect x={x} y={y} width={w} height={h} rx={9} ry={9} fill={`url(#${SOIL_PATTERN_ID})`} />
+              <rect x={x} y={y} width={w} height={h} rx={10} ry={10} fill={CELL_BG} />
+              <rect x={x} y={y} width={w} height={h} rx={10} ry={10} fill={`url(#${SOIL_PATTERN_ID})`} />
               {/* 外框 */}
               <rect
                 x={x}
@@ -265,26 +271,13 @@ export function PillBoxStrip({ forceHide }: StripProps) {
                 rx={10}
                 ry={10}
                 fill="none"
-                stroke={slotRules.length > 0 ? FRAME : '#8B6B4A'}
-                strokeWidth={slotRules.length > 0 ? 1.1 : 0.9}
-                strokeOpacity={slotRules.length > 0 ? 0.7 : 0.3}
+                stroke={FRAME}
+                strokeWidth={1.1}
+                strokeOpacity={0.7}
               />
 
-              {/* 药丸 / 空占位 */}
-              {slotRules.length === 0 ? (
-                <text
-                  x={x + w / 2}
-                  y={y + h / 2 + 5}
-                  textAnchor="middle"
-                  fill="#8A8278"
-                  fontSize="14"
-                  fontFamily="sans-serif"
-                >
-                  -
-                </text>
-              ) : (
-                renderPillsInCell({ slotRules, x, y, w, h, supplementsById, onPillClick: handlePillClick })
-              )}
+              {/* 药丸 */}
+              {renderPillsInCell({ slotRules, x, y, w, h, supplementsById, onPillClick: handlePillClick })}
 
               {/* 格下标签 */}
               <text
@@ -324,15 +317,26 @@ export function PillBoxFull({ onPillTap }: FullProps) {
   const activeRules = rules.filter((r) => !r.paused);
   const grouped = groupRulesBySlot(activeRules);
 
+  // v0.4 D14.3 自适应：跟 Strip 一致，只渲染有 rule 的 slot
+  const visibleSlots = SLOTS.filter((slot) => grouped[slot.key].length > 0);
+  if (visibleSlots.length === 0) return null;
+
+  const FULL_WIDTH = Math.max(240, visibleSlots.length * 120);
+
   return (
     <div className="bg-surface rounded-[12px] p-4 shadow-elev-1 border border-border-subtle">
-      <svg width="100%" viewBox="0 0 480 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <svg
+        width="100%"
+        viewBox={`0 0 ${FULL_WIDTH} 220`}
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+      >
         <defs>
           <SoilTexture />
         </defs>
 
-        {SLOTS.map((slot, i) => {
-          const cellWidth = (480 - 16) / 4;
+        {visibleSlots.map((slot, i) => {
+          const cellWidth = (FULL_WIDTH - 16) / visibleSlots.length;
           const x = 8 + i * cellWidth;
           const y = 8;
           const w = cellWidth - 6;
@@ -353,32 +357,19 @@ export function PillBoxFull({ onPillTap }: FullProps) {
                 fill="none"
                 stroke={FRAME}
                 strokeWidth="1.5"
-                strokeOpacity={slotRules.length > 0 ? 0.85 : 0.4}
+                strokeOpacity={0.85}
               />
 
-              {slotRules.length === 0 ? (
-                <text
-                  x={x + w / 2}
-                  y={y + h / 2 + 5}
-                  textAnchor="middle"
-                  fill="#8A8278"
-                  fontSize="20"
-                  fontFamily="sans-serif"
-                >
-                  -
-                </text>
-              ) : (
-                renderPillsInCell({
-                  slotRules,
-                  x,
-                  y,
-                  w,
-                  h,
-                  supplementsById,
-                  onPillClick: onPillTap,
-                  largeMode: true,
-                })
-              )}
+              {renderPillsInCell({
+                slotRules,
+                x,
+                y,
+                w,
+                h,
+                supplementsById,
+                onPillClick: onPillTap,
+                largeMode: true,
+              })}
 
               <text
                 x={x + w / 2}
