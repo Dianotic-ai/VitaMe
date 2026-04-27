@@ -170,11 +170,11 @@ NEXT_PUBLIC_AGENT_MODE=1
 | 文件 | 用途 |
 |---|---|
 | [`CLAUDE.md`](./CLAUDE.md) | v3.0 工程基线（必读）|
-| [`docs/SESSION-STATE.md`](./docs/SESSION-STATE.md) | 当前进度 ledger |
+| [`docs/START-HERE.md`](./docs/START-HERE.md) | 10 分钟入口 |
+| [`docs/v0.4-engineering-spec/`](./docs/v0.4-engineering-spec/) | **9 篇当前实现工程规格（核心）** |
 | [`docs/product/Agent-北极星.md`](./docs/product/Agent-北极星.md) | 长期方向 |
-| [`docs/product/P0-执行总纲.md`](./docs/product/P0-执行总纲.md) | P0 基线 |
 | [`docs/v0.4-handoff-2026-04-26.md`](./docs/v0.4-handoff-2026-04-26.md) | v0.4 partner 验证清单 |
-| [`docs/engineering/specs/`](./docs/engineering/specs/) | API 契约 / data flow / 合规 |
+| [`docs/v0.4-vs-action-first-divergence.md`](./docs/v0.4-vs-action-first-divergence.md) | 代码 vs Kevin 文档已知矛盾 |
 | [`docs/known-blockers.md`](./docs/known-blockers.md) | 部署 / fetch / SSL 等已知坑 |
 
 ---
