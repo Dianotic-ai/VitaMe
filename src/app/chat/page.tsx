@@ -294,6 +294,17 @@ function ChatBody() {
             <PlusLineIcon className="w-4 h-4" />
           </button>
           <Link
+            href="/reminders"
+            className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
+            title="提醒中心"
+            aria-label="提醒中心"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 2.5 C 5.5 2.5 4 4.3 4 7 L 4 9 L 3 11.5 L 13 11.5 L 12 9 L 12 7 C 12 4.3 10.5 2.5 8 2.5 Z" />
+              <path d="M6.5 12.5 C 6.5 13.4 7.2 14 8 14 C 8.8 14 9.5 13.4 9.5 12.5" />
+            </svg>
+          </Link>
+          <Link
             href="/memory"
             className="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-warm flex items-center justify-center transition-colors"
             title="Memory 时间轴"
