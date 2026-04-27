@@ -88,11 +88,14 @@ function ChatBody() {
     setFeedbackTrigger(null);
   }
 
-  const storedMessages = useConversationStore((s) => s.messages);
+  // Codex Finding #1: 按 personId 隔离历史；切换 person 时 useChat 通过 key 强制 remount
+  const storedMessages = useConversationStore((s) => s.messagesByPersonId[activePerson.id] ?? []);
   const setStoredMessages = useConversationStore((s) => s.setMessages);
   const clearStoredMessages = useConversationStore((s) => s.clearMessages);
 
   const { messages, sendMessage, status, setMessages, addToolResult } = useChat({
+    // 用 person.id 当 chat id → 切换 person 时 useChat 实例 reset
+    id: `chat-${activePerson.id}`,
     messages: storedMessages,
     transport: new DefaultChatTransport({
       api: '/api/chat',
@@ -109,23 +112,40 @@ function ChatBody() {
 
   useEffect(() => {
     if (status === 'streaming') return;
-    setStoredMessages(messages as UIMessage[]);
-  }, [messages, status, setStoredMessages]);
+    setStoredMessages(activePerson.id, messages as UIMessage[]);
+  }, [messages, status, setStoredMessages, activePerson.id]);
 
   const lastMsg = messages[messages.length - 1];
   const lastIsAssistant = lastMsg?.role === 'assistant';
 
+  // Codex Finding #2: hydration 重新打开 chat 不要重复 fire /api/extract + verify event
+  // 用 ref 记录"本次会话已处理的 lastMsg.id"集合 — hydration 阶段把所有已存历史的最后一条
+  // assistant id 标记成"已处理"，仅新到达的 assistant 才触发 extract。
+  const processedExtractRef = useRef<Set<string>>(new Set());
+  const hydrationDoneRef = useRef(false);
+  useEffect(() => {
+    // 首次 hydrate：把已存历史里所有 assistant id 标"已处理"，避免误触发
+    if (!hydrationDoneRef.current && messages.length > 0 && status !== 'streaming') {
+      for (const m of messages) {
+        if (m.role === 'assistant') processedExtractRef.current.add(m.id);
+      }
+      hydrationDoneRef.current = true;
+    }
+  }, [messages, status]);
+
   useEffect(() => {
     if (status !== 'ready') return;
-    if (!lastIsAssistant || messages.length < 2) return;
+    if (!lastIsAssistant || messages.length < 2 || !lastMsg) return;
+    if (processedExtractRef.current.has(lastMsg.id)) return; // 已处理过，跳过
 
     const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
-    if (!lastUserMsg || !lastMsg) return;
+    if (!lastUserMsg) return;
 
     const userText = extractText(lastUserMsg);
     const assistantText = extractText(lastMsg);
     if (!userText || !assistantText) return;
 
+    processedExtractRef.current.add(lastMsg.id); // 标记已处理（fetch 失败也不重试）
     const ctrl = new AbortController();
     fetch('/api/extract', {
       method: 'POST',
@@ -152,6 +172,7 @@ function ChatBody() {
           metadata: {
             sessionId: profile.sessionId,
             summaryTopics: data?.delta?.conversationSummary?.topics ?? [],
+            sourceMessageId: lastMsg.id,
           },
         });
 
@@ -173,7 +194,13 @@ function ChatBody() {
 
     return () => ctrl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, lastMsg?.id]);
+  }, [status, lastMsg?.id, activePerson.id]);
+
+  // 切换 person 时清空"本次会话已处理"标记 — 让新 person 的历史走自己的 hydration
+  useEffect(() => {
+    processedExtractRef.current.clear();
+    hydrationDoneRef.current = false;
+  }, [activePerson.id]);
 
   // 监听 create_reminder tool-call 并落本地 store（北极星 §9.8 隐私底线 — 数据不出本机）
   const processedToolCallsRef = useRef<Set<string>>(new Set());
@@ -257,11 +284,13 @@ function ChatBody() {
 
   function handleNewChat() {
     if (typeof window !== 'undefined' && messages.length > 0) {
-      const ok = window.confirm('开始新对话？当前对话记录会清空，但你的健康档案保留。');
+      const ok = window.confirm(`开始 "${activePerson.name}" 的新对话？当前 person 的对话记录会清空，其他家人不受影响。`);
       if (!ok) return;
     }
     setMessages([]);
-    clearStoredMessages();
+    clearStoredMessages(activePerson.id);
+    processedExtractRef.current.clear();
+    hydrationDoneRef.current = false;
   }
 
   return (

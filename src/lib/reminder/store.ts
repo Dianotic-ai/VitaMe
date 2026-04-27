@@ -16,6 +16,8 @@ interface ReminderState {
   removeRule: (ruleId: string) => void;
   removeBySupplement: (supplementId: string) => void;
   removeByPerson: (personId: string) => void;
+  /** 销毁全部档案 cascade 用 */
+  clearAll: () => void;
   ackRule: (ruleId: string, action: AckAction) => void;
   /** 给 D4 banner 用：当前 person 有哪些 rule 该触发 */
   computeDueRules: (personId: string, nowISO?: string) => ReminderRule[];
@@ -70,6 +72,8 @@ export const useReminderStore = create<ReminderState>()(
       removeByPerson: (personId) => set((state) => ({
         rules: state.rules.filter((r) => r.personId !== personId),
       })),
+
+      clearAll: () => set({ rules: [] }),
 
       ackRule: (ruleId, action) => set((state) => ({
         rules: state.rules.map((r) => {

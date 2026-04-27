@@ -7,6 +7,7 @@ import { useState, type FormEvent } from 'react';
 import { useProfileStore } from '@/lib/profile/profileStore';
 import { useReminderStore } from '@/lib/reminder/store';
 import { useEventStore } from '@/lib/memory/eventStore';
+import { useConversationStore } from '@/lib/chat/conversationStore';
 import type { AgeRange, Person, Relation, Sex } from '@/lib/profile/types';
 import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
 import { PersonMark } from '@/components/brand/PersonMark';
@@ -39,7 +40,11 @@ export default function ProfilePage() {
   const removeSupplementRaw = useProfileStore((s) => s.removeSupplement);
   const removeReminderBySupplement = useReminderStore((s) => s.removeBySupplement);
   const removeReminderByPerson = useReminderStore((s) => s.removeByPerson);
+  const clearAllReminders = useReminderStore((s) => s.clearAll);
   const removeMemoryByPerson = useEventStore((s) => s.removeByPerson);
+  const clearAllMemory = useEventStore((s) => s.clearAll);
+  const clearConversationByPerson = useConversationStore((s) => s.clearMessages);
+  const clearAllConversations = useConversationStore((s) => s.clearAll);
 
   function removeSupplement(supplementId: string) {
     removeSupplementRaw(supplementId);
@@ -113,10 +118,11 @@ export default function ProfilePage() {
       return;
     }
     const target = profile.people.find((p) => p.id === personId);
-    if (window.confirm(`删除 "${target?.name}" 的档案？该家人的所有健康信息 + 提醒规则 + Memory 事件都将永久清除。`)) {
+    if (window.confirm(`删除 "${target?.name}" 的档案？该家人的所有健康信息 + 提醒规则 + Memory 事件 + 对话历史都将永久清除。`)) {
       removePerson(personId);
       removeReminderByPerson(personId);
       removeMemoryByPerson(personId);
+      clearConversationByPerson(personId);
     }
   }
 
@@ -130,13 +136,27 @@ export default function ProfilePage() {
   }
 
   function handleClearActive() {
-    if (window.confirm(`清空 "${active.name}" 档案的全部健康条目？该 Person 本身保留。`)) {
+    if (
+      window.confirm(
+        `清空 "${active.name}" 的全部数据？\n\n会一起清除：\n• 健康档案（疾病/用药/过敏/在吃保健品）\n• 该 person 的提醒规则\n• 该 person 的 Memory 事件流\n• 该 person 的对话历史\n\n该 Person 本身保留。不可撤回。`
+      )
+    ) {
       clearActivePerson();
+      removeReminderByPerson(active.id);
+      removeMemoryByPerson(active.id);
+      clearConversationByPerson(active.id);
     }
   }
   function handleClearAll() {
-    if (window.confirm('销毁全部档案（所有家人 + 你自己），不可撤回。继续？')) {
+    if (
+      window.confirm(
+        '销毁全部本地档案？\n\n会一起清除：\n• 所有家人 + 我自己的健康档案\n• 全部提醒规则\n• 全部 Memory 事件\n• 全部对话历史\n\n保留：archive 历史报告（v0.2 老路径产物，单独清理）。\n\n不可撤回。'
+      )
+    ) {
       clearAll();
+      clearAllReminders();
+      clearAllMemory();
+      clearAllConversations();
     }
   }
 
@@ -543,7 +563,7 @@ export default function ProfilePage() {
               onClick={handleClearActive}
               className="px-3 py-2 text-[12px] bg-disclaimer-bg text-disclaimer-text border border-disclaimer-border rounded-md hover:bg-disclaimer-bg/80"
             >
-              清空"{active.name}"档案
+              清空「{active.name}」档案
             </button>
             <button
               onClick={handleClearAll}
