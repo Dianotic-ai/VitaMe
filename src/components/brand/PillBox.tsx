@@ -69,13 +69,66 @@ interface PillProps {
   title?: string;
 }
 
+// ---------- 开花（acked 时种子破壳长出小花，§11.1 第 3 阶段「开花」）----------
+
+function BloomFlower({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  // 茎从胶囊顶部往上 r*0.8，花心再往上 r*0.6
+  const stemBottomY = cy - r * 0.5;
+  const stemTopY = cy - r * 1.4;
+  const flowerCenterY = cy - r * 1.95;
+  const petalRx = r * 0.32;
+  const petalRy = r * 0.55;
+  const petalDist = r * 0.55;
+  const stroke = Math.max(0.6, r * 0.13);
+
+  return (
+    <g style={{ pointerEvents: 'none' }}>
+      {/* 细茎（深林绿） */}
+      <line
+        x1={cx}
+        y1={stemBottomY}
+        x2={cx}
+        y2={stemTopY}
+        stroke={PILL_GREEN}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+      />
+      {/* 1 片侧叶 */}
+      <path
+        d={`M ${cx} ${cy - r * 0.95} Q ${cx + r * 0.55} ${cy - r * 1.05} ${cx + r * 0.4} ${cy - r * 0.7}`}
+        stroke={PILL_GREEN}
+        strokeWidth={stroke * 0.85}
+        fill="none"
+        strokeLinecap="round"
+      />
+      {/* 5 瓣花 */}
+      <g transform={`translate(${cx} ${flowerCenterY})`}>
+        {[0, 72, 144, 216, 288].map((angle) => (
+          <ellipse
+            key={angle}
+            cx="0"
+            cy={-petalDist}
+            rx={petalRx}
+            ry={petalRy}
+            fill={PILL_GREEN}
+            opacity={0.9}
+            transform={`rotate(${angle})`}
+          />
+        ))}
+        {/* 花心 — 种子棕 */}
+        <circle cx="0" cy="0" r={Math.max(0.8, r * 0.22)} fill={PILL_BROWN} />
+      </g>
+    </g>
+  );
+}
+
 function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
-  // v0.4 D14.2 用户决策：胶囊形 + 斜放，覆盖 DESIGN.md §11.5「Avoid pharmaceutical capsule」契约
-  // 理由：纯实心圆 + 暗色 = 炸弹感太重；胶囊+斜放更轻盈，且符合"保健品"主题
-  // 默认 #8B6B4A（种子棕）；acked 时上半 #8B6B4A 下半 #2D5A3D（半发芽双色感）
-  const capW = r * 2.6; // 胶囊总长（横向）— ~2.6r
-  const capH = r * 1.05; // 胶囊高度
-  const angleDeg = -22; // 左下→右上斜，暗示生长方向
+  // 胶囊形 + 斜放（v0.4 D14.2 决策，覆盖 DESIGN.md §11.5「Avoid pharmaceutical capsule」契约）
+  // 默认（unacked）= 种子状态的胶囊
+  // acked = 胶囊变浅（壳色淡）+ 顶部破壳长出 5 瓣小花（§11.1「开花」阶段）
+  const capW = r * 2.6;
+  const capH = r * 1.05;
+  const angleDeg = -22;
   const transform = `rotate(${angleDeg} ${cx} ${cy})`;
   const x = cx - capW / 2;
   const y = cy - capH / 2;
@@ -83,76 +136,61 @@ function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
 
   return (
     <g
-      style={{ cursor: onClick ? 'pointer' : 'default' }}
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
+      style={{ cursor: onClick && !acked ? 'pointer' : 'default' }}
+      onClick={onClick && !acked ? onClick : undefined}
+      role={onClick && !acked ? 'button' : undefined}
       aria-label={title}
     >
       {title && <title>{title}</title>}
       <g transform={transform}>
-        {acked ? (
-          <>
-            {/* 双色胶囊：上半棕 = 种子壳，下半绿 = 已发芽内核 */}
-            <defs>
-              <clipPath id={`cap-clip-${Math.round(cx)}-${Math.round(cy)}`}>
-                <rect x={x} y={y} width={capW} height={capH} rx={ry} ry={ry} />
-              </clipPath>
-            </defs>
-            <g clipPath={`url(#cap-clip-${Math.round(cx)}-${Math.round(cy)})`}>
-              <rect x={x} y={y} width={capW / 2} height={capH} fill={PILL_BROWN} />
-              <rect x={x + capW / 2} y={y} width={capW / 2} height={capH} fill={PILL_GREEN} />
-              {/* 中线极淡分隔 */}
-              <line
-                x1={x + capW / 2}
-                y1={y}
-                x2={x + capW / 2}
-                y2={y + capH}
-                stroke="#FAF7F2"
-                strokeWidth={0.5}
-                opacity={0.45}
-              />
-            </g>
-            {/* 外缘 */}
-            <rect
-              x={x}
-              y={y}
-              width={capW}
-              height={capH}
-              rx={ry}
-              ry={ry}
-              fill="none"
-              stroke="#5C4A2E"
-              strokeOpacity={0.18}
-              strokeWidth={0.6}
-            />
-          </>
-        ) : (
-          <>
-            <rect x={x} y={y} width={capW} height={capH} rx={ry} ry={ry} fill={PILL_BROWN} />
-            {/* 上半轻微暗调 — 暗示胶囊接缝，避免单调 */}
-            <rect
-              x={x}
-              y={y}
-              width={capW}
-              height={capH / 2}
-              rx={ry}
-              ry={ry}
-              fill="#5C4A2E"
-              opacity={0.1}
-            />
-            {/* 中线极淡 */}
-            <line
-              x1={x + capW / 2}
-              y1={y + ry * 0.45}
-              x2={x + capW / 2}
-              y2={y + capH - ry * 0.45}
-              stroke="#FAF7F2"
-              strokeWidth={0.4}
-              opacity={0.35}
-            />
-          </>
+        {/* 胶囊本体 — acked 时变浅（开过的种子壳） */}
+        <rect
+          x={x}
+          y={y}
+          width={capW}
+          height={capH}
+          rx={ry}
+          ry={ry}
+          fill={PILL_BROWN}
+          opacity={acked ? 0.45 : 1}
+        />
+        {/* 上半淡暗调（接缝暗示） */}
+        {!acked && (
+          <rect
+            x={x}
+            y={y}
+            width={capW}
+            height={capH / 2}
+            rx={ry}
+            ry={ry}
+            fill="#5C4A2E"
+            opacity={0.1}
+          />
+        )}
+        {/* 中线 */}
+        <line
+          x1={x + capW / 2}
+          y1={y + ry * 0.45}
+          x2={x + capW / 2}
+          y2={y + capH - ry * 0.45}
+          stroke="#FAF7F2"
+          strokeWidth={0.4}
+          opacity={acked ? 0.5 : 0.35}
+        />
+        {/* acked 时在胶囊顶部画一条小裂痕（"破壳"） */}
+        {acked && (
+          <path
+            d={`M ${x + capW * 0.35} ${y + 0.5} L ${x + capW * 0.5} ${y - 0.3} L ${x + capW * 0.62} ${y + 0.6}`}
+            stroke="#5C4A2E"
+            strokeWidth={0.5}
+            strokeOpacity={0.55}
+            fill="none"
+            strokeLinecap="round"
+          />
         )}
       </g>
+      {/* 花在胶囊外、不跟胶囊一起转，保持向上"长" */}
+      {acked && <BloomFlower cx={cx} cy={cy} r={r} />}
     </g>
   );
 }
