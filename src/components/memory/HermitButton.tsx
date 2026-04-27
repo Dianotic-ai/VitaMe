@@ -3,6 +3,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useProfileStore } from '@/lib/profile/profileStore';
 import { useEventStore } from '@/lib/memory/eventStore';
 import { PlusLineIcon } from '@/components/brand/Icons';
@@ -17,7 +18,8 @@ interface ObservationOutput {
 
 export function HermitButton({ personId }: { personId: string }) {
   const profile = useProfileStore((s) => s.profile);
-  const events = useEventStore((s) => s.events.filter((e) => e.personId === personId));
+  // zustand v5：useShallow 防止 inline .filter 触发 #185 Max update depth
+  const events = useEventStore(useShallow((s) => s.events.filter((e) => e.personId === personId)));
   const appendEvent = useEventStore((s) => s.appendEvent);
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState<{ count: number; ts: string } | null>(null);

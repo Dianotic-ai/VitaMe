@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useReminderStore } from '@/lib/reminder/store';
 import type { ReminderRule } from '@/lib/reminder/types';
 import { TrashLineIcon, PlusLineIcon } from '@/components/brand/Icons';
@@ -15,7 +16,9 @@ interface Props {
 const DAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'];
 
 export function ReminderRuleEditor({ personId, supplementId, supplementName }: Props) {
-  const rules = useReminderStore((s) => s.rules.filter((r) => r.supplementId === supplementId));
+  // zustand v5：inline .filter 每次返回新数组会触发 #185 Max update depth；
+  // useShallow 做浅比较，仅当内容真变才 re-render
+  const rules = useReminderStore(useShallow((s) => s.rules.filter((r) => r.supplementId === supplementId)));
   const addRule = useReminderStore((s) => s.addRule);
   const removeRule = useReminderStore((s) => s.removeRule);
   const updateRule = useReminderStore((s) => s.updateRule);
