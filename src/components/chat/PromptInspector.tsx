@@ -73,7 +73,7 @@ export function PromptInspector({ onClose }: Props) {
           <div className="text-[12px] text-text-secondary leading-relaxed bg-stream-soft/40 border border-stream/20 rounded-card px-3 py-2">
             <p className="font-medium text-text-primary mb-1">VitaMe 透明度</p>
             <p>
-              每次你发送消息，下面这段 XML 会被注入 AI 的提示词中，告诉它你的健康状况。这样它能避免推荐跟你的疾病/用药冲突的补剂。
+              每次你发送消息，下面这段 XML 会被注入 AI 的提示词中，告诉它你的健康状况。这样它能避免推荐跟你的疾病/用药冲突的保健品。
             </p>
             <p className="mt-1.5 text-text-tertiary">
               所有数据 <strong className="text-seed">仅在你的浏览器</strong>，不上传服务器。

@@ -16,15 +16,16 @@ import { z } from 'zod';
 
 export const chatTools = {
   create_reminder: tool({
-    description: `为当前 active person 的某个补剂创建每日吃药提醒。
+    description: `为当前 active person 的某个保健品创建每日吃药提醒。
 当用户说类似"鱼油设置提醒"/"提醒我吃X"/"X每天X点提醒我"时调用本工具。
 提醒数据仅存用户本机 LocalStorage，不上传服务器。
-如果该补剂还没在 user_profile 的"正在吃的补剂"里，工具会自动加上。`,
+如果该保健品还没在 user_profile 的"正在吃的保健品"里，工具会自动加上。
+（注：用户可能用"保健品 / 补品 / 营养品 / 补剂"等词，都识别为同一类。）`,
     inputSchema: z.object({
       supplementMention: z
         .string()
         .min(1)
-        .describe('补剂名字，与用户口语保持一致（如"鱼油"、"维生素D"、"Q10"、"善存"）。不要翻译成英文。'),
+        .describe('保健品名字，与用户口语保持一致（如"鱼油"、"维生素D"、"Q10"、"善存"）。不要翻译成英文。'),
       timeOfDay: z
         .string()
         .regex(/^([01]\d|2[0-3]):[0-5]\d$/, '必须是 HH:MM 24h 格式')

@@ -28,7 +28,7 @@ interface HermitRequest {
   personName?: string;
   personRelation?: string;
   events: MemoryEventInput[];
-  /** 当前 active person 的当前补剂列表（用于 observation 引用） */
+  /** 当前 active person 的在吃保健品列表（用于 observation 引用） */
   currentSupplements?: { supplementId: string; mention: string; dosage?: string; schedule?: string }[];
 }
 
@@ -77,7 +77,7 @@ const HERMIT_PROMPT = `你是 VitaMe 的 Hermit Agent — 一个**周期性归�
 
 # 输入数据
 下方 <events> 是用户最近的 Memory events JSON。
-<currentSupplements> 是用户在吃的补剂。
+<currentSupplements> 是用户在吃的保健品（用户口语可能叫"保健品 / 补品 / 营养品 / 补剂"，都是同一类）。
 
 输出 JSON 数组（仅 observation 对象，不要包 root key）：[{...}, {...}]`;
 

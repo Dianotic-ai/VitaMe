@@ -28,7 +28,7 @@ export function EmptyState({ onSeed }: Props) {
           都有自己的答案。
         </h2>
         <p className="text-[13px] text-text-secondary leading-relaxed mb-7 px-2">
-          聊聊你想了解的保健品 — 成分、剂量、跟现有用药冲不冲突，我帮你辨别。
+          你的保健品顾问 + 服用伴侣 — 选对、吃对，越吃越懂你。
         </p>
 
         <div className="text-left">

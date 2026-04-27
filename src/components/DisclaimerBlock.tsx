@@ -9,7 +9,7 @@ interface Props {
 }
 
 const DISCLAIMER_TEXT =
-  'VitaMe 提供补剂安全信息和决策辅助，不提供疾病诊断、医疗结论或处方建议。如有疾病、持续症状或高风险情况，请及时咨询医生。';
+  'VitaMe 提供保健品安全信息和决策辅助，不提供疾病诊断、医疗结论或处方建议。如有疾病、持续症状或高风险情况，请及时咨询医生。';
 
 export function DisclaimerBlock({ className }: Props) {
   return (

@@ -387,8 +387,8 @@ export default function ProfilePage() {
           />
         </Section>
 
-        {/* 正在吃的补剂（北极星 §3 Reminder 数据源）*/}
-        <Section title="正在吃的补剂" count={active.currentSupplements.length}>
+        {/* 正在吃的保健品（北极星 §3 Reminder 数据源）*/}
+        <Section title="正在吃的保健品" count={active.currentSupplements.length}>
           {active.currentSupplements.length === 0 && (
             <p className="text-[12px] text-text-tertiary mb-2">
               暂无 — 加进来后才能用 Reminder + Feedback 跟踪服用

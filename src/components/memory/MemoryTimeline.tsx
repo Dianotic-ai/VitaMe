@@ -30,7 +30,7 @@ export function MemoryTimeline({ personId }: Props) {
     return (
       <div className="text-center py-12">
         <p className="text-[13px] text-text-tertiary">还没有事件记录</p>
-        <p className="text-[11px] text-text-tertiary mt-1">跟 VitaMe 聊一次补剂安全 → 这里会自动出现 verify 事件</p>
+        <p className="text-[11px] text-text-tertiary mt-1">跟 VitaMe 聊一次保健品安全 → 这里会自动出现 verify 事件</p>
       </div>
     );
   }
