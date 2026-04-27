@@ -3,14 +3,16 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import type { UIMessage } from 'ai';
 import { useProfileStore } from '@/lib/profile/profileStore';
 import { useConversationStore } from '@/lib/chat/conversationStore';
 import { useEventStore } from '@/lib/memory/eventStore';
+import { useReminderStore } from '@/lib/reminder/store';
 import { personToSnapshot } from '@/lib/profile/profileInjector';
+import type { CreateReminderInput, CreateReminderOutput } from '@/lib/chat/tools';
 import { DemoBanner } from '@/components/chat/DemoBanner';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
@@ -48,7 +50,9 @@ function ChatBody() {
   const profile = useProfileStore((s) => s.profile);
   const applyDelta = useProfileStore((s) => s.applyDelta);
   const markSupplementFedback = useProfileStore((s) => s.markSupplementFedback);
+  const addSupplement = useProfileStore((s) => s.addSupplement);
   const appendEvent = useEventStore((s) => s.appendEvent);
+  const addRule = useReminderStore((s) => s.addRule);
   const activePerson = profile.people.find((p) => p.id === profile.activePersonId) ?? profile.people[0]!;
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [feedbackTrigger, setFeedbackTrigger] = useState<FeedbackTrigger | null>(null);
@@ -88,7 +92,7 @@ function ChatBody() {
   const setStoredMessages = useConversationStore((s) => s.setMessages);
   const clearStoredMessages = useConversationStore((s) => s.clearMessages);
 
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const { messages, sendMessage, status, setMessages, addToolResult } = useChat({
     messages: storedMessages,
     transport: new DefaultChatTransport({
       api: '/api/chat',
@@ -97,6 +101,8 @@ function ChatBody() {
         profile: personToSnapshot(activePerson),
       }),
     }),
+    // tool 回流后自动 resend，让 LLM 写"已设置"确认句
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   });
 
   const isStreaming = status === 'streaming' || status === 'submitted';
@@ -168,6 +174,82 @@ function ChatBody() {
     return () => ctrl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, lastMsg?.id]);
+
+  // 监听 create_reminder tool-call 并落本地 store（北极星 §9.8 隐私底线 — 数据不出本机）
+  const processedToolCallsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'assistant') return;
+
+    for (const part of last.parts ?? []) {
+      if (
+        part.type !== 'tool-create_reminder' ||
+        !('state' in part) ||
+        part.state !== 'input-available'
+      ) {
+        continue;
+      }
+      const callId = (part as { toolCallId: string }).toolCallId;
+      if (processedToolCallsRef.current.has(callId)) continue;
+      processedToolCallsRef.current.add(callId);
+
+      const input = (part as { input: CreateReminderInput }).input;
+
+      try {
+        // 模糊匹配现有补剂；否则自动加进 currentSupplements
+        const lower = input.supplementMention.toLowerCase().trim();
+        const existing = activePerson.currentSupplements.find((s) => {
+          const m = s.mention.toLowerCase().trim();
+          return m === lower || m.includes(lower) || lower.includes(m);
+        });
+        const supplementId = existing?.supplementId ?? addSupplement({ mention: input.supplementMention });
+        const daysOfWeek = input.daysOfWeek && input.daysOfWeek.length > 0
+          ? input.daysOfWeek
+          : [1, 2, 3, 4, 5, 6, 7];
+
+        const ruleId = addRule({
+          personId: activePerson.id,
+          supplementId,
+          timeOfDay: input.timeOfDay,
+          daysOfWeek,
+        });
+
+        // 写一条 reminder event 到时间轴（北极星 §5）
+        appendEvent({
+          eventType: 'reminder',
+          personId: activePerson.id,
+          entityRefs: [supplementId],
+          userText: `通过对话设置：${input.supplementMention} 每天 ${input.timeOfDay}`,
+          tags: ['rule-created', 'via-chat'],
+          metadata: {
+            ruleId,
+            timeOfDay: input.timeOfDay,
+            daysOfWeek,
+            autoCreatedSupplement: !existing,
+          },
+        });
+
+        const output: CreateReminderOutput = {
+          ok: true,
+          ruleId,
+          supplementId,
+          supplementMention: input.supplementMention,
+          timeOfDay: input.timeOfDay,
+          daysOfWeek,
+          autoCreatedSupplement: !existing,
+        };
+        addToolResult({ tool: 'create_reminder', toolCallId: callId, output });
+      } catch (e) {
+        addToolResult({
+          tool: 'create_reminder',
+          toolCallId: callId,
+          state: 'output-error',
+          errorText: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, activePerson.id]);
 
   function handleSend(text: string) {
     sendMessage({ text });

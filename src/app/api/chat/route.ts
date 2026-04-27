@@ -17,11 +17,12 @@
 // 后置校验 caveat: streamText 已开始流后无法中断。banned word 命中只能写 audit，
 // 不能"撤回"已流出的 token。前端可选做客户端 regex 渲染时遮罩（v0.3 暂不做）。
 
-import { streamText, convertToModelMessages, type UIMessage } from 'ai';
+import { streamText, convertToModelMessages, stepCountIs, type UIMessage } from 'ai';
 import { createChatProvider, getChatModelId } from '@/lib/llm/edgeProvider';
 import { retrieveFacts } from '@/lib/chat/retriever';
 import { buildSystemPrompt } from '@/lib/chat/systemPrompt';
 import { writeChatAudit, shortHash } from '@/lib/chat/audit';
+import { chatTools } from '@/lib/chat/tools';
 import type { ProfileSnapshot } from '@/lib/chat/types';
 
 export const runtime = 'edge';
@@ -104,6 +105,9 @@ export async function POST(req: Request) {
     model: provider(getChatModelId()),
     system,
     messages: modelMessages,
+    tools: chatTools,
+    // 客户端 tool 调用回流后允许 LLM 再生成一段确认文字（吃药提醒已设置 ✓）
+    stopWhen: stepCountIs(2),
     onFinish: async ({ text }) => {
       // banned word 检测
       const hits = BANNED_WORDS.filter((w) => text.includes(w));
