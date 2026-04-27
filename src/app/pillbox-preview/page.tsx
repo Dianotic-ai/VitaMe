@@ -234,7 +234,7 @@ export default function PillBoxPreview() {
 
         <div className="mt-10 pt-4 border-t border-border-subtle text-[11.5px] text-text-tertiary leading-relaxed">
           注：preview 用静态 SVG，不连 reminderStore；点击胶囊不会变色。
-          只看 4 格 vs 自适应 vs 退场 三种"留白"策略。
+          只看 4 格 vs 自适应 vs 退场 三种「留白」策略。
         </div>
       </div>
     </div>
