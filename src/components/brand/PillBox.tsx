@@ -71,8 +71,8 @@ interface PillProps {
 // ---------- 土壤散落（acked 时，胶囊化为滋养小花的土壤） ----------
 function SoilMound({ cx, cy, r }: { cx: number; cy: number; r: number }) {
   // 沿胶囊原本所在的斜线散落几颗"土块" — 比 cell 背景纹理更明显
-  // 中心稍下移（花从土里长出，土在花根下方）
-  const baseY = cy + r * 0.4;
+  // 移到 cell 下部，让"土→茎→花"从下到上的层次清晰；跟 renderBloomInline 的 stemBottom 对齐
+  const baseY = cy + r * 2.5;
   // 5 颗土块，沿 -22° 散落，大小有别
   const clumps = [
     { dx: -r * 1.0, dy: r * 0.22, rr: r * 0.28 },

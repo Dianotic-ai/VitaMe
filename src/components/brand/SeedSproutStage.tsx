@@ -165,19 +165,18 @@ export default SeedSproutStage;
 //   单瓣 ry = r * 0.78（保持 v0.2 4:9 ≈ 0.44 比例 → rx = ry * 0.44）
 
 export function renderBloomInline(cx: number, cy: number, r: number) {
-  const flowerCenterY = cy - r * 1.95;
-  const stemBottom = cy - r * 0.4;
-  // v0.2 stem 长 44 单位、petal ry 9 单位 → ratio 4.9
-  // 我这里 stem 从胶囊上方到花心 = (cy - r*0.4) - flowerCenterY = r*1.55
-  // 跟 v0.2 比例对应；保持原视觉
+  // v0.4 D14.8: 花朵下挪 + 土→茎→花从下到上层次清晰
+  // 花头略低于 cy（不再悬空在 cell 顶部），茎完整可见，土壤推到 cell 下部
+  const flowerCenterY = cy - r * 0.4;
+  const stemBottom = cy + r * 2.5;
   const petalRy = r * 0.78;
   const petalRx = petalRy * 0.44; // v0.2 4:9 ≈ 0.44
-  const petalCenterOffset = -r * 1.22; // v0.2 cy=-14 / scale 9*r/9 = -1.55r → 实际放到 -1.22r 让花头不超出 cell
+  const petalCenterOffset = -r * 1.0;
   const centerR = Math.max(1, r * 0.34);
   const stemStroke = Math.max(0.9, r * 0.15);
-  // 中间 1 片侧叶（v0.2 paths）
-  const leafCx = cx - r * 0.55;
-  const leafCy = cy - r * 0.7;
+  // 1 片侧叶（贴在茎下半部，跟土壤之间）
+  const leafCx = cx - r * 0.45;
+  const leafCy = cy + r * 1.4;
   const leafW = r * 0.55;
   const leafH = r * 0.42;
 
