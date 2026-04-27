@@ -38,6 +38,7 @@ export function PromptInspector({ onClose }: Props) {
   const fieldCount =
     (snapshot.conditions?.length ?? 0) +
     (snapshot.medications?.length ?? 0) +
+    (snapshot.currentSupplements?.length ?? 0) +
     (snapshot.allergies?.length ?? 0) +
     (snapshot.specialGroups?.length ?? 0) +
     (snapshot.ageRange ? 1 : 0) +
@@ -133,6 +134,14 @@ function FieldSummary({ snapshot }: { snapshot: ReturnType<typeof personToSnapsh
       {snapshot.medications && snapshot.medications.length > 0 && (
         <Row label="长期用药" items={snapshot.medications.map((m) => m.mention)} />
       )}
+      {snapshot.currentSupplements && snapshot.currentSupplements.length > 0 && (
+        <Row
+          label="在吃保健品"
+          items={snapshot.currentSupplements.map((s) =>
+            s.dosage ? `${s.mention} · ${s.dosage}` : s.mention
+          )}
+        />
+      )}
       {snapshot.allergies && snapshot.allergies.length > 0 && (
         <Row label="过敏" items={snapshot.allergies.map((a) => a.mention)} />
       )}
@@ -173,6 +182,15 @@ function snapshotToXml(snap: ReturnType<typeof personToSnapshot>, personName: st
   }
   if (snap.medications?.length) {
     lines.push(`  <medications>${snap.medications.map((m) => `${m.mention}${m.isLongTerm ? '(长期)' : ''}`).join('、')}</medications>`);
+  }
+  if (snap.currentSupplements?.length) {
+    const list = snap.currentSupplements
+      .map((s) => {
+        const detail = [s.dosage, s.schedule].filter(Boolean).join(' / ');
+        return detail ? `${s.mention}（${detail}）` : s.mention;
+      })
+      .join('、');
+    lines.push(`  <current_supplements>${list}</current_supplements>`);
   }
   if (snap.allergies?.length) {
     lines.push(`  <allergies>${snap.allergies.map((a) => a.mention).join('、')}</allergies>`);

@@ -200,11 +200,20 @@ function ingredientLabel(slug: string): string {
 
 const PER_SOURCE_CAP = 10;
 
-export function retrieveFacts(query: string, profile?: { conditions?: { mention: string }[]; medications?: { mention: string }[] }): RetrievedFacts {
+export function retrieveFacts(
+  query: string,
+  profile?: {
+    conditions?: { mention: string }[];
+    medications?: { mention: string }[];
+    /** Codex #4: 当前在吃的保健品作为隐式 ingredient mention 喂检索，做冲突检查 */
+    currentSupplements?: { mention: string }[];
+  },
+): RetrievedFacts {
   // 1. 从 query + profile 抽 mention
   const queryMentions = extractMentions(query);
 
-  // 2. 把 profile 里已知 condition/medication 也作为隐式 mention（让 retriever 自然检索"用户档案 × 当前 query"组合的禁忌）
+  // 2. 把 profile 里已知 condition/medication/supplement 也作为隐式 mention
+  //    （让 retriever 自然检索"用户档案 × 当前 query"组合的禁忌）
   if (profile?.conditions) {
     for (const c of profile.conditions) {
       const m = extractMentions(c.mention);
@@ -216,6 +225,12 @@ export function retrieveFacts(query: string, profile?: { conditions?: { mention:
     for (const m of profile.medications) {
       const mm = extractMentions(m.mention);
       mm.medications.forEach((s) => queryMentions.medications.add(s));
+    }
+  }
+  if (profile?.currentSupplements) {
+    for (const s of profile.currentSupplements) {
+      const m = extractMentions(s.mention);
+      m.ingredients.forEach((slug) => queryMentions.ingredients.add(slug));
     }
   }
 
