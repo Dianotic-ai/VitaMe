@@ -11,7 +11,13 @@
 //   （wake-up doc 会标记此项为已知开放问题）
 
 export interface ChatAuditRecord {
-  event: 'chat_turn' | 'chat_error' | 'chat_banned_word_hit';
+  // v0.4 D13 Codex #5：拆分 input vs output 两条事件 + input 禁词命中独立标
+  event:
+    | 'chat_turn'
+    | 'chat_error'
+    | 'chat_banned_word_hit'
+    | 'chat_input'
+    | 'chat_input_banned_word_hit';
   sessionId: string;
   inputHash?: string;
   outputHash?: string;

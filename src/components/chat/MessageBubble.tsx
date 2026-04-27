@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import type { ReactNode } from 'react';
 import { CitationPill } from './CitationPill';
 import { SproutCursor } from '@/components/brand/SproutCursor';
+import { sanitizeBannedWords } from '@/lib/capabilities/compliance/bannedWordsFilter';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
@@ -49,6 +50,9 @@ function processChildren(children: ReactNode): ReactNode {
 
 export function MessageBubble({ role, text, isStreaming }: MessageBubbleProps) {
   const isUser = role === 'user';
+  // Codex #5: 助手文本渲染前 sanitize 禁词（用户视觉永远看不到禁词的最终态）
+  // user 文本不替换 — 用户原话保留尊重，禁词命中已在 chat route 流前 audit 记录
+  const renderText = isUser ? text : sanitizeBannedWords(text);
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} my-2`}>
       <div
@@ -96,7 +100,7 @@ export function MessageBubble({ role, text, isStreaming }: MessageBubbleProps) {
                 ),
               }}
             >
-              {text}
+              {renderText}
             </ReactMarkdown>
             {isStreaming && <SproutCursor />}
           </div>
