@@ -1,5 +1,11 @@
 # VitaMe
 
+> ⚠️ **重要提示（2026-04-27 起）**：本仓库 main 分支当前**同时存在**两套互相矛盾的产品基准：
+> - 📦 代码 = v0.4 northstar loop（多 person + Memory + Reminder + Hermit + extract 等）
+> - 📄 `docs/action-first-mvp/` Kevin 的产品锁（明确禁多 person / 禁 extract / 禁 profile 注入）
+>
+> WAIC 4/30 demo 期内**不强行对齐**。接手前请先读 [`docs/v0.4-vs-action-first-divergence.md`](./docs/v0.4-vs-action-first-divergence.md) 了解矛盾点 + 解决路径，再动代码。
+
 **你的保健品顾问 + 服用伴侣 — 选对、吃对，越吃越懂你。**
 
 VitaMe 是一个对话式保健品决策 Agent：用户用自然语言聊补什么、买哪个、跟现有用药/疾病冲不冲突；从对话里建立提醒、积累反馈，越用越懂用户身体。
