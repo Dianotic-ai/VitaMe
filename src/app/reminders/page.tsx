@@ -100,19 +100,21 @@ function RemindersBody() {
   const dow = todayDow();
   const todayDate = new Date().toISOString().slice(0, 10);
 
+  // 防御：v0.4 D2 之前的旧 LocalStorage 可能没 currentSupplements
+  const activeSupplements = active.currentSupplements ?? [];
+
   const todayItems: TodayItem[] = rules
     .filter((r) => r.personId === active.id)
     .filter((r) => !r.paused)
-    .filter((r) => r.daysOfWeek.includes(dow))
+    .filter((r) => Array.isArray(r.daysOfWeek) && r.daysOfWeek.includes(dow))
     .filter((r) => {
-      // 频率倍数：今天该不该出现
-      if (r.frequencyMultiplier >= 1.0) return true;
+      if ((r.frequencyMultiplier ?? 1.0) >= 1.0) return true;
       const lastTrig = r.lastTriggeredAt ? new Date(r.lastTriggeredAt).getTime() : 0;
       const daysSince = (Date.now() - lastTrig) / (24 * 60 * 60 * 1000);
-      return daysSince >= 1 / r.frequencyMultiplier;
+      return daysSince >= 1 / (r.frequencyMultiplier || 1.0);
     })
     .map<TodayItem>((rule) => {
-      const supp = active.currentSupplements.find((s) => s.supplementId === rule.supplementId);
+      const supp = activeSupplements.find((s) => s.supplementId === rule.supplementId);
       const supplementMention = supp?.mention ?? '(已删除的保健品)';
       const supplementDosage = supp?.dosage;
 
@@ -145,7 +147,7 @@ function RemindersBody() {
   const pendingCount = todayItems.filter((i) => i.status === 'pending').length;
 
   // ---- 全部规则按 supplement 分组 ----
-  const supplementsForActive = active.currentSupplements;
+  const supplementsForActive = activeSupplements;
   const ruleCountByPerson = (pid: string) =>
     rules.filter((r) => r.personId === pid && !r.paused).length;
 
