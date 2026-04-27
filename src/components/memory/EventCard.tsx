@@ -2,8 +2,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useEventStore } from '@/lib/memory/eventStore';
 import type { EventType, MemoryEvent } from '@/lib/memory/types';
-import { ChevronDownLineIcon } from '@/components/brand/Icons';
+import { ChevronDownLineIcon, CheckLineIcon, CloseLineIcon } from '@/components/brand/Icons';
 
 interface Props {
   event: MemoryEvent;
@@ -83,8 +84,59 @@ function TypeIcon({ type }: { type: EventType }) {
 
 export function EventCard({ event }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const appendEvent = useEventStore((s) => s.appendEvent);
+  const removeEvent = useEventStore((s) => s.removeEvent);
   const time = event.occurredAt.slice(11, 16);
   const hasDetail = event.userText || event.agentText || (event.metadata && Object.keys(event.metadata).length > 0);
+
+  // Hermit observation 特殊处理 — 显式 accept/dismiss UI（北极星 §7 用户可见可确认）
+  const isObservation = event.eventType === 'observation';
+  const userAction = (event.metadata?.userAction as string | undefined) ?? 'pending';
+  const proposal = event.metadata?.proposal as string | undefined;
+
+  function handleAccept() {
+    appendEvent({
+      eventType: 'correction',
+      personId: event.personId,
+      entityRefs: event.entityRefs,
+      userText: '接受 Hermit 提案',
+      tags: ['observation-accepted'],
+      metadata: {
+        targetObservationId: event.eventId,
+      },
+    });
+    // 标记原 observation 为 accepted（重写 metadata）
+    removeEvent(event.eventId);
+    appendEvent({
+      eventType: 'observation',
+      personId: event.personId,
+      entityRefs: event.entityRefs,
+      agentText: event.agentText,
+      tags: event.tags,
+      metadata: { ...event.metadata, userAction: 'accepted' },
+    });
+  }
+  function handleDismiss() {
+    appendEvent({
+      eventType: 'correction',
+      personId: event.personId,
+      entityRefs: event.entityRefs,
+      userText: '忽略 Hermit 提案',
+      tags: ['observation-dismissed'],
+      metadata: {
+        targetObservationId: event.eventId,
+      },
+    });
+    removeEvent(event.eventId);
+    appendEvent({
+      eventType: 'observation',
+      personId: event.personId,
+      entityRefs: event.entityRefs,
+      agentText: event.agentText,
+      tags: event.tags,
+      metadata: { ...event.metadata, userAction: 'dismissed' },
+    });
+  }
 
   return (
     <div className={`border rounded-card px-3 py-2 ${TYPE_COLOR[event.eventType]}`}>
@@ -127,6 +179,52 @@ export function EventCard({ event }: Props) {
           </button>
         )}
       </div>
+
+      {/* Observation 显式呈现 + accept/dismiss（北极星 §7） */}
+      {isObservation && (
+        <div className="mt-2 pt-2 border-t border-current/15">
+          {event.agentText && (
+            <p className="text-[12.5px] text-text-primary leading-relaxed mb-1.5">
+              {event.agentText}
+            </p>
+          )}
+          {proposal && (
+            <p className="text-[11.5px] text-disclaimer-text bg-bg-warm rounded-sm px-2 py-1 mb-2">
+              💡 {proposal}
+            </p>
+          )}
+          {userAction === 'pending' && (
+            <div className="flex gap-1.5">
+              <button
+                onClick={handleAccept}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-forest text-white text-[11px] hover:bg-forest-2"
+              >
+                <CheckLineIcon className="w-2.5 h-2.5" />
+                接受
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-border-strong text-text-secondary text-[11px] hover:bg-bg-warm"
+              >
+                <CloseLineIcon className="w-2.5 h-2.5" />
+                忽略
+              </button>
+            </div>
+          )}
+          {userAction === 'accepted' && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-forest">
+              <CheckLineIcon className="w-2.5 h-2.5" />
+              已接受
+            </span>
+          )}
+          {userAction === 'dismissed' && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-text-tertiary">
+              <CloseLineIcon className="w-2.5 h-2.5" />
+              已忽略
+            </span>
+          )}
+        </div>
+      )}
 
       {expanded && (
         <div className="mt-2 pt-2 border-t border-current/10 space-y-1.5 text-[12px]">

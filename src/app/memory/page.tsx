@@ -9,6 +9,7 @@ import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
 import { PersonMark } from '@/components/brand/PersonMark';
 import { ChevronLeftLineIcon, TrashLineIcon } from '@/components/brand/Icons';
 import { MemoryTimeline } from '@/components/memory/MemoryTimeline';
+import { HermitButton } from '@/components/memory/HermitButton';
 
 const RELATION_LABEL: Record<Relation, string> = {
   self: '我自己',
@@ -101,7 +102,9 @@ export default function MemoryPage() {
         </div>
       </div>
 
-      <main className="px-4 py-4 max-w-2xl mx-auto" style={{ ['--sticky-top' as string]: '94px' }}>
+      <main className="px-4 py-4 max-w-2xl mx-auto space-y-4" style={{ ['--sticky-top' as string]: '94px' }}>
+        <HermitButton personId={active.id} />
+
         <MemoryTimeline personId={active.id} />
 
         {eventCountForActive > 0 && (
