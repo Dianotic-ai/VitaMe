@@ -183,4 +183,22 @@ NEXT_PUBLIC_AGENT_MODE=1
 
 - `main` (= `v0.3-rag-chatbot`) — 生产，WAIC 4/30 demo 用，**不动**
 - `v0.4-northstar-loop` — 完整北极星 loop，partner review 中
+- `archive/full-pre-cleanup-2026-04-27` — 大清理前的完整文档历史快照
 - v0.2 老路径（v2.10 严格 4 层架构）保留在 git tag `v0.2`，可随时 checkout 回滚
+
+---
+
+## 版权 & 协议
+
+**Copyright (c) 2026 VitaMe Team. All Rights Reserved.**
+
+VitaMe 是商业项目（**Proprietary and Confidential**），不开源。详见 [`LICENSE`](./LICENSE)。
+
+公开 GitHub 仓库**仅供**：
+- WAIC 2026 黑客松评审 (创业赛道)
+- 投资 / 合作伙伴 review
+- 团队内部协作
+
+**禁止**：未授权复用 / 修改 / 再发行 / AI 训练。
+
+第三方开源依赖（Next.js / React / Vercel AI SDK / zustand 等）按各自协议使用，详见 [`NOTICE.md`](./NOTICE.md)。

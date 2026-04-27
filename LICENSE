@@ -1,0 +1,58 @@
+Copyright (c) 2026 VitaMe Team. All Rights Reserved.
+
+Proprietary and Confidential — Commercial Project Notice
+=========================================================
+
+This repository (the "Software") and all associated source code,
+documentation, designs, brand assets, and related materials are the
+proprietary and confidential property of the VitaMe Team.
+
+No part of this Software may be reproduced, distributed, modified,
+adapted, sold, sublicensed, publicly displayed, publicly performed,
+or otherwise commercially or non-commercially exploited in any form
+or by any means — whether electronic, mechanical, photocopying,
+recording, web scraping, AI training, or otherwise — without the
+prior express written permission of the VitaMe Team.
+
+The Software is made available publicly on GitHub solely for the
+following purposes:
+
+  1. Evaluation by judges of the WAIC 2026 Hackathon
+     (创业赛道 / Entrepreneurship Track), as part of the project
+     submission process.
+  2. Demonstration to potential investors, partners, and early
+     collaborators under good-faith review terms.
+  3. Continued internal development by the VitaMe Team.
+
+Public visibility on GitHub does NOT imply any open-source license,
+permission to fork for derivative use, or grant of rights under any
+permissive or copyleft license. Visiting, reading, or cloning this
+repository does NOT grant any license to use the contents.
+
+Unauthorized copying, modification, redistribution, public
+performance, or public display of this Software is strictly prohibited
+and may result in civil and/or criminal penalties under applicable
+copyright, trade secret, and unfair competition laws of the People's
+Republic of China and other jurisdictions.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NON-INFRINGEMENT. IN NO EVENT SHALL THE VITAME TEAM BE LIABLE FOR
+ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The Software incorporates standard open-source third-party libraries
+as runtime dependencies. Those libraries are governed by their own
+respective licenses (MIT, Apache 2.0, etc.) and remain the property
+of their respective owners. See NOTICE.md for the full list of
+third-party libraries and their licenses. The VitaMe Team makes no
+claim of ownership over those third-party libraries.
+
+For licensing inquiries, partnership discussions, or permission to
+use the Software, please open an issue at:
+
+    https://github.com/Dianotic-ai/VitaMe/issues
+
+Last updated: 2026-04-27
