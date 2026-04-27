@@ -5,10 +5,13 @@
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { useProfileStore } from '@/lib/profile/profileStore';
+import { useReminderStore } from '@/lib/reminder/store';
+import { useEventStore } from '@/lib/memory/eventStore';
 import type { AgeRange, Person, Relation, Sex } from '@/lib/profile/types';
 import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
 import { PersonMark } from '@/components/brand/PersonMark';
 import { ChevronLeftLineIcon, PlusLineIcon, TrashLineIcon } from '@/components/brand/Icons';
+import { ReminderRuleEditor } from '@/components/reminder/ReminderRuleEditor';
 
 const AGE_OPTIONS: AgeRange[] = ['<18', '18-30', '30-45', '45-60', '60+'];
 
@@ -33,7 +36,15 @@ export default function ProfilePage() {
   const addMedication = useProfileStore((s) => s.addMedication);
   const removeMedication = useProfileStore((s) => s.removeMedication);
   const addSupplement = useProfileStore((s) => s.addSupplement);
-  const removeSupplement = useProfileStore((s) => s.removeSupplement);
+  const removeSupplementRaw = useProfileStore((s) => s.removeSupplement);
+  const removeReminderBySupplement = useReminderStore((s) => s.removeBySupplement);
+  const removeReminderByPerson = useReminderStore((s) => s.removeByPerson);
+  const removeMemoryByPerson = useEventStore((s) => s.removeByPerson);
+
+  function removeSupplement(supplementId: string) {
+    removeSupplementRaw(supplementId);
+    removeReminderBySupplement(supplementId);
+  }
   const addAllergy = useProfileStore((s) => s.addAllergy);
   const removeAllergy = useProfileStore((s) => s.removeAllergy);
   const setBasic = useProfileStore((s) => s.setBasic);
@@ -102,8 +113,10 @@ export default function ProfilePage() {
       return;
     }
     const target = profile.people.find((p) => p.id === personId);
-    if (window.confirm(`删除 "${target?.name}" 的档案？该家人的所有健康信息将永久清除。`)) {
+    if (window.confirm(`删除 "${target?.name}" 的档案？该家人的所有健康信息 + 提醒规则 + Memory 事件都将永久清除。`)) {
       removePerson(personId);
+      removeReminderByPerson(personId);
+      removeMemoryByPerson(personId);
     }
   }
 
@@ -385,26 +398,35 @@ export default function ProfilePage() {
             {active.currentSupplements.map((s) => (
               <li
                 key={s.supplementId}
-                className="flex items-center justify-between bg-surface px-3 py-2 rounded-card border border-stream/30 border-l-[3px] border-l-stream"
+                className="bg-surface rounded-card border border-stream/30 border-l-[3px] border-l-stream overflow-hidden"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-[13.5px] text-text-primary font-medium">{s.mention}</span>
-                    {s.brand && <span className="text-[11px] text-stream">{s.brand}</span>}
+                <div className="flex items-center justify-between px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-[13.5px] text-text-primary font-medium">{s.mention}</span>
+                      {s.brand && <span className="text-[11px] text-stream">{s.brand}</span>}
+                    </div>
+                    <div className="flex gap-2 text-[10.5px] text-text-tertiary mt-0.5">
+                      {s.dosage && <span>剂量: {s.dosage}</span>}
+                      {s.schedule && <span>时间: {s.schedule}</span>}
+                      <span>从 {s.startedAt.slice(0, 10)} 开始</span>
+                    </div>
                   </div>
-                  <div className="flex gap-2 text-[10.5px] text-text-tertiary mt-0.5">
-                    {s.dosage && <span>剂量: {s.dosage}</span>}
-                    {s.schedule && <span>时间: {s.schedule}</span>}
-                    <span>从 {s.startedAt.slice(0, 10)} 开始</span>
-                  </div>
+                  <button
+                    onClick={() => removeSupplement(s.supplementId)}
+                    className="text-text-tertiary hover:text-risk-red p-1 shrink-0"
+                    aria-label="删除"
+                  >
+                    <TrashLineIcon className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => removeSupplement(s.supplementId)}
-                  className="text-text-tertiary hover:text-risk-red p-1 shrink-0"
-                  aria-label="删除"
-                >
-                  <TrashLineIcon className="w-3.5 h-3.5" />
-                </button>
+                <div className="px-3 pb-2">
+                  <ReminderRuleEditor
+                    personId={active.id}
+                    supplementId={s.supplementId}
+                    supplementName={s.mention}
+                  />
+                </div>
               </li>
             ))}
           </ul>
