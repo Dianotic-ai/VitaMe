@@ -5,10 +5,14 @@
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { useProfileStore } from '@/lib/profile/profileStore';
+import { useReminderStore } from '@/lib/reminder/store';
+import { useEventStore } from '@/lib/memory/eventStore';
+import { useConversationStore } from '@/lib/chat/conversationStore';
 import type { AgeRange, Person, Relation, Sex } from '@/lib/profile/types';
 import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
 import { PersonMark } from '@/components/brand/PersonMark';
 import { ChevronLeftLineIcon, PlusLineIcon, TrashLineIcon } from '@/components/brand/Icons';
+import { ReminderRuleEditor } from '@/components/reminder/ReminderRuleEditor';
 
 const AGE_OPTIONS: AgeRange[] = ['<18', '18-30', '30-45', '45-60', '60+'];
 
@@ -32,6 +36,20 @@ export default function ProfilePage() {
   const removeCondition = useProfileStore((s) => s.removeCondition);
   const addMedication = useProfileStore((s) => s.addMedication);
   const removeMedication = useProfileStore((s) => s.removeMedication);
+  const addSupplement = useProfileStore((s) => s.addSupplement);
+  const removeSupplementRaw = useProfileStore((s) => s.removeSupplement);
+  const removeReminderBySupplement = useReminderStore((s) => s.removeBySupplement);
+  const removeReminderByPerson = useReminderStore((s) => s.removeByPerson);
+  const clearAllReminders = useReminderStore((s) => s.clearAll);
+  const removeMemoryByPerson = useEventStore((s) => s.removeByPerson);
+  const clearAllMemory = useEventStore((s) => s.clearAll);
+  const clearConversationByPerson = useConversationStore((s) => s.clearMessages);
+  const clearAllConversations = useConversationStore((s) => s.clearAll);
+
+  function removeSupplement(supplementId: string) {
+    removeSupplementRaw(supplementId);
+    removeReminderBySupplement(supplementId);
+  }
   const addAllergy = useProfileStore((s) => s.addAllergy);
   const removeAllergy = useProfileStore((s) => s.removeAllergy);
   const setBasic = useProfileStore((s) => s.setBasic);
@@ -42,6 +60,10 @@ export default function ProfilePage() {
 
   const [newCond, setNewCond] = useState('');
   const [newMed, setNewMed] = useState('');
+  const [newSupp, setNewSupp] = useState('');
+  const [newSuppDosage, setNewSuppDosage] = useState('');
+  const [newSuppSchedule, setNewSuppSchedule] = useState('');
+  const [showSuppDetails, setShowSuppDetails] = useState(false);
   const [newAllergy, setNewAllergy] = useState('');
   const [showAddPerson, setShowAddPerson] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
@@ -60,6 +82,19 @@ export default function ProfilePage() {
     if (!newMed.trim()) return;
     addMedication(newMed.trim(), true);
     setNewMed('');
+  }
+  function submitSupplement(e: FormEvent) {
+    e.preventDefault();
+    if (!newSupp.trim()) return;
+    addSupplement({
+      mention: newSupp.trim(),
+      dosage: newSuppDosage.trim() || undefined,
+      schedule: newSuppSchedule.trim() || undefined,
+    });
+    setNewSupp('');
+    setNewSuppDosage('');
+    setNewSuppSchedule('');
+    setShowSuppDetails(false);
   }
   function submitAllergy(e: FormEvent) {
     e.preventDefault();
@@ -83,8 +118,11 @@ export default function ProfilePage() {
       return;
     }
     const target = profile.people.find((p) => p.id === personId);
-    if (window.confirm(`删除 "${target?.name}" 的档案？该家人的所有健康信息将永久清除。`)) {
+    if (window.confirm(`删除 "${target?.name}" 的档案？该家人的所有健康信息 + 提醒规则 + Memory 事件 + 对话历史都将永久清除。`)) {
       removePerson(personId);
+      removeReminderByPerson(personId);
+      removeMemoryByPerson(personId);
+      clearConversationByPerson(personId);
     }
   }
 
@@ -98,13 +136,27 @@ export default function ProfilePage() {
   }
 
   function handleClearActive() {
-    if (window.confirm(`清空 "${active.name}" 档案的全部健康条目？该 Person 本身保留。`)) {
+    if (
+      window.confirm(
+        `清空 "${active.name}" 的全部数据？\n\n会一起清除：\n• 健康档案（疾病/用药/过敏/在吃保健品）\n• 该 person 的提醒规则\n• 该 person 的 Memory 事件流\n• 该 person 的对话历史\n\n该 Person 本身保留。不可撤回。`
+      )
+    ) {
       clearActivePerson();
+      removeReminderByPerson(active.id);
+      removeMemoryByPerson(active.id);
+      clearConversationByPerson(active.id);
     }
   }
   function handleClearAll() {
-    if (window.confirm('销毁全部档案（所有家人 + 你自己），不可撤回。继续？')) {
+    if (
+      window.confirm(
+        '销毁全部本地档案？\n\n会一起清除：\n• 所有家人 + 我自己的健康档案\n• 全部提醒规则\n• 全部 Memory 事件\n• 全部对话历史\n\n保留：archive 历史报告（v0.2 老路径产物，单独清理）。\n\n不可撤回。'
+      )
+    ) {
       clearAll();
+      clearAllReminders();
+      clearAllMemory();
+      clearAllConversations();
     }
   }
 
@@ -355,6 +407,92 @@ export default function ProfilePage() {
           />
         </Section>
 
+        {/* 正在吃的保健品（北极星 §3 Reminder 数据源）*/}
+        <Section title="正在吃的保健品" count={active.currentSupplements.length}>
+          {active.currentSupplements.length === 0 && (
+            <p className="text-[12px] text-text-tertiary mb-2">
+              暂无 — 加进来后才能用 Reminder + Feedback 跟踪服用
+            </p>
+          )}
+          <ul className="space-y-1.5 mb-2">
+            {active.currentSupplements.map((s) => (
+              <li
+                key={s.supplementId}
+                className="bg-surface rounded-card border border-stream/30 border-l-[3px] border-l-stream overflow-hidden"
+              >
+                <div className="flex items-center justify-between px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-[13.5px] text-text-primary font-medium">{s.mention}</span>
+                      {s.brand && <span className="text-[11px] text-stream">{s.brand}</span>}
+                    </div>
+                    <div className="flex gap-2 text-[10.5px] text-text-tertiary mt-0.5">
+                      {s.dosage && <span>剂量: {s.dosage}</span>}
+                      {s.schedule && <span>时间: {s.schedule}</span>}
+                      <span>从 {s.startedAt.slice(0, 10)} 开始</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeSupplement(s.supplementId)}
+                    className="text-text-tertiary hover:text-risk-red p-1 shrink-0"
+                    aria-label="删除"
+                  >
+                    <TrashLineIcon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="px-3 pb-2">
+                  <ReminderRuleEditor
+                    personId={active.id}
+                    supplementId={s.supplementId}
+                    supplementName={s.mention}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+          <form onSubmit={submitSupplement} className="bg-bg-warm border border-border-subtle rounded-card overflow-hidden">
+            <div className="flex">
+              <input
+                value={newSupp}
+                onChange={(e) => setNewSupp(e.target.value)}
+                placeholder="如：维生素 D / 鱼油 / Q10"
+                className="flex-1 px-3 py-2 text-[13px] bg-transparent outline-none placeholder:text-text-tertiary"
+              />
+              <button
+                type="button"
+                onClick={() => setShowSuppDetails((v) => !v)}
+                className="text-[10.5px] text-text-tertiary px-2 hover:text-text-primary border-l border-border-subtle"
+                title="展开剂量/时间"
+              >
+                {showSuppDetails ? '收起' : '+ 剂量/时间'}
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-1 px-3 py-2 text-[12px] text-stream border-l border-border-subtle hover:bg-stream-soft transition-colors"
+              >
+                <PlusLineIcon className="w-3 h-3" />
+                添加
+              </button>
+            </div>
+            {showSuppDetails && (
+              <div className="border-t border-border-subtle px-3 py-2 flex gap-2 bg-stream-soft/30">
+                <input
+                  value={newSuppDosage}
+                  onChange={(e) => setNewSuppDosage(e.target.value)}
+                  placeholder="剂量（如 1000mg/天）"
+                  className="flex-1 px-2 py-1 text-[12px] bg-surface border border-border-subtle rounded outline-none placeholder:text-text-tertiary"
+                />
+                <input
+                  value={newSuppSchedule}
+                  onChange={(e) => setNewSuppSchedule(e.target.value)}
+                  placeholder="时间（如 早餐后）"
+                  className="flex-1 px-2 py-1 text-[12px] bg-surface border border-border-subtle rounded outline-none placeholder:text-text-tertiary"
+                />
+              </div>
+            )}
+          </form>
+        </Section>
+
         {/* 过敏 */}
         <Section title="过敏" count={active.allergies.length}>
           {active.allergies.length === 0 && <p className="text-[12px] text-text-tertiary mb-2">暂无</p>}
@@ -425,7 +563,7 @@ export default function ProfilePage() {
               onClick={handleClearActive}
               className="px-3 py-2 text-[12px] bg-disclaimer-bg text-disclaimer-text border border-disclaimer-border rounded-md hover:bg-disclaimer-bg/80"
             >
-              清空"{active.name}"档案
+              清空「{active.name}」档案
             </button>
             <button
               onClick={handleClearAll}

@@ -70,3 +70,36 @@ export function containsBannedWords(text: string): boolean {
   }
   return false;
 }
+
+// ---------- v0.4 D13 Codex Finding #5: sanitize 替换给用户看 ----------
+// 设计：streaming 中我们无法回退已流出的 token；前端 MessageBubble 渲染前对 final text
+// 做一次 sanitize，把禁词换成中性同义词。流式过程中用户可能短暂看到原词，这是 streaming
+// 架构的物理折中（合规 audit 仍写日志记录）。
+const ZH_REPLACE: Record<(typeof BANNED_WORDS_ZH)[number], string> = {
+  治疗: '改善',
+  治愈: '缓解',
+  处方: '服用方案',
+  药效: '作用',
+  根治: '长期改善',
+  诊断: '评估',
+};
+const EN_REPLACE: Record<(typeof BANNED_WORDS_EN)[number], string> = {
+  diagnosis: 'assessment',
+  prescribe: 'suggest',
+  cure: 'improve',
+};
+
+export function sanitizeBannedWords(text: string): string {
+  if (!text) return text;
+  let out = text;
+  for (const zh of BANNED_WORDS_ZH) {
+    if (out.includes(zh)) {
+      out = out.split(zh).join(ZH_REPLACE[zh]);
+    }
+  }
+  for (const { root, regex } of EN_PATTERNS) {
+    regex.lastIndex = 0;
+    out = out.replace(regex, EN_REPLACE[root]);
+  }
+  return out;
+}

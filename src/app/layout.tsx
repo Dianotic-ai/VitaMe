@@ -12,8 +12,8 @@ const notoSerifSC = Noto_Serif_SC({
 });
 
 export const metadata: Metadata = {
-  title: 'VitaMe — 懂你身体的补剂选择对话顾问',
-  description: '聊聊你想了解的保健品 — 成分、剂量、跟现有用药冲不冲突，我帮你辨别。',
+  title: 'VitaMe — 你的保健品顾问 + 服用伴侣',
+  description: '你的保健品顾问 + 服用伴侣 — 选对、吃对，越吃越懂你。',
 };
 
 export default function RootLayout({

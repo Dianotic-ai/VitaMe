@@ -170,18 +170,19 @@ function extractMentions(query: string): {
 
 // ---------- Fact 构建器 ----------
 
+// v0.4 D12: 统一「国家/地区 + 英文缩写」格式（partner 反馈纯英文用户看不懂）
 const SOURCE_LABEL: Record<string, string> = {
-  'nih-ods': 'NIH ODS',
-  'lpi': 'Linus Pauling Institute',
-  'cn-dri': '中国营养学会 DRIs',
-  'pubchem': 'PubChem',
-  'chebi': 'ChEBI',
-  'suppai': 'SUPP.AI',
-  'hardcoded-contraindication': 'VitaMe 硬编码禁忌',
-  'dsld': 'DSLD',
-  'tga': 'TGA',
-  'jp-kinosei': '日本机能性表示食品',
-  'cn-bluehat': '中国蓝帽子',
+  'nih-ods': '美国 NIH ODS',                  // National Institutes of Health, Office of Dietary Supplements
+  'lpi': '美国 LPI',                          // Linus Pauling Institute, Oregon State University
+  'cn-dri': '中国营养学会 DRIs',               // 中国居民膳食营养素参考摄入量
+  'pubchem': '美国 NIH PubChem',              // NIH 化合物数据库
+  'chebi': '欧洲 EBI ChEBI',                  // EMBL-EBI Chemical Entities of Biological Interest
+  'suppai': '美国 AI2 SUPP.AI',               // Allen Institute for AI 补×药相互作用库
+  'hardcoded-contraindication': 'VitaMe 内置禁忌',
+  'dsld': '美国 NIH DSLD',                    // Dietary Supplement Label Database
+  'tga': '澳大利亚 TGA',                       // Therapeutic Goods Administration
+  'jp-kinosei': '日本机能性表示食品',           // 日本消费者厅 機能性表示食品制度
+  'cn-bluehat': '中国蓝帽子保健食品',           // 国家市场监督管理总局保健食品认证
 };
 
 function ingredientLabel(slug: string): string {
@@ -199,11 +200,20 @@ function ingredientLabel(slug: string): string {
 
 const PER_SOURCE_CAP = 10;
 
-export function retrieveFacts(query: string, profile?: { conditions?: { mention: string }[]; medications?: { mention: string }[] }): RetrievedFacts {
+export function retrieveFacts(
+  query: string,
+  profile?: {
+    conditions?: { mention: string }[];
+    medications?: { mention: string }[];
+    /** Codex #4: 当前在吃的保健品作为隐式 ingredient mention 喂检索，做冲突检查 */
+    currentSupplements?: { mention: string }[];
+  },
+): RetrievedFacts {
   // 1. 从 query + profile 抽 mention
   const queryMentions = extractMentions(query);
 
-  // 2. 把 profile 里已知 condition/medication 也作为隐式 mention（让 retriever 自然检索"用户档案 × 当前 query"组合的禁忌）
+  // 2. 把 profile 里已知 condition/medication/supplement 也作为隐式 mention
+  //    （让 retriever 自然检索"用户档案 × 当前 query"组合的禁忌）
   if (profile?.conditions) {
     for (const c of profile.conditions) {
       const m = extractMentions(c.mention);
@@ -215,6 +225,12 @@ export function retrieveFacts(query: string, profile?: { conditions?: { mention:
     for (const m of profile.medications) {
       const mm = extractMentions(m.mention);
       mm.medications.forEach((s) => queryMentions.medications.add(s));
+    }
+  }
+  if (profile?.currentSupplements) {
+    for (const s of profile.currentSupplements) {
+      const m = extractMentions(s.mention);
+      m.ingredients.forEach((slug) => queryMentions.ingredients.add(slug));
     }
   }
 

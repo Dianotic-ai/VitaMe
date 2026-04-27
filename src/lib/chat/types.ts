@@ -68,6 +68,14 @@ export interface ChatRequest {
 export interface ProfileSnapshot {
   conditions?: { slug?: string; mention: string; firstAt: string }[];
   medications?: { slug?: string; mention: string; isLongTerm?: boolean }[];
+  /** v0.4 D13 Codex #4: 用户当前在吃的保健品 — chat 推荐前必须知道，避免重复推荐/忽略冲突 */
+  currentSupplements?: {
+    slug?: string;
+    mention: string;
+    dosage?: string;
+    schedule?: string;
+    startedAt?: string;
+  }[];
   allergies?: { mention: string; firstAt: string }[];
   specialGroups?: string[];
   ageRange?: string;

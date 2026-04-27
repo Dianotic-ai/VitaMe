@@ -25,6 +25,17 @@ export function personToSnapshot(p: Person): ProfileSnapshot {
       isLongTerm: m.isLongTerm,
     }));
   }
+  // Codex #4: 当前在吃的保健品也要给 chat 看（避免推荐已在吃的、冲突检查时漏掉）
+  const supps = p.currentSupplements ?? [];
+  if (supps.length) {
+    snap.currentSupplements = supps.map((s) => ({
+      slug: s.slug,
+      mention: s.mention,
+      dosage: s.dosage,
+      schedule: s.schedule,
+      startedAt: s.startedAt,
+    }));
+  }
   if (p.allergies.length) {
     snap.allergies = p.allergies.map((a) => ({
       mention: a.mention,
