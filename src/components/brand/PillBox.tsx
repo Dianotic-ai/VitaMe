@@ -58,43 +58,7 @@ function SoilTexture() {
   );
 }
 
-// ---------- 嫩芽（acked 时长在种子上）----------
-// 简化版 §11.1 「发芽」阶段：从药丸顶部对称伸出 2 片小叶
-function Sprout({ cx, cy, r }: { cx: number; cy: number; r: number }) {
-  const tip = cy - r * 1.05; // 叶顶
-  const stem = cy - r * 0.35; // 茎根（在药丸上方一点）
-  const leaf = r * 0.7;
-  return (
-    <g style={{ pointerEvents: 'none' }}>
-      {/* 中央细茎 */}
-      <path
-        d={`M ${cx} ${stem} L ${cx} ${tip + leaf * 0.3}`}
-        stroke={PILL_GREEN}
-        strokeWidth={Math.max(0.8, r * 0.18)}
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* 左叶 */}
-      <path
-        d={`M ${cx} ${tip + leaf * 0.55} Q ${cx - leaf * 0.95} ${tip + leaf * 0.05} ${cx - leaf * 0.05} ${tip - leaf * 0.05}`}
-        stroke={PILL_GREEN}
-        strokeWidth={Math.max(0.7, r * 0.15)}
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* 右叶 */}
-      <path
-        d={`M ${cx} ${tip + leaf * 0.55} Q ${cx + leaf * 0.95} ${tip + leaf * 0.05} ${cx + leaf * 0.05} ${tip - leaf * 0.05}`}
-        stroke={PILL_GREEN}
-        strokeWidth={Math.max(0.7, r * 0.15)}
-        strokeLinecap="round"
-        fill="none"
-      />
-    </g>
-  );
-}
-
-// ---------- 小子件：单个药丸 ----------
+// ---------- 小子件：单个药丸（v0.4 D14.2 改胶囊形 + 斜放）----------
 
 interface PillProps {
   cx: number;
@@ -106,8 +70,17 @@ interface PillProps {
 }
 
 function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
-  // 设计契约：实心圆。默认 #8B6B4A（种子）；acked 时变 #2D5A3D（已发芽 = emphasizing growth）
-  const fill = acked ? PILL_GREEN : PILL_BROWN;
+  // v0.4 D14.2 用户决策：胶囊形 + 斜放，覆盖 DESIGN.md §11.5「Avoid pharmaceutical capsule」契约
+  // 理由：纯实心圆 + 暗色 = 炸弹感太重；胶囊+斜放更轻盈，且符合"保健品"主题
+  // 默认 #8B6B4A（种子棕）；acked 时上半 #8B6B4A 下半 #2D5A3D（半发芽双色感）
+  const capW = r * 2.6; // 胶囊总长（横向）— ~2.6r
+  const capH = r * 1.05; // 胶囊高度
+  const angleDeg = -22; // 左下→右上斜，暗示生长方向
+  const transform = `rotate(${angleDeg} ${cx} ${cy})`;
+  const x = cx - capW / 2;
+  const y = cy - capH / 2;
+  const ry = capH / 2;
+
   return (
     <g
       style={{ cursor: onClick ? 'pointer' : 'default' }}
@@ -116,9 +89,70 @@ function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
       aria-label={title}
     >
       {title && <title>{title}</title>}
-      <circle cx={cx} cy={cy} r={r} fill={fill} />
-      {/* 已吃 = 长出 2 片嫩芽（北极星 §11.1 种子→发芽阶段） */}
-      {acked && <Sprout cx={cx} cy={cy} r={r} />}
+      <g transform={transform}>
+        {acked ? (
+          <>
+            {/* 双色胶囊：上半棕 = 种子壳，下半绿 = 已发芽内核 */}
+            <defs>
+              <clipPath id={`cap-clip-${Math.round(cx)}-${Math.round(cy)}`}>
+                <rect x={x} y={y} width={capW} height={capH} rx={ry} ry={ry} />
+              </clipPath>
+            </defs>
+            <g clipPath={`url(#cap-clip-${Math.round(cx)}-${Math.round(cy)})`}>
+              <rect x={x} y={y} width={capW / 2} height={capH} fill={PILL_BROWN} />
+              <rect x={x + capW / 2} y={y} width={capW / 2} height={capH} fill={PILL_GREEN} />
+              {/* 中线极淡分隔 */}
+              <line
+                x1={x + capW / 2}
+                y1={y}
+                x2={x + capW / 2}
+                y2={y + capH}
+                stroke="#FAF7F2"
+                strokeWidth={0.5}
+                opacity={0.45}
+              />
+            </g>
+            {/* 外缘 */}
+            <rect
+              x={x}
+              y={y}
+              width={capW}
+              height={capH}
+              rx={ry}
+              ry={ry}
+              fill="none"
+              stroke="#5C4A2E"
+              strokeOpacity={0.18}
+              strokeWidth={0.6}
+            />
+          </>
+        ) : (
+          <>
+            <rect x={x} y={y} width={capW} height={capH} rx={ry} ry={ry} fill={PILL_BROWN} />
+            {/* 上半轻微暗调 — 暗示胶囊接缝，避免单调 */}
+            <rect
+              x={x}
+              y={y}
+              width={capW}
+              height={capH / 2}
+              rx={ry}
+              ry={ry}
+              fill="#5C4A2E"
+              opacity={0.1}
+            />
+            {/* 中线极淡 */}
+            <line
+              x1={x + capW / 2}
+              y1={y + ry * 0.45}
+              x2={x + capW / 2}
+              y2={y + capH - ry * 0.45}
+              stroke="#FAF7F2"
+              strokeWidth={0.4}
+              opacity={0.35}
+            />
+          </>
+        )}
+      </g>
     </g>
   );
 }
@@ -396,17 +430,18 @@ function renderPillsInCell({
   const visible = slotRules.slice(0, VISIBLE_MAX);
   const overflow = slotRules.length - visible.length;
 
-  const baseR = largeMode ? 14 : 8;
+  // v0.4 D14.2 改胶囊（w=2.6r, h=1.05r 横向）— r 适度放大保证可见
+  const baseR = largeMode ? 11 : 7;
   const cy = y + h / 2 - (overflow > 0 ? (largeMode ? 6 : 4) : 0);
 
-  // 1 颗居中；2 颗左右排
+  // 1 颗居中；2 颗左右排（胶囊宽 2.6r，间距加大避免视觉重叠）
   const pills = visible.map((rule, i) => {
     const supp = supplementsById.get(rule.supplementId);
     const acked = isRuleAckedToday(rule);
     const cx =
       visible.length === 1
         ? x + w / 2
-        : x + w / 2 + (i === 0 ? -baseR - 3 : baseR + 3);
+        : x + w / 2 + (i === 0 ? -baseR * 1.6 : baseR * 1.6);
     return (
       <Pill
         key={rule.ruleId}
