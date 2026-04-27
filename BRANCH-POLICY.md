@@ -42,6 +42,22 @@ vitame-dev-*                  ← 历史代码分支（code-only）
 codex/*                       ← 临时工作分支
 ```
 
+## docs/canonical 上的物理边界
+
+`docs/canonical` 分支**没有任何代码、构建配置、测试、依赖锁文件、环境模板或脚本**——所有非 md / asset 文件在 2026-04-27 已物理移除（参见随后的 `chore: strip code from docs/canonical` commit）。这意味着：
+
+- 任何后续 PR 如果引入 `src/`、`tests/`、`scripts/`、`*.config.*`、`package.json`、`tsconfig.json` 等路径，都会在 diff 里**显眼地**显示为"新文件"，立刻可识别违规并 reject。
+- 从代码分支 cherry-pick 时**只取 docs 内容**：用 `git checkout <sha> -- <doc-path>` 单文件检出 + `git commit --author=<原作者>` 保留署名，**不要**直接 `git cherry-pick <sha>`（会带进代码改动产生冲突或混入代码）。
+
+允许保留的文件类型：
+
+- `*.md` / `*.txt` / `*.html`（文档及叙事性 HTML）
+- `docs/` 树下任何资源：`*.png`、`*.jpg`、`*.jpeg`、`*.svg`、`*.gif`、`*.webp`、`*.pdf`、`*.mp4`、`*.mov`（图像、设计参考、视频素材）
+- `docs/` 树下的 `*.yaml` / `*.yml`（仅作为文档配置或归档元数据，例如 `_bmad/` 方法论 config）
+- `.gitignore`（git 元数据）
+
+被 git history 保留但不在工作树的内容（仍可 `git log --all` 找回）：所有早期 main 分支上的 `src/`、`tests/`、`scripts/` 与配置文件、`sessions/*.jsonl` 数据 dump。
+
 ## 工作流
 
 ### 改 docs
