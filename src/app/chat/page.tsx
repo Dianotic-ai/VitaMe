@@ -21,7 +21,7 @@ import { EmptyState } from '@/components/chat/EmptyState';
 import { PromptInspector } from '@/components/chat/PromptInspector';
 import { FeedbackPrompt, type FeedbackResult } from '@/components/feedback/FeedbackPrompt';
 import { computeTrigger, markPromptShown, type FeedbackTrigger } from '@/lib/feedback/triggerRule';
-import { ReminderBanner } from '@/components/reminder/ReminderBanner';
+import { PillBoxStrip } from '@/components/brand/PillBox';
 import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
 import { PlusLineIcon, DotsLineIcon } from '@/components/brand/Icons';
 
@@ -296,7 +296,7 @@ function ChatBody() {
   return (
     <div className="flex flex-col h-screen bg-bg-warm-2">
       <DemoBanner />
-      <ReminderBanner />
+      <PillBoxStrip />
       <header className="bg-surface border-b border-border-subtle px-4 py-2.5 flex items-center justify-between gap-2">
         <Link href="/chat" className="shrink-0">
           <VitaMeLogo size={22} />
