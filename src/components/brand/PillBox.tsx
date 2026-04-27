@@ -41,17 +41,56 @@ const FRAME = '#2D5A3D';
 const LABEL = '#1C1C1C';
 const SOIL_PATTERN_ID = 'pillbox-soil';
 
-// ---------- 土壤纹理（Klee 风短线，灰度 ≤8%）----------
+// ---------- 土壤纹理（Klee 风短线，灰度 8%）----------
 
 function SoilTexture() {
-  // 在 SVG 内 inline pattern；调用方放置到 <defs>
+  // 内嵌 pattern；调用方放置到 <defs>。比初版密一点 + 加 1 根曲线短茎
+  // 让"种子待发芽的土地"感更强；仍守 ≤8% 灰度上限
   return (
-    <pattern id={SOIL_PATTERN_ID} x="0" y="0" width="14" height="10" patternUnits="userSpaceOnUse">
-      {/* 极淡手绘短线 — 灰度 8% */}
-      <path d="M 1 4 L 4 5" stroke="#1C1C1C" strokeOpacity="0.07" strokeWidth="0.6" strokeLinecap="round" />
-      <path d="M 7 7 L 9 7" stroke="#1C1C1C" strokeOpacity="0.06" strokeWidth="0.5" strokeLinecap="round" />
-      <path d="M 11 2 L 13 3" stroke="#1C1C1C" strokeOpacity="0.07" strokeWidth="0.55" strokeLinecap="round" />
+    <pattern id={SOIL_PATTERN_ID} x="0" y="0" width="22" height="14" patternUnits="userSpaceOnUse">
+      <path d="M 2 5 L 5 6" stroke="#5C4A2E" strokeOpacity="0.08" strokeWidth="0.7" strokeLinecap="round" />
+      <path d="M 8 9 L 11 8.5" stroke="#5C4A2E" strokeOpacity="0.07" strokeWidth="0.6" strokeLinecap="round" />
+      <path d="M 14 4 L 16.5 5" stroke="#5C4A2E" strokeOpacity="0.08" strokeWidth="0.65" strokeLinecap="round" />
+      <path d="M 18 11 L 20 11.5" stroke="#5C4A2E" strokeOpacity="0.06" strokeWidth="0.5" strokeLinecap="round" />
+      {/* 极淡曲线根须 */}
+      <path d="M 3 12 Q 5 11 7 12" stroke="#5C4A2E" strokeOpacity="0.05" strokeWidth="0.45" fill="none" />
     </pattern>
+  );
+}
+
+// ---------- 嫩芽（acked 时长在种子上）----------
+// 简化版 §11.1 「发芽」阶段：从药丸顶部对称伸出 2 片小叶
+function Sprout({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  const tip = cy - r * 1.05; // 叶顶
+  const stem = cy - r * 0.35; // 茎根（在药丸上方一点）
+  const leaf = r * 0.7;
+  return (
+    <g style={{ pointerEvents: 'none' }}>
+      {/* 中央细茎 */}
+      <path
+        d={`M ${cx} ${stem} L ${cx} ${tip + leaf * 0.3}`}
+        stroke={PILL_GREEN}
+        strokeWidth={Math.max(0.8, r * 0.18)}
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* 左叶 */}
+      <path
+        d={`M ${cx} ${tip + leaf * 0.55} Q ${cx - leaf * 0.95} ${tip + leaf * 0.05} ${cx - leaf * 0.05} ${tip - leaf * 0.05}`}
+        stroke={PILL_GREEN}
+        strokeWidth={Math.max(0.7, r * 0.15)}
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* 右叶 */}
+      <path
+        d={`M ${cx} ${tip + leaf * 0.55} Q ${cx + leaf * 0.95} ${tip + leaf * 0.05} ${cx + leaf * 0.05} ${tip - leaf * 0.05}`}
+        stroke={PILL_GREEN}
+        strokeWidth={Math.max(0.7, r * 0.15)}
+        strokeLinecap="round"
+        fill="none"
+      />
+    </g>
   );
 }
 
@@ -67,6 +106,7 @@ interface PillProps {
 }
 
 function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
+  // 设计契约：实心圆。默认 #8B6B4A（种子）；acked 时变 #2D5A3D（已发芽 = emphasizing growth）
   const fill = acked ? PILL_GREEN : PILL_BROWN;
   return (
     <g
@@ -77,18 +117,8 @@ function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
     >
       {title && <title>{title}</title>}
       <circle cx={cx} cy={cy} r={r} fill={fill} />
-      {acked && (
-        // 极轻的"已吃"勾 — 用极淡白线，不破坏种子感
-        <path
-          d={`M ${cx - r * 0.45} ${cy} L ${cx - r * 0.1} ${cy + r * 0.35} L ${cx + r * 0.55} ${cy - r * 0.4}`}
-          stroke="#FAF7F2"
-          strokeWidth={r * 0.28}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          opacity={0.85}
-        />
-      )}
+      {/* 已吃 = 长出 2 片嫩芽（北极星 §11.1 种子→发芽阶段） */}
+      {acked && <Sprout cx={cx} cy={cy} r={r} />}
     </g>
   );
 }
@@ -198,12 +228,12 @@ export function PillBoxStrip({ forceHide }: StripProps) {
                 y={y}
                 width={w}
                 height={h}
-                rx={9}
-                ry={9}
+                rx={10}
+                ry={10}
                 fill="none"
-                stroke={FRAME}
-                strokeWidth="1.5"
-                strokeOpacity={slotRules.length > 0 ? 0.85 : 0.35}
+                stroke={slotRules.length > 0 ? FRAME : '#8B6B4A'}
+                strokeWidth={slotRules.length > 0 ? 1.1 : 0.9}
+                strokeOpacity={slotRules.length > 0 ? 0.7 : 0.3}
               />
 
               {/* 药丸 / 空占位 */}
