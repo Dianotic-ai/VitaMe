@@ -93,6 +93,11 @@ export function EventCard({ event }: Props) {
   const isObservation = event.eventType === 'observation';
   const userAction = (event.metadata?.userAction as string | undefined) ?? 'pending';
   const proposal = event.metadata?.proposal as string | undefined;
+  // Codex #6: 显式呈现"基于哪几条事件"让 observation 可追溯
+  const basedOnRaw = event.metadata?.basedOnEventIds;
+  const basedOnIds = Array.isArray(basedOnRaw)
+    ? basedOnRaw.filter((x): x is string => typeof x === 'string')
+    : [];
 
   function handleAccept() {
     appendEvent({
@@ -191,6 +196,11 @@ export function EventCard({ event }: Props) {
           {proposal && (
             <p className="text-[11.5px] text-disclaimer-text bg-bg-warm rounded-sm px-2 py-1 mb-2">
               💡 {proposal}
+            </p>
+          )}
+          {basedOnIds.length > 0 && (
+            <p className="text-[10.5px] text-text-tertiary mb-2">
+              基于 {basedOnIds.length} 条事件归纳
             </p>
           )}
           {userAction === 'pending' && (

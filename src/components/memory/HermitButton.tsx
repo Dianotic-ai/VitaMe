@@ -12,7 +12,8 @@ interface ObservationOutput {
   observationType: 'pattern' | 'recheck' | 'reminder-adjust' | 'request-field';
   text: string;
   proposal?: string;
-  basedOnEventIds?: string[];
+  /** Codex #6: 必须由服务端 sanitize 过 — 仅含输入里真实存在的 eventId */
+  basedOnEventIds: string[];
   entityRefs?: string[];
 }
 
@@ -41,6 +42,9 @@ export function HermitButton({ personId }: { personId: string }) {
           personName: person?.name,
           personRelation: person?.relation,
           events: events.slice(-50).map((e) => ({
+            // Codex Finding #6: eventId 必须传 — 服务端 prompt 让 LLM 从这里挑 basedOnEventIds，
+            // 否则 LLM 只能瞎编 id，observation 无法追溯回真实事件
+            eventId: e.eventId,
             eventType: e.eventType,
             occurredAt: e.occurredAt,
             entityRefs: e.entityRefs,
