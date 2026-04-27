@@ -329,7 +329,7 @@ function ChatBody() {
       {messages.length === 0 ? (
         <EmptyState onSeed={handleSend} />
       ) : (
-        <MessageList messages={messages} isStreaming={isStreaming} />
+        <MessageList messages={messages} isStreaming={isStreaming} onQuickReply={handleSend} />
       )}
 
       <ChatInput disabled={isStreaming} onSend={handleSend} />
