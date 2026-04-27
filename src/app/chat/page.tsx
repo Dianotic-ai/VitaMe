@@ -17,6 +17,8 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import { PersonSwitcher } from '@/components/chat/PersonSwitcher';
 import { EmptyState } from '@/components/chat/EmptyState';
 import { PromptInspector } from '@/components/chat/PromptInspector';
+import { FeedbackPrompt, type FeedbackResult } from '@/components/feedback/FeedbackPrompt';
+import { computeTrigger, markPromptShown, type FeedbackTrigger } from '@/lib/feedback/triggerRule';
 import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
 import { PlusLineIcon, DotsLineIcon } from '@/components/brand/Icons';
 
@@ -44,9 +46,42 @@ export default function ChatPage() {
 function ChatBody() {
   const profile = useProfileStore((s) => s.profile);
   const applyDelta = useProfileStore((s) => s.applyDelta);
+  const markSupplementFedback = useProfileStore((s) => s.markSupplementFedback);
   const appendEvent = useEventStore((s) => s.appendEvent);
   const activePerson = profile.people.find((p) => p.id === profile.activePersonId) ?? profile.people[0]!;
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [feedbackTrigger, setFeedbackTrigger] = useState<FeedbackTrigger | null>(null);
+
+  // 进入页面 1.5s 后检查是否要弹 FeedbackPrompt
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const trigger = computeTrigger(activePerson);
+      if (trigger) setFeedbackTrigger(trigger);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [activePerson.id]);
+
+  function handleFeedbackSubmit(result: FeedbackResult) {
+    markSupplementFedback(result.supplementId);
+    appendEvent({
+      eventType: 'feedback',
+      personId: activePerson.id,
+      entityRefs: [result.supplementId],
+      userText: result.freeText,
+      tags: result.urgent ? ['urgent', result.question] : [result.question],
+      metadata: {
+        question: result.question,
+        answer: result.answer,
+        urgent: result.urgent ?? false,
+      },
+    });
+    if (feedbackTrigger) markPromptShown(activePerson.id);
+    setFeedbackTrigger(null);
+  }
+  function handleFeedbackSkip() {
+    if (feedbackTrigger) markPromptShown(activePerson.id);
+    setFeedbackTrigger(null);
+  }
 
   const storedMessages = useConversationStore((s) => s.messages);
   const setStoredMessages = useConversationStore((s) => s.setMessages);
@@ -205,6 +240,13 @@ function ChatBody() {
       <ChatInput disabled={isStreaming} onSend={handleSend} />
 
       {inspectorOpen && <PromptInspector onClose={() => setInspectorOpen(false)} />}
+      {feedbackTrigger && (
+        <FeedbackPrompt
+          trigger={feedbackTrigger}
+          onSubmit={handleFeedbackSubmit}
+          onSkip={handleFeedbackSkip}
+        />
+      )}
     </div>
   );
 }
