@@ -37,7 +37,6 @@ import { renderBloomInline } from './SeedStages';
 
 const PILL_BROWN = '#8B6B4A';
 const CELL_BG = '#FAF7F2';
-const FRAME = '#2D5A3D';
 const LABEL = '#1C1C1C';
 const SOIL_PATTERN_ID = 'pillbox-soil';
 
@@ -69,10 +68,59 @@ interface PillProps {
   title?: string;
 }
 
+// ---------- 土壤散落（acked 时，胶囊化为滋养小花的土壤） ----------
+function SoilMound({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  // 沿胶囊原本所在的斜线散落几颗"土块" — 比 cell 背景纹理更明显
+  // 中心稍下移（花从土里长出，土在花根下方）
+  const baseY = cy + r * 0.4;
+  // 5 颗土块，沿 -22° 散落，大小有别
+  const clumps = [
+    { dx: -r * 1.0, dy: r * 0.22, rr: r * 0.28 },
+    { dx: -r * 0.45, dy: -r * 0.05, rr: r * 0.32 },
+    { dx: 0, dy: r * 0.12, rr: r * 0.36 },
+    { dx: r * 0.55, dy: -r * 0.02, rr: r * 0.3 },
+    { dx: r * 1.05, dy: r * 0.18, rr: r * 0.26 },
+  ];
+  return (
+    <g style={{ pointerEvents: 'none' }}>
+      {clumps.map((c, i) => (
+        <ellipse
+          key={i}
+          cx={cx + c.dx}
+          cy={baseY + c.dy}
+          rx={c.rr}
+          ry={c.rr * 0.7}
+          fill={PILL_BROWN}
+          opacity={0.55}
+        />
+      ))}
+      {/* 一根极淡曲线，暗示土的轮廓 */}
+      <path
+        d={`M ${cx - r * 1.3} ${baseY + r * 0.2} Q ${cx} ${baseY - r * 0.05} ${cx + r * 1.3} ${baseY + r * 0.2}`}
+        stroke="#5C4A2E"
+        strokeWidth={0.5}
+        strokeOpacity={0.35}
+        fill="none"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+
 function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
-  // 胶囊形 + 斜放（v0.4 D14.2 决策，覆盖 DESIGN.md §11.5「Avoid pharmaceutical capsule」契约）
-  // 默认（unacked）= 种子状态的胶囊
-  // acked = 胶囊变浅（壳色淡）+ 顶部破壳长出 5 瓣小花（§11.1「开花」阶段）
+  // unacked = 胶囊本体（v0.4 D14.2 决策，覆盖 DESIGN.md §11.5）
+  // acked   = 胶囊「化为土壤」+ 上方长出 8 瓣金花（v0.4 D14.6）
+  if (acked) {
+    return (
+      <g aria-label={title}>
+        {title && <title>{title}</title>}
+        <SoilMound cx={cx} cy={cy} r={r} />
+        {renderBloomInline(cx, cy, r)}
+      </g>
+    );
+  }
+
+  // unacked: 胶囊形 + 斜放
   const capW = r * 2.6;
   const capH = r * 1.05;
   const angleDeg = -22;
@@ -83,37 +131,25 @@ function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
 
   return (
     <g
-      style={{ cursor: onClick && !acked ? 'pointer' : 'default' }}
-      onClick={onClick && !acked ? onClick : undefined}
-      role={onClick && !acked ? 'button' : undefined}
+      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
       aria-label={title}
     >
       {title && <title>{title}</title>}
       <g transform={transform}>
-        {/* 胶囊本体 — acked 时变浅（开过的种子壳） */}
+        <rect x={x} y={y} width={capW} height={capH} rx={ry} ry={ry} fill={PILL_BROWN} />
+        {/* 上半淡暗调（接缝暗示） */}
         <rect
           x={x}
           y={y}
           width={capW}
-          height={capH}
+          height={capH / 2}
           rx={ry}
           ry={ry}
-          fill={PILL_BROWN}
-          opacity={acked ? 0.45 : 1}
+          fill="#5C4A2E"
+          opacity={0.1}
         />
-        {/* 上半淡暗调（接缝暗示） */}
-        {!acked && (
-          <rect
-            x={x}
-            y={y}
-            width={capW}
-            height={capH / 2}
-            rx={ry}
-            ry={ry}
-            fill="#5C4A2E"
-            opacity={0.1}
-          />
-        )}
         {/* 中线 */}
         <line
           x1={x + capW / 2}
@@ -122,23 +158,9 @@ function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
           y2={y + capH - ry * 0.45}
           stroke="#FAF7F2"
           strokeWidth={0.4}
-          opacity={acked ? 0.5 : 0.35}
+          opacity={0.35}
         />
-        {/* acked 时在胶囊顶部画一条小裂痕（"破壳"） */}
-        {acked && (
-          <path
-            d={`M ${x + capW * 0.35} ${y + 0.5} L ${x + capW * 0.5} ${y - 0.3} L ${x + capW * 0.62} ${y + 0.6}`}
-            stroke="#5C4A2E"
-            strokeWidth={0.5}
-            strokeOpacity={0.55}
-            fill="none"
-            strokeLinecap="round"
-          />
-        )}
       </g>
-      {/* 花在胶囊外、不跟胶囊一起转，保持向上"长" */}
-      {/* v0.4 D14.5 用 SeedStages 的 8 瓣向日葵风（Kevin 4-stage 视觉参考） */}
-      {acked && renderBloomInline(cx, cy, r)}
     </g>
   );
 }
@@ -245,22 +267,9 @@ export function PillBoxStrip({ forceHide }: StripProps) {
 
           return (
             <g key={slot.key}>
-              {/* 格底 + 土壤纹 */}
+              {/* 格底 + 土壤纹（v0.4 D14.6 删绿外框，仅靠 cell 背景 + 土壤纹区分） */}
               <rect x={x} y={y} width={w} height={h} rx={10} ry={10} fill={CELL_BG} />
               <rect x={x} y={y} width={w} height={h} rx={10} ry={10} fill={`url(#${SOIL_PATTERN_ID})`} />
-              {/* 外框 */}
-              <rect
-                x={x}
-                y={y}
-                width={w}
-                height={h}
-                rx={10}
-                ry={10}
-                fill="none"
-                stroke={FRAME}
-                strokeWidth={1.1}
-                strokeOpacity={0.7}
-              />
 
               {/* 药丸 */}
               {renderPillsInCell({ slotRules, x, y, w, h, supplementsById, onPillClick: handlePillClick })}
@@ -331,20 +340,9 @@ export function PillBoxFull({ onPillTap }: FullProps) {
 
           return (
             <g key={slot.key}>
+              {/* v0.4 D14.6 删绿外框 */}
               <rect x={x} y={y} width={w} height={h} rx={12} ry={12} fill={CELL_BG} />
               <rect x={x} y={y} width={w} height={h} rx={12} ry={12} fill={`url(#${SOIL_PATTERN_ID})`} />
-              <rect
-                x={x}
-                y={y}
-                width={w}
-                height={h}
-                rx={12}
-                ry={12}
-                fill="none"
-                stroke={FRAME}
-                strokeWidth="1.5"
-                strokeOpacity={0.85}
-              />
 
               {renderPillsInCell({
                 slotRules,
