@@ -31,11 +31,11 @@ import {
 } from '@/lib/reminder/slot';
 import type { ReminderRule } from '@/lib/reminder/types';
 import type { ProfileSupplement } from '@/lib/profile/types';
+import { renderBloomInline } from './SeedStages';
 
 // ---------- 共享 token ----------
 
 const PILL_BROWN = '#8B6B4A';
-const PILL_GREEN = '#2D5A3D';
 const CELL_BG = '#FAF7F2';
 const FRAME = '#2D5A3D';
 const LABEL = '#1C1C1C';
@@ -67,59 +67,6 @@ interface PillProps {
   acked: boolean;
   onClick?: () => void;
   title?: string;
-}
-
-// ---------- 开花（acked 时种子破壳长出小花，§11.1 第 3 阶段「开花」）----------
-
-function BloomFlower({ cx, cy, r }: { cx: number; cy: number; r: number }) {
-  // 茎从胶囊顶部往上 r*0.8，花心再往上 r*0.6
-  const stemBottomY = cy - r * 0.5;
-  const stemTopY = cy - r * 1.4;
-  const flowerCenterY = cy - r * 1.95;
-  const petalRx = r * 0.32;
-  const petalRy = r * 0.55;
-  const petalDist = r * 0.55;
-  const stroke = Math.max(0.6, r * 0.13);
-
-  return (
-    <g style={{ pointerEvents: 'none' }}>
-      {/* 细茎（深林绿） */}
-      <line
-        x1={cx}
-        y1={stemBottomY}
-        x2={cx}
-        y2={stemTopY}
-        stroke={PILL_GREEN}
-        strokeWidth={stroke}
-        strokeLinecap="round"
-      />
-      {/* 1 片侧叶 */}
-      <path
-        d={`M ${cx} ${cy - r * 0.95} Q ${cx + r * 0.55} ${cy - r * 1.05} ${cx + r * 0.4} ${cy - r * 0.7}`}
-        stroke={PILL_GREEN}
-        strokeWidth={stroke * 0.85}
-        fill="none"
-        strokeLinecap="round"
-      />
-      {/* 5 瓣花 */}
-      <g transform={`translate(${cx} ${flowerCenterY})`}>
-        {[0, 72, 144, 216, 288].map((angle) => (
-          <ellipse
-            key={angle}
-            cx="0"
-            cy={-petalDist}
-            rx={petalRx}
-            ry={petalRy}
-            fill={PILL_GREEN}
-            opacity={0.9}
-            transform={`rotate(${angle})`}
-          />
-        ))}
-        {/* 花心 — 种子棕 */}
-        <circle cx="0" cy="0" r={Math.max(0.8, r * 0.22)} fill={PILL_BROWN} />
-      </g>
-    </g>
-  );
 }
 
 function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
@@ -190,7 +137,8 @@ function Pill({ cx, cy, r, acked, onClick, title }: PillProps) {
         )}
       </g>
       {/* 花在胶囊外、不跟胶囊一起转，保持向上"长" */}
-      {acked && <BloomFlower cx={cx} cy={cy} r={r} />}
+      {/* v0.4 D14.5 用 SeedStages 的 8 瓣向日葵风（Kevin 4-stage 视觉参考） */}
+      {acked && renderBloomInline(cx, cy, r)}
     </g>
   );
 }
