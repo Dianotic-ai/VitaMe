@@ -17,6 +17,7 @@ import { ChevronRightLineIcon, ArrowUpLineIcon, CloseLineIcon } from '@/componen
 const SKIP_MESSAGE = '都可以，你帮我选吧';
 
 const CHOICE_LINE_RE = /^\s*(\d+)[.、)]\s+(.+?)\s*$/;
+const BULLET_LINE_RE = /^\s*[-*•]\s+(.+?)\s*$/;
 const BOLD_ARROW_RE = /^\s*\*\*([^*]{1,24})\*\*\s*[→:：]/;
 const QUESTION_SPLIT_RE = /还是|或者/;
 const MAX_CHOICE_LEN = 32;
@@ -24,6 +25,32 @@ const MAX_BINARY_CHOICE_LEN = 24;
 const MIN_CHOICES = 2;
 const MAX_CHOICES = 6;
 const MAX_GROUPS = 4; // 多步 wizard 最多 4 步，超过当退化（agent 写飞了）
+
+type ListItemKind = 'num' | 'bullet';
+interface ListItem {
+  kind: ListItemKind;
+  num?: number;
+  label: string;
+}
+
+/** 单行尝试解析为 list item（数字编号 1./2./3. 或 dash/asterisk/bullet 标记）。 */
+function parseListItem(line: string): ListItem | null {
+  const numM = CHOICE_LINE_RE.exec(line);
+  if (numM) {
+    const label = (numM[2] ?? '').trim();
+    if (!label || label.length > MAX_CHOICE_LEN) return null;
+    return { kind: 'num', num: Number(numM[1]), label };
+  }
+  const bulletM = BULLET_LINE_RE.exec(line);
+  if (bulletM) {
+    const label = (bulletM[1] ?? '').trim();
+    if (!label || label.length > MAX_CHOICE_LEN) return null;
+    // 排除 markdown 加粗（**X** → ...）— 由 parseBoldArrowList 单独处理，避免吃成 bullet
+    if (BOLD_ARROW_RE.test(line)) return null;
+    return { kind: 'bullet', label };
+  }
+  return null;
+}
 
 export interface ParsedChoice {
   label: string;
@@ -39,9 +66,9 @@ export interface ChoiceGroup {
 export function parseChoiceGroups(text: string): ChoiceGroup[] {
   if (!text) return [];
 
-  // 策略 1：多组严格编号列表
-  const numbered = parseAllNumberedGroups(text);
-  if (numbered.length > 0) return numbered;
+  // 策略 1：多组列表（numbered 或 dash bullet）
+  const lists = parseAllListGroups(text);
+  if (lists.length > 0) return lists;
 
   // 策略 2 / 3：单组（保持旧行为）
   const binary = parseBinaryQuestion(text);
@@ -60,14 +87,20 @@ export function parseChoices(text: string): ParsedChoice[] | null {
   return groups[0]!.choices;
 }
 
-/** 策略 1：扫描所有连续 numbered list 块（编号必从 1 开始递增）。 */
-function parseAllNumberedGroups(text: string): ChoiceGroup[] {
+/** 策略 1：扫描所有连续 list 块。
+ *  支持两种格式：
+ *  - numbered（"1. / 2. / 3."，必须从 1 起递增）
+ *  - bullet（dash/asterisk/中点等，无编号约束）
+ *  同组内格式必须一致；不同组之间可混用。
+ *  agent 偶尔违反 prompt 用 dash 写选项 = 此 fallback 兜底。 */
+function parseAllListGroups(text: string): ChoiceGroup[] {
   if (!/[?？]/.test(text)) return [];
 
   const lines = text.split(/\r?\n/);
   const groups: ChoiceGroup[] = [];
   let current: ParsedChoice[] = [];
-  let expected = 1;
+  let mode: ListItemKind | null = null;
+  let expectedNum = 1;
   let groupStartIdx = -1;
 
   function closeGroup() {
@@ -78,36 +111,52 @@ function parseAllNumberedGroups(text: string): ChoiceGroup[] {
       });
     }
     current = [];
-    expected = 1;
+    mode = null;
+    expectedNum = 1;
     groupStartIdx = -1;
+  }
+
+  function startWith(item: ListItem, idx: number): boolean {
+    if (item.kind === 'num') {
+      if (item.num !== 1) return false; // 必须从 1 开始
+      mode = 'num';
+      expectedNum = 2;
+    } else {
+      mode = 'bullet';
+    }
+    groupStartIdx = idx;
+    current.push({ label: item.label });
+    return true;
   }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!.trim();
-    const m = CHOICE_LINE_RE.exec(line);
+    const item = parseListItem(line);
 
-    if (m && Number(m[1]) === expected) {
-      const label = (m[2] ?? '').trim();
-      if (!label || label.length > MAX_CHOICE_LEN) {
-        closeGroup();
-        continue;
-      }
-      if (expected === 1) groupStartIdx = i;
-      current.push({ label });
-      expected++;
+    if (!item) {
+      closeGroup();
       continue;
     }
 
-    // 当前行不接续 → 关组；如果它本身是 "1. xxx" 则开新组
-    closeGroup();
-    if (m && Number(m[1]) === 1) {
-      const label = (m[2] ?? '').trim();
-      if (label && label.length <= MAX_CHOICE_LEN) {
-        current.push({ label });
-        expected = 2;
-        groupStartIdx = i;
-      }
+    if (mode === null) {
+      startWith(item, i);
+      continue;
     }
+
+    const matches =
+      mode === 'num'
+        ? item.kind === 'num' && item.num === expectedNum
+        : item.kind === 'bullet';
+
+    if (matches) {
+      current.push({ label: item.label });
+      if (item.kind === 'num') expectedNum++;
+      continue;
+    }
+
+    // 不匹配现 mode → 关组；当前行若本身是合法 group 起点（num=1 或 bullet）则立即开新组
+    closeGroup();
+    startWith(item, i);
   }
   closeGroup();
 

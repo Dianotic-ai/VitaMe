@@ -117,6 +117,89 @@ describe('parseChoiceGroups — 多步 wizard 解析', () => {
     });
   });
 
+  describe('dash / bullet 列表兜底（agent 偶尔违反 prompt）', () => {
+    it('整组用 dash 也识别为一组', () => {
+      const text = `选哪个？
+- A
+- B
+- C`;
+      const groups = parseChoiceGroups(text);
+      expect(groups).toHaveLength(1);
+      expect(groups[0]!.choices.map((c) => c.label)).toEqual(['A', 'B', 'C']);
+      expect(groups[0]!.label).toBe('选哪个？');
+    });
+
+    it('星号 * 列表也识别', () => {
+      const text = `要哪个？
+* X
+* Y`;
+      const groups = parseChoiceGroups(text);
+      expect(groups).toHaveLength(1);
+      expect(groups[0]!.choices.map((c) => c.label)).toEqual(['X', 'Y']);
+    });
+
+    it('混合：第一组 dash + 第二组 numbered（截图复现）', () => {
+      const text = `好，但需要你提供几个基本情况才能给精准方案：
+**你的年龄和性别？**
+- 35 岁以下男性
+- 35 岁以下女性
+- 35-50 岁男性
+- 35-50 岁女性
+- 50 岁以上
+**每天/每周大概喝多少？**
+1. 每天小酌（1-2 杯）
+2. 每周几次、每次较多（3-5 杯+）
+3. 经常喝醉（每周 5 次以上）`;
+      const groups = parseChoiceGroups(text);
+      expect(groups).toHaveLength(2);
+      expect(groups[0]!.choices.map((c) => c.label)).toEqual([
+        '35 岁以下男性',
+        '35 岁以下女性',
+        '35-50 岁男性',
+        '35-50 岁女性',
+        '50 岁以上',
+      ]);
+      expect(groups[0]!.label).toContain('年龄');
+      expect(groups[1]!.choices.map((c) => c.label)).toEqual([
+        '每天小酌（1-2 杯）',
+        '每周几次、每次较多（3-5 杯+）',
+        '经常喝醉（每周 5 次以上）',
+      ]);
+      expect(groups[1]!.label).toContain('喝多少');
+    });
+
+    it('反向混合：第一组 numbered + 第二组 dash', () => {
+      const text = `两件事：
+你多大？
+1. 20-30
+2. 31-45
+症状？
+- 困
+- 累`;
+      const groups = parseChoiceGroups(text);
+      expect(groups).toHaveLength(2);
+      expect(groups[0]!.choices.map((c) => c.label)).toEqual(['20-30', '31-45']);
+      expect(groups[1]!.choices.map((c) => c.label)).toEqual(['困', '累']);
+    });
+
+    it('bullet 不含问号 → 不识别（避免误抓普通无序列表）', () => {
+      const text = `今天的清单：
+- 鱼油
+- 维 D`;
+      expect(parseChoiceGroups(text)).toHaveLength(0);
+    });
+
+    it('**X** → ... 加粗箭头不被误识别为 bullet（走单独 BoldArrow 策略）', () => {
+      const text = `你想要哪种？
+**鱼油** → omega-3 高
+**维 D** → 阳光替代`;
+      const groups = parseChoiceGroups(text);
+      // BoldArrow 策略只产单组
+      expect(groups).toHaveLength(1);
+      expect(groups[0]!.choices.map((c) => c.label)).toEqual(['鱼油', '维 D']);
+    });
+  });
+
   describe('parseChoices 兼容旧 API', () => {
     it('多组场景返回第一组', () => {
       const text = `年纪？
