@@ -163,12 +163,14 @@ function CellSvg({ status, sizeClass = 'w-3/4 h-3/4' }: { status: SlotStatus; si
 function FabSvg({ slotStates, allBloom }: { slotStates: SlotState[]; allBloom: boolean }) {
   const hasDue = slotStates.some((s) => s.status === 'due');
 
+  // pill shape：rect rx=高度/2 → 完美半圆端部
+  // 中心 (30, y)，宽 44，高 16，rx=ry=8 → 真药丸形
   if (allBloom) {
     return (
       <svg viewBox="0 0 60 80" width="56" height="74" style={{ overflow: 'visible' }}>
         {renderBloomInline(30, 32, 9)}
         <g>
-          <ellipse cx="30" cy="64" rx="22" ry="8"
+          <rect x="8" y="56" width="44" height="16" rx="8" ry="8"
             fill={COLOR.amberSoft} stroke={COLOR.amber} strokeWidth="1.4"
             transform="rotate(-22 30 64)"/>
           {/* 萌眼（不随胶囊旋转） */}
@@ -193,7 +195,7 @@ function FabSvg({ slotStates, allBloom }: { slotStates: SlotState[]; allBloom: b
       height="32"
       style={hasDue ? { animation: 'pillbox-lid-pop 1.6s ease-in-out infinite', transformOrigin: 'center', overflow: 'visible' } : { overflow: 'visible' }}
     >
-      <ellipse cx="30" cy="15" rx="22" ry="8"
+      <rect x="8" y="7" width="44" height="16" rx="8" ry="8"
         fill={fill} stroke={stroke} strokeWidth="1.4"
         transform="rotate(-22 30 15)"/>
       {/* 萌眼睛 — 永远正向，不随胶囊旋转，诱导点击 */}
