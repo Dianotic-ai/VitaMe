@@ -50,7 +50,19 @@ body {
   }
 }
 
-/* —— v0.4 D18 PillBoxEgg 浮标动画 —— */
+/* —— v0.4 D18 PillBoxEgg v2 浮标动画（固定 4 格状态机） —— */
+@keyframes pillbox-lid-pop {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(-22deg); }
+}
+@keyframes pillbox-sprout-rise {
+  from { transform: scale(0.4) translateY(8px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes pillbox-hold-charge {
+  to { stroke-dashoffset: 0; }
+}
+/* legacy v1 keyframes（保留 backward compat） */
 @keyframes pillbox-wiggle {
   0%, 100% { transform: rotate(0deg); }
   25% { transform: rotate(-3deg); }

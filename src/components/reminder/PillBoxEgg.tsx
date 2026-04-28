@@ -1,18 +1,13 @@
-// file: src/components/reminder/PillBoxEgg.tsx — v0.4 D18 浮标小药盒（彩蛋入口）
+// file: src/components/reminder/PillBoxEgg.tsx — v0.4 D18 浮标小药盒 v2（固定 4 格状态机）
 //
-// 视觉契约（mockup v4 + spec_lock）：
-//   浮标 = 4 格胶囊小药盒（pill shape，米色 + forest 绿描边 + 棕仓盖 + 高亮金边）
-//   点击 → popover 展开 → N 格按当日药数动态显示
-//   每格 4 状态：upcoming(浅灰待) / due(闪烁提醒) / done(开花已吃) / missed(枯萎错过)
-//   长按胶囊 1s → ack 已服用 + vibrate 微震动 + bloom 动画
+// 视觉契约（mockup v7）：
+//   浮标 = 横排 4 格闭合小药盒（早/中/晚/睡前）
+//   每格独立状态：closed(盖合) / due(弹盖露药) / sprout(嫩芽) / wither(枯芽 + 药还在)
+//   全 4 格 sprout → 整盒爆开大花（庆祝）
+//   点击 → popover 展开放大 4 格 + 长按 1 秒 ack + haptic + sprout-rise 动画
 //
-// 数据来源：
-//   - useReminderStore: rules + ackRule
-//   - useProfileStore: currentSupplements 拿药名
-//   - slot.ts: SLOTS / bucketSlot / isRuleAckedToday
-//
-// 不复用 PillBoxStrip — 那个是 4 时段抽象 strip；这个是 N 颗药动态格子
-// PillBoxStrip / ReminderBanner 仍保留，待用户 verify PillBoxEgg 后再删（CLAUDE.md §17 谨慎）
+// 数据：useReminderStore.rules + currentSupplements + slot.bucketSlot + isRuleAckedToday
+// 风格：SVG fine-line（Klee 风），不模拟水彩；保留 forest 绿主色
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -20,175 +15,257 @@ import { useShallow } from 'zustand/react/shallow';
 import { useReminderStore } from '@/lib/reminder/store';
 import { useProfileStore } from '@/lib/profile/profileStore';
 import { useEventStore } from '@/lib/memory/eventStore';
-import { bucketSlot, isRuleAckedToday } from '@/lib/reminder/slot';
-import type { SlotKey } from '@/lib/reminder/slot';
+import { SLOTS, bucketSlot, isRuleAckedToday } from '@/lib/reminder/slot';
+import type { SlotKey, SlotMeta } from '@/lib/reminder/slot';
 import type { ReminderRule } from '@/lib/reminder/types';
-import { renderBloomInline } from '@/components/brand/SeedSproutStage';
 
 // ============================================================
 //  状态计算
 // ============================================================
 
-type CellStatus = 'upcoming' | 'due' | 'done' | 'missed';
+type SlotStatus = 'empty' | 'closed' | 'due' | 'sprout' | 'wither';
+const DUE_GRACE_MIN = 60;
 
-interface PillCellModel {
-  rule: ReminderRule;
-  supplementName: string;
-  status: CellStatus;
-  /** 用于排序 = timeOfDay 转分钟 */
-  minutes: number;
+interface SlotState {
+  meta: SlotMeta;
+  rules: ReminderRule[];
+  status: SlotStatus;
+  ackedCount: number;
+  totalCount: number;
 }
 
-const DUE_WINDOW_MIN = 60; // 到点 60 分钟内未 ack = due；之后 = missed
+function nowMinutes(now: Date): number {
+  return now.getHours() * 60 + now.getMinutes();
+}
 
-function timeToMinutes(timeOfDay: string): number {
-  const [h, m] = timeOfDay.split(':');
+function ruleMinutes(rule: ReminderRule): number {
+  const [h, m] = rule.timeOfDay.split(':');
   return Number(h ?? 0) * 60 + Number(m ?? 0);
 }
 
-function classifyRule(rule: ReminderRule, now: Date, supplementName: string): PillCellModel {
-  const ruleMin = timeToMinutes(rule.timeOfDay);
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-  const acked = isRuleAckedToday(rule, now);
+/** 计算单个 slot 状态：依据该 slot 内所有 rule 的时间和 ack 情况。 */
+function computeSlotState(meta: SlotMeta, rules: ReminderRule[], now: Date): SlotState {
+  const acked = rules.filter((r) => isRuleAckedToday(r, now));
+  const ackedCount = acked.length;
+  const totalCount = rules.length;
 
-  let status: CellStatus;
-  if (acked) status = 'done';
-  else if (nowMin < ruleMin) status = 'upcoming';
-  else if (nowMin <= ruleMin + DUE_WINDOW_MIN) status = 'due';
-  else status = 'missed';
+  if (totalCount === 0) {
+    return { meta, rules, status: 'empty', ackedCount: 0, totalCount: 0 };
+  }
+  if (ackedCount === totalCount) {
+    return { meta, rules, status: 'sprout', ackedCount, totalCount };
+  }
 
-  return { rule, supplementName, status, minutes: ruleMin };
-}
+  // 还有未 ack 的 — 看该 slot 内最早的未 ack rule 是否到点
+  const unacked = rules.filter((r) => !isRuleAckedToday(r, now));
+  const earliestUnackedMin = Math.min(...unacked.map(ruleMinutes));
+  const cur = nowMinutes(now);
 
-/** FAB 的 4 仓状态 — 同 slot 多 rule 取最严重状态 */
-function aggregateSlotStatus(cells: PillCellModel[]): CellStatus | 'empty' {
-  if (cells.length === 0) return 'empty';
-  // 优先级：due > missed > upcoming > done
-  if (cells.some((c) => c.status === 'due')) return 'due';
-  if (cells.some((c) => c.status === 'missed')) return 'missed';
-  if (cells.some((c) => c.status === 'upcoming')) return 'upcoming';
-  return 'done';
+  if (cur < earliestUnackedMin) {
+    return { meta, rules, status: 'closed', ackedCount, totalCount };
+  }
+  if (cur <= earliestUnackedMin + DUE_GRACE_MIN) {
+    return { meta, rules, status: 'due', ackedCount, totalCount };
+  }
+  return { meta, rules, status: 'wither', ackedCount, totalCount };
 }
 
 // ============================================================
-//  浮标 FAB SVG（4 格胶囊小药盒，pill shape）
+//  SVG 资产 — fine-line Klee 风，复刻 mockup v7
 // ============================================================
 
-interface FabProps {
-  slotStatuses: Record<SlotKey, CellStatus | 'empty'>;
-  hasDue: boolean;
-  dueCount: number;
-  onClick: () => void;
-}
+const COLOR = {
+  shellCream: '#F5EFE3',
+  seed: '#8B6B4A',
+  seedDark: '#5C4A2E',
+  leaf: '#5B8469',
+  leafLight: '#7BA289',
+  amber: '#D4933A',
+  amberSoft: '#E8C078',
+  soil: '#8B6B4A',
+  witherTan: '#9C8A55',
+  grayCap: '#B8B0A0',
+  petalCream: '#F5D9C4',
+  petalPink: '#E8B8A0',
+  warning: '#C44A4A',
+  forest: '#2D5A3D',
+};
 
-function PillBoxFab({ slotStatuses, hasDue, dueCount, onClick }: FabProps) {
-  const strokeColor = hasDue ? '#D4933A' : '#2D5A3D';
-  // 4 仓盖 x 偏移
-  const slotKeys: SlotKey[] = ['morning', 'midday', 'evening', 'bedtime'];
-  const capX = [4, 22, 40, 58];
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="打开药盒"
-      className="relative group transition-transform hover:scale-[1.04] active:scale-[0.98]"
-    >
-      <svg
-        viewBox="0 0 80 40"
-        width="84"
-        height="42"
-        className={hasDue ? 'animate-glow' : ''}
-        style={{ filter: hasDue ? 'drop-shadow(0 4px 12px rgba(212,147,58,.45))' : 'drop-shadow(0 3px 8px rgba(0,0,0,.12))' }}
-      >
-        {/* 胶囊外壳 */}
-        <rect
-          x="2" y="6" width="76" height="28" rx="14" ry="14"
-          fill="#F5EFE3" stroke={strokeColor} strokeWidth="1.5"
-        />
-        <rect
-          x="4" y="8" width="72" height="24" rx="12" ry="12"
-          fill="none" stroke="#8B6B4A" strokeWidth="0.5" opacity="0.35"
-        />
-        {/* 中线高光 — 胶囊接缝感 */}
-        <line x1="14" y1="20" x2="66" y2="20" stroke="rgba(255,255,255,.55)" strokeWidth="0.4" />
-        {/* 4 格分隔线 */}
-        <line x1="22" y1="11" x2="22" y2="29" stroke="#8B6B4A" strokeWidth="0.6" opacity="0.5" />
-        <line x1="40" y1="11" x2="40" y2="29" stroke="#8B6B4A" strokeWidth="0.6" opacity="0.5" />
-        <line x1="58" y1="11" x2="58" y2="29" stroke="#8B6B4A" strokeWidth="0.6" opacity="0.5" />
-
-        {/* 4 仓盖 */}
-        {slotKeys.map((key, i) => {
-          const status = slotStatuses[key];
-          const x = capX[i]!;
-          if (status === 'empty') {
-            return (
-              <rect key={key} x={x} y="14" width="14" height="6" rx="3"
-                    fill="#8B6B4A" stroke="#5C4A2E" strokeWidth="0.4" opacity="0.25" />
-            );
-          }
-          if (status === 'done') {
-            // 仓盖打开 + 露金点
-            return (
-              <g key={key} opacity="0.7">
-                <g transform={`rotate(-30 ${x + 14} 18)`}>
-                  <rect x={x} y="14" width="14" height="6" rx="3"
-                        fill="#8B6B4A" stroke="#5C4A2E" strokeWidth="0.4" opacity="0.85" />
-                </g>
-                <circle cx={x + 7} cy={26} r="2.5" fill="#D4933A" opacity="0.85" />
-              </g>
-            );
-          }
-          if (status === 'due') {
-            // 仓盖闪烁掀开 + 金色
-            return (
-              <g key={key}>
-                <g style={{ transformOrigin: `${x + 14}px 17px`, animation: 'pillbox-lid-blink 1.4s ease-in-out infinite' }}>
-                  <rect x={x} y="14" width="14" height="6" rx="3"
-                        fill="#D4933A" stroke="#B07A28" strokeWidth="0.4" />
-                </g>
-                <circle cx={x + 7} cy={26} r="2.5" fill="#D4933A" />
-              </g>
-            );
-          }
-          if (status === 'missed') {
-            // 仓盖灰暗
-            return (
-              <rect key={key} x={x} y="14" width="14" height="6" rx="3"
-                    fill="#5C4A2E" stroke="#3A2E1E" strokeWidth="0.4" opacity="0.4" />
-            );
-          }
-          // upcoming
-          return (
-            <rect key={key} x={x} y="14" width="14" height="6" rx="3"
-                  fill="#8B6B4A" stroke="#5C4A2E" strokeWidth="0.4" />
-          );
-        })}
+/** 单格 SVG（约 100×100 viewBox），按 status 渲染对应内容。 */
+function CellSvg({ status, sizeClass = 'w-3/4 h-3/4' }: { status: SlotStatus; sizeClass?: string }) {
+  if (status === 'empty') {
+    return (
+      <svg viewBox="0 0 100 100" className={sizeClass}>
+        <rect x="14" y="40" width="72" height="42" rx="8" stroke={COLOR.grayCap} strokeWidth="1" fill={COLOR.shellCream} opacity="0.4"/>
+        <rect x="18" y="32" width="64" height="14" rx="6" stroke={COLOR.grayCap} strokeWidth="1" fill={COLOR.shellCream} opacity="0.4"/>
       </svg>
-      {dueCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-[#C44A4A] text-white text-[10px] font-semibold w-4 h-4 grid place-items-center rounded-full pointer-events-none">
-          {dueCount}
-        </span>
-      )}
-    </button>
+    );
+  }
+  if (status === 'closed') {
+    return (
+      <svg viewBox="0 0 100 100" className={sizeClass}>
+        <rect x="14" y="40" width="72" height="42" rx="8" stroke={COLOR.seed} strokeWidth="1.4" fill={COLOR.shellCream}/>
+        <rect x="18" y="32" width="64" height="14" rx="6" stroke={COLOR.seed} strokeWidth="1.4" fill={COLOR.shellCream}/>
+        <path d="M 50 39 a 3.5 3.5 0 1 1 -1.5 -3 a 2.5 2.5 0 1 0 1.5 3 z" fill={COLOR.seed} opacity="0.55"/>
+      </svg>
+    );
+  }
+  if (status === 'due') {
+    return (
+      <svg viewBox="0 0 100 100" className={sizeClass}>
+        <rect x="14" y="40" width="72" height="42" rx="8" stroke={COLOR.seed} strokeWidth="1.4" fill={COLOR.shellCream}/>
+        <g style={{ transformOrigin: 'bottom right', animation: 'pillbox-lid-pop 1.6s ease-in-out infinite' }}>
+          <rect x="18" y="32" width="64" height="14" rx="6" stroke={COLOR.seed} strokeWidth="1.4" fill={COLOR.shellCream}/>
+          <path d="M 50 39 a 3.5 3.5 0 1 1 -1.5 -3 a 2.5 2.5 0 1 0 1.5 3 z" fill={COLOR.seed} opacity="0.55"/>
+        </g>
+        <g transform="rotate(-22 50 62)">
+          <rect x="34" y="58" width="32" height="10" rx="5" stroke={COLOR.amber} strokeWidth="1.4" fill={COLOR.amberSoft}/>
+          <line x1="50" y1="60" x2="50" y2="66" stroke={COLOR.amber} strokeWidth="0.7" opacity="0.55"/>
+        </g>
+      </svg>
+    );
+  }
+  if (status === 'sprout') {
+    return (
+      <svg viewBox="0 0 100 100" className={sizeClass}>
+        <rect x="14" y="40" width="72" height="42" rx="8" stroke={COLOR.seed} strokeWidth="1.4" fill={COLOR.shellCream}/>
+        <path d="M 18 64 Q 30 60, 50 62 T 82 64" stroke={COLOR.seed} strokeWidth="0.8" opacity="0.5" fill="none"/>
+        <ellipse cx="50" cy="74" rx="30" ry="6" fill={COLOR.soil} opacity="0.3"/>
+        <g style={{ transformOrigin: '50px 64px', animation: 'pillbox-sprout-rise 1s cubic-bezier(0.22, 1, 0.36, 1) forwards' }}>
+          <path d="M 50 64 Q 49 50 50 36" stroke={COLOR.leaf} strokeWidth="1.4" fill="none" strokeLinecap="round"/>
+          <path d="M 50 42 C 42 38 38 30 40 24 C 46 28 50 36 50 42 Z" fill={COLOR.leaf} opacity="0.85"/>
+          <path d="M 50 42 C 58 38 62 30 60 24 C 54 28 50 36 50 42 Z" fill={COLOR.leafLight} opacity="0.85"/>
+        </g>
+      </svg>
+    );
+  }
+  // wither
+  return (
+    <svg viewBox="0 0 100 100" className={sizeClass}>
+      <rect x="14" y="40" width="72" height="42" rx="8" stroke={COLOR.seed} strokeWidth="1.4" fill={COLOR.shellCream} opacity="0.85"/>
+      <path d="M 18 64 Q 30 60, 50 62 T 82 64" stroke={COLOR.witherTan} strokeWidth="0.7" opacity="0.5" fill="none"/>
+      <ellipse cx="50" cy="74" rx="30" ry="6" fill={COLOR.witherTan} opacity="0.25"/>
+      <path d="M 30 70 L 33 75 M 64 72 L 68 76" stroke={COLOR.witherTan} strokeWidth="0.5" opacity="0.5"/>
+      <path d="M 38 64 Q 40 56 44 50" stroke={COLOR.witherTan} strokeWidth="1.2" fill="none" opacity="0.7"/>
+      <path d="M 44 50 C 38 50 35 46 37 42" stroke={COLOR.witherTan} strokeWidth="1" fill="none" opacity="0.65"/>
+      <path d="M 37 42 C 41 46 42 48 44 50" stroke={COLOR.witherTan} strokeWidth="1" fill="none" opacity="0.65"/>
+      <g transform="rotate(15 65 70)" opacity="0.7">
+        <rect x="55" y="66" width="22" height="7" rx="3.5" stroke={COLOR.amber} strokeWidth="1.1" fill={COLOR.amberSoft}/>
+      </g>
+    </svg>
+  );
+}
+
+/** 浮标 SVG — 横排 4 格，每格按 status 渲染（小尺寸版本） */
+function FabSvg({ slotStates, allBloom }: { slotStates: SlotState[]; allBloom: boolean }) {
+  if (allBloom) {
+    return (
+      <svg viewBox="0 0 200 70" width="160" height="56" style={{ overflow: 'visible' }}>
+        <rect x="3" y="34" width="194" height="34" rx="6" stroke={COLOR.seed} strokeWidth="1.2" fill={COLOR.shellCream}/>
+        <ellipse cx="30" cy="58" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
+        <ellipse cx="78" cy="58" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
+        <ellipse cx="126" cy="58" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
+        <ellipse cx="174" cy="58" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
+        <path d="M 100 54 Q 102 36 100 16" stroke={COLOR.leaf} strokeWidth="1.4" fill="none" strokeLinecap="round"/>
+        <path d="M 100 36 C 90 32 82 26 80 20 C 90 24 100 30 100 36 Z" fill={COLOR.leaf} opacity="0.85"/>
+        <path d="M 100 46 C 110 42 118 36 120 30 C 110 34 100 40 100 46 Z" fill={COLOR.leafLight} opacity="0.85"/>
+        <g transform="translate(100 16)">
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((d, i) => (
+            <ellipse key={d} cx="0" cy="-9" rx="5" ry="11"
+              fill={i % 2 === 0 ? COLOR.petalCream : COLOR.petalPink}
+              opacity={i % 2 === 0 ? 0.9 : 0.78}
+              transform={d === 0 ? undefined : `rotate(${d})`}
+            />
+          ))}
+          <circle cx="0" cy="0" r="4" fill={COLOR.amber}/>
+          <circle cx="0" cy="0" r="2.2" fill={COLOR.seedDark}/>
+        </g>
+      </svg>
+    );
+  }
+
+  // 普通 4 格视图
+  const slotXs = [8, 56, 104, 152];
+  return (
+    <svg viewBox="0 0 200 60" width="140" height="42">
+      <rect x="3" y="14" width="194" height="40" rx="6" stroke={COLOR.seed} strokeWidth="1.2" fill={COLOR.shellCream}/>
+      {slotStates.map((slot, i) => {
+        const x = slotXs[i]!;
+        const lidX = x;
+        const lidY = 9;
+        const cy = 36;
+        const status = slot.status;
+
+        if (status === 'empty') {
+          return (
+            <g key={slot.meta.key} opacity="0.35">
+              <rect x={lidX} y={lidY} width="44" height="12" rx="5" stroke={COLOR.grayCap} strokeWidth="1" fill={COLOR.shellCream}/>
+            </g>
+          );
+        }
+        if (status === 'closed') {
+          return (
+            <g key={slot.meta.key}>
+              <rect x={lidX} y={lidY} width="44" height="12" rx="5" stroke={COLOR.seed} strokeWidth="1.1" fill={COLOR.shellCream}/>
+              <path d={`M ${x + 22} ${lidY + 7} a 2.5 2.5 0 1 1 -1 -2 a 1.7 1.7 0 1 0 1 2 z`} fill={COLOR.seed} opacity="0.55"/>
+            </g>
+          );
+        }
+        if (status === 'due') {
+          return (
+            <g key={slot.meta.key}>
+              <g style={{ transformOrigin: `${x + 44}px ${lidY + 12}px`, animation: 'pillbox-lid-pop 1.6s ease-in-out infinite' }}>
+                <rect x={lidX} y={lidY} width="44" height="12" rx="5" stroke={COLOR.amber} strokeWidth="1.2" fill={COLOR.shellCream}/>
+              </g>
+              <g transform={`rotate(-15 ${x + 22} ${cy})`}>
+                <rect x={x + 10} y={cy - 4} width="24" height="8" rx="4" stroke={COLOR.amber} strokeWidth="1.1" fill={COLOR.amberSoft}/>
+              </g>
+            </g>
+          );
+        }
+        if (status === 'sprout') {
+          return (
+            <g key={slot.meta.key}>
+              <ellipse cx={x + 22} cy={cy + 6} rx="14" ry="3" fill={COLOR.soil} opacity="0.35"/>
+              <path d={`M ${x + 22} ${cy + 4} Q ${x + 21} ${cy - 4} ${x + 22} ${cy - 12}`} stroke={COLOR.leaf} strokeWidth="1.1" fill="none" strokeLinecap="round"/>
+              <path d={`M ${x + 22} ${cy - 8} C ${x + 17} ${cy - 10} ${x + 14} ${cy - 14} ${x + 15} ${cy - 18} C ${x + 19} ${cy - 16} ${x + 22} ${cy - 12} ${x + 22} ${cy - 8} Z`} fill={COLOR.leaf} opacity="0.85"/>
+              <path d={`M ${x + 22} ${cy - 8} C ${x + 27} ${cy - 10} ${x + 30} ${cy - 14} ${x + 29} ${cy - 18} C ${x + 25} ${cy - 16} ${x + 22} ${cy - 12} ${x + 22} ${cy - 8} Z`} fill={COLOR.leafLight} opacity="0.85"/>
+            </g>
+          );
+        }
+        // wither
+        return (
+          <g key={slot.meta.key} opacity="0.85">
+            <ellipse cx={x + 22} cy={cy + 6} rx="14" ry="3" fill={COLOR.witherTan} opacity="0.3"/>
+            <path d={`M ${x + 14} ${cy + 4} Q ${x + 17} ${cy - 2} ${x + 20} ${cy - 6}`} stroke={COLOR.witherTan} strokeWidth="1" fill="none" opacity="0.7"/>
+            <path d={`M ${x + 20} ${cy - 6} C ${x + 15} ${cy - 6} ${x + 12} ${cy - 9} ${x + 14} ${cy - 12}`} stroke={COLOR.witherTan} strokeWidth="0.9" fill="none" opacity="0.65"/>
+            <g transform={`rotate(15 ${x + 32} ${cy + 4})`} opacity="0.6">
+              <rect x={x + 24} y={cy} width="16" height="6" rx="3" stroke={COLOR.amber} strokeWidth="0.9" fill={COLOR.amberSoft}/>
+            </g>
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
 // ============================================================
-//  单颗药格子 — 含长按交互
+//  长按交互单元
 // ============================================================
 
-interface CellProps {
-  cell: PillCellModel;
-  onAck: (ruleId: string) => void;
+interface PillButtonProps {
+  rule: ReminderRule;
+  supplementName: string;
+  ackable: boolean;
+  onAck: () => void;
 }
 
 const HOLD_MS = 1000;
 
-function PillCell({ cell, onAck }: CellProps) {
-  const { status, supplementName, rule } = cell;
+function HoldablePill({ rule, supplementName, ackable, onAck }: PillButtonProps) {
   const [holding, setHolding] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const completedRef = useRef(false);
 
   function clearTimer() {
     if (timerRef.current !== null) {
@@ -197,184 +274,170 @@ function PillCell({ cell, onAck }: CellProps) {
     }
   }
 
-  function startHold() {
-    if (status !== 'due' && status !== 'upcoming') return; // 只有 due/upcoming 可 ack
+  function start() {
+    if (!ackable || completedRef.current) return;
     setHolding(true);
     timerRef.current = window.setTimeout(() => {
-      // 完成
+      completedRef.current = true;
       try { navigator.vibrate?.(15); } catch { /* ignore */ }
-      onAck(rule.ruleId);
+      onAck();
       setHolding(false);
     }, HOLD_MS);
   }
 
-  function cancelHold() {
+  function cancel() {
     clearTimer();
     setHolding(false);
   }
 
   useEffect(() => () => clearTimer(), []);
 
-  const ackable = status === 'due' || status === 'upcoming';
-
   return (
-    <div className="flex flex-col items-center">
-      <div
-        onPointerDown={ackable ? startHold : undefined}
-        onPointerUp={cancelHold}
-        onPointerLeave={cancelHold}
-        onPointerCancel={cancelHold}
-        className={`relative w-full aspect-square rounded-xl grid place-items-center bg-[#FAF7F2] border border-[#E8E4DA] transition-all ${
-          ackable ? 'cursor-pointer' : ''
-        } ${holding ? 'scale-110' : ''}`}
-        style={{ touchAction: 'none', opacity: status === 'done' ? 0.6 : status === 'missed' ? 0.5 : status === 'upcoming' ? 0.85 : 1 }}
-        role={ackable ? 'button' : undefined}
-        aria-label={ackable ? `按住 1 秒标记吃过 ${supplementName}` : `${supplementName} ${status}`}
-        tabIndex={ackable ? 0 : -1}
-      >
-        {/* 蓄力进度环 */}
-        {holding && (
-          <svg viewBox="0 0 60 60" className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
-            <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(45,90,61,.12)" strokeWidth="2.5" />
-            <circle cx="30" cy="30" r="26" fill="none" stroke="#2D5A3D" strokeWidth="2.5"
-                    strokeDasharray="163.36" strokeDashoffset="163.36" strokeLinecap="round"
-                    transform="rotate(-90 30 30)"
-                    style={{ animation: 'pillcell-charge 1s linear forwards' }} />
-          </svg>
-        )}
-
-        {/* 内容 */}
-        {status === 'done' && (
-          <svg viewBox="0 0 60 60" className="w-3/4 h-3/4">
-            {renderBloomInline(30, 22, 8)}
-          </svg>
-        )}
-        {status === 'missed' && (
-          <svg viewBox="0 0 60 60" className="w-3/4 h-3/4">
-            {/* 枯萎花 — 暗色 + 下垂 */}
-            <line x1="30" y1="56" x2="33" y2="32" stroke="#5C4A2E" strokeWidth="1.2" strokeLinecap="round" opacity="0.55" />
-            <g transform="translate(32, 26) rotate(15)" opacity="0.5">
-              {[20, 95, 175, 245].map((deg) => (
-                <ellipse key={deg} cx="0" cy="-7" rx="2.5" ry="5" fill="#5C4A2E" opacity="0.7" transform={`rotate(${deg})`} />
-              ))}
-              <circle cx="0" cy="0" r="2.5" fill="#3A2E1E" />
-            </g>
-          </svg>
-        )}
-        {(status === 'due' || status === 'upcoming') && (
-          <svg viewBox="0 0 60 30" className={`w-[70%] ${status === 'due' ? 'animate-wiggle' : ''}`}>
-            <ellipse
-              cx="30" cy="15" rx="22" ry="8"
-              fill={status === 'due' ? '#D4933A' : '#8B6B4A'}
-              transform="rotate(-22 30 15)"
-            />
-            <line x1="20" y1="15" x2="40" y2="15"
-                  stroke={status === 'due' ? 'rgba(255,255,255,.55)' : '#FAF7F2'}
-                  strokeWidth="0.5"
-                  transform="rotate(-22 30 15)"
-                  opacity={status === 'due' ? 1 : 0.5} />
-          </svg>
-        )}
-        {status === 'due' && (
-          <span className="absolute top-1 right-1 bg-[#C44A4A] text-white text-[8.5px] font-semibold w-3.5 h-3.5 grid place-items-center rounded-full">!</span>
-        )}
-      </div>
-      <div className="text-[10.5px] mt-1.5 text-center text-[#1A1A1A] truncate w-full font-medium" style={{ opacity: status === 'done' || status === 'missed' ? 0.6 : 1 }}>
-        {supplementName}
-      </div>
-      <div className="text-[9.5px] text-[#8A8A8A]">{rule.timeOfDay}</div>
-    </div>
+    <button
+      type="button"
+      onPointerDown={start}
+      onPointerUp={cancel}
+      onPointerLeave={cancel}
+      onPointerCancel={cancel}
+      className={`relative flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-all w-full ${
+        ackable ? 'cursor-pointer hover:bg-bg-warm-2' : 'cursor-default opacity-70'
+      } ${holding ? 'scale-[1.04]' : ''}`}
+      style={{ touchAction: 'none' }}
+      aria-label={ackable ? `按住 1 秒标记吃过 ${supplementName}` : supplementName}
+    >
+      {/* 蓄力进度环 */}
+      {holding && (
+        <svg viewBox="0 0 60 60" className="absolute inset-0 w-full h-full pointer-events-none">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(45,90,61,.15)" strokeWidth="2"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke={COLOR.forest} strokeWidth="2"
+                  strokeDasharray="163.36" strokeDashoffset="163.36" strokeLinecap="round"
+                  transform="rotate(-90 30 30)"
+                  style={{ animation: 'pillbox-hold-charge 1s linear forwards' }}/>
+        </svg>
+      )}
+      <svg viewBox="0 0 60 30" width="40" height="20">
+        <ellipse cx="30" cy="15" rx="22" ry="8" fill={COLOR.amberSoft} stroke={COLOR.amber} strokeWidth="1.4" transform="rotate(-22 30 15)"/>
+      </svg>
+      <span className="text-[10.5px] text-text-primary font-medium truncate max-w-full">{supplementName}</span>
+      <span className="text-[9.5px] text-text-tertiary">{rule.timeOfDay}</span>
+    </button>
   );
 }
 
 // ============================================================
-//  Popover 内容
+//  Popover — 4 格大版 + 大花庆祝
 // ============================================================
 
 interface PopoverProps {
-  cells: PillCellModel[];
-  nextDue: PillCellModel | null;
-  hoursUntilNext: number | null;
+  slotStates: SlotState[];
+  allBloom: boolean;
+  supplementsById: Map<string, string>;
   onAck: (ruleId: string) => void;
   onClose: () => void;
 }
 
-function PillBoxPopover({ cells, nextDue, hoursUntilNext, onAck, onClose }: PopoverProps) {
-  // 按时间升序，最多 8 颗（超过堆叠 / 滚动）
-  const sorted = useMemo(() => [...cells].sort((a, b) => a.minutes - b.minutes), [cells]);
-  const cols = Math.min(Math.max(sorted.length, 1), 5); // 最多 5 列
-
-  // 副文：还有 X 小时 Y 分
-  let timeHint = '';
-  if (nextDue && hoursUntilNext !== null) {
-    if (hoursUntilNext < 0) timeHint = '已到点';
-    else {
-      const h = Math.floor(hoursUntilNext);
-      const m = Math.round((hoursUntilNext - h) * 60);
-      timeHint = h > 0 ? `还有 ${h} 小时 ${m} 分` : `还有 ${m} 分钟`;
-    }
-  }
-
+function PillBoxPopover({ slotStates, allBloom, supplementsById, onAck, onClose }: PopoverProps) {
   return (
     <div
       role="dialog"
       aria-label="今日药盒"
-      className="rounded-2xl p-4 shadow-2xl"
+      className="rounded-2xl shadow-2xl overflow-hidden"
       style={{
-        background: '#F5EFE3',
-        border: '1.5px solid #2D5A3D',
+        background: COLOR.shellCream,
+        border: `1.5px solid ${COLOR.forest}`,
         minWidth: 280,
-        maxWidth: 'min(420px, calc(100vw - 24px))',
+        width: 'min(420px, calc(100vw - 24px))',
       }}
     >
-      {/* 大字标题区 */}
-      {nextDue ? (
-        <div className="text-center mb-4">
-          <div className="text-[10.5px] tracking-[0.14em] uppercase text-[#8A8A8A]">下一颗</div>
-          <div className="font-serif text-[22px] font-semibold mt-1 text-[#1A1A1A]" style={{ fontFamily: 'Georgia, "Microsoft YaHei", serif' }}>
-            {nextDue.supplementName}
+      <div className="px-5 pt-5 pb-4">
+        {/* 标题 */}
+        {allBloom ? (
+          <div className="text-center">
+            <div className="text-[10.5px] tracking-widest uppercase text-text-tertiary">today complete</div>
+            <div
+              className="font-semibold mt-2 text-[22px]"
+              style={{ fontFamily: 'Georgia, "Microsoft YaHei", serif', color: COLOR.forest }}
+            >
+              今日完成 ✦
+            </div>
+            <div className="text-[11.5px] text-text-tertiary mt-1">明天见</div>
+            <div className="my-3 grid place-items-center">
+              <FabSvg slotStates={slotStates} allBloom />
+            </div>
           </div>
-          <div className="text-[12px] text-[#8A8A8A] mt-0.5">
-            {nextDue.rule.timeOfDay}{timeHint ? ` · ${timeHint}` : ''}
+        ) : (
+          <div className="text-center mb-3">
+            <div className="text-[10.5px] tracking-widest uppercase text-text-tertiary">今日</div>
+            <div
+              className="font-semibold mt-1 text-[18px]"
+              style={{ fontFamily: 'Georgia, "Microsoft YaHei", serif' }}
+            >
+              4 时段药盒
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="text-center mb-4">
-          <div className="font-serif text-[18px] font-semibold text-[#1A1A1A]" style={{ fontFamily: 'Georgia, "Microsoft YaHei", serif' }}>
-            今日已全部吃完 ✨
+        )}
+
+        {/* 4 格大版 */}
+        {!allBloom && (
+          <div className="grid grid-cols-4 gap-2 mt-3">
+            {slotStates.map((slot) => (
+              <div key={slot.meta.key} className="flex flex-col items-center">
+                <div
+                  className="w-full aspect-square rounded-xl bg-white grid place-items-center"
+                  style={{
+                    border: `1px solid ${slot.status === 'due' ? COLOR.amber : '#E8E4DA'}`,
+                    boxShadow: slot.status === 'due' ? `0 0 0 1px ${COLOR.amber}` : 'none',
+                    opacity: slot.status === 'empty' ? 0.4 : 1,
+                  }}
+                >
+                  <CellSvg status={slot.status} sizeClass="w-[70%] h-[70%]" />
+                </div>
+                <div className="text-[10.5px] mt-1.5 text-text-primary font-medium">{slot.meta.label}</div>
+                <div className="text-[9.5px] text-text-tertiary">
+                  {slot.totalCount > 0 ? `${slot.ackedCount}/${slot.totalCount}` : '—'}
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="border-t border-[#E8E4DA] my-3"></div>
+        {/* 该 ack 的 rule list */}
+        {!allBloom && slotStates.some((s) => s.status === 'due') && (
+          <div className="mt-4 pt-3 border-t border-border-subtle">
+            <div className="text-[10.5px] uppercase tracking-widest text-text-tertiary mb-2">现在该吃</div>
+            <div className="space-y-1">
+              {slotStates.flatMap((slot) =>
+                slot.status === 'due'
+                  ? slot.rules
+                      .filter((r) => !isRuleAckedToday(r))
+                      .map((r) => (
+                        <HoldablePill
+                          key={r.ruleId}
+                          rule={r}
+                          supplementName={supplementsById.get(r.supplementId) ?? '?'}
+                          ackable
+                          onAck={() => onAck(r.ruleId)}
+                        />
+                      ))
+                  : []
+              )}
+            </div>
+            <div className="text-center text-[10.5px] text-text-tertiary mt-2">按住胶囊 1 秒 · 已服用</div>
+          </div>
+        )}
 
-      {/* N 格动态 */}
-      {sorted.length === 0 ? (
-        <div className="text-center text-[12px] text-[#8A8A8A] py-6">
-          今日没有提醒。<br />
-          想设的话，跟我说「鱼油每天 8 点提醒我」。
-        </div>
-      ) : (
-        <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-          {sorted.map((cell) => (
-            <PillCell key={cell.rule.ruleId} cell={cell} onAck={onAck} />
-          ))}
-        </div>
-      )}
-
-      {sorted.some((c) => c.status === 'due' || c.status === 'upcoming') && (
-        <div className="text-center text-[10.5px] text-[#8A8A8A] mt-4">
-          按住胶囊 1 秒 · 已服用
-        </div>
-      )}
+        {!allBloom && slotStates.every((s) => s.status !== 'due' && s.status !== 'wither') && slotStates.some((s) => s.totalCount > 0) && (
+          <div className="text-center text-[11px] text-text-tertiary mt-3">下一颗等会儿见</div>
+        )}
+      </div>
 
       <button
         onClick={onClose}
-        className="absolute top-2 right-2 w-7 h-7 rounded-full text-[#8A8A8A] hover:bg-black/5 grid place-items-center"
+        className="absolute top-2 right-2 w-7 h-7 rounded-full text-text-tertiary hover:bg-black/5 grid place-items-center"
         aria-label="关闭"
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <path d="M2 2 L 10 10 M 10 2 L 2 10" />
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <path d="M2 2 L 10 10 M 10 2 L 2 10"/>
         </svg>
       </button>
     </div>
@@ -402,13 +465,13 @@ export function PillBoxEgg() {
   const [now, setNow] = useState(() => new Date());
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 每分钟刷新 now（驱动 due/missed 状态切换）
+  // 每分钟刷新（驱动 due/wither 跨界切换）
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
 
-  // 点击外部关闭 popover
+  // 点外关闭 popover
   useEffect(() => {
     if (!open) return;
     function onClick(e: MouseEvent) {
@@ -416,9 +479,7 @@ export function PillBoxEgg() {
         setOpen(false);
       }
     }
-    function onEsc(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
-    }
+    function onEsc(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false); }
     document.addEventListener('mousedown', onClick);
     document.addEventListener('keydown', onEsc);
     return () => {
@@ -427,68 +488,43 @@ export function PillBoxEgg() {
     };
   }, [open]);
 
-  // 计算 cells + slot 状态 + 下一颗
   const supplementsById = useMemo(() => {
     const map = new Map<string, string>();
     for (const s of active.currentSupplements ?? []) map.set(s.supplementId, s.mention);
     return map;
   }, [active.currentSupplements]);
 
-  const cells = useMemo<PillCellModel[]>(() => {
-    return rules.map((r) => classifyRule(r, now, supplementsById.get(r.supplementId) ?? '?'));
-  }, [rules, now, supplementsById]);
+  // 4 个 slot 各自的 state
+  const slotStates = useMemo<SlotState[]>(() => {
+    const grouped: Record<SlotKey, ReminderRule[]> = { morning: [], midday: [], evening: [], bedtime: [] };
+    for (const r of rules) grouped[bucketSlot(r.timeOfDay)].push(r);
+    return SLOTS.map((meta) => computeSlotState(meta, grouped[meta.key], now));
+  }, [rules, now]);
 
-  const slotStatuses = useMemo(() => {
-    const acc: Record<SlotKey, CellStatus | 'empty'> = {
-      morning: 'empty', midday: 'empty', evening: 'empty', bedtime: 'empty',
-    };
-    const grouped: Record<SlotKey, PillCellModel[]> = {
-      morning: [], midday: [], evening: [], bedtime: [],
-    };
-    for (const c of cells) grouped[bucketSlot(c.rule.timeOfDay)].push(c);
-    for (const k of Object.keys(grouped) as SlotKey[]) {
-      acc[k] = aggregateSlotStatus(grouped[k]);
-    }
-    return acc;
-  }, [cells]);
-
-  const dueCount = cells.filter((c) => c.status === 'due').length;
+  // 派生：是否有 due / 是否全 sprout / 计数
+  const dueCount = slotStates.filter((s) => s.status === 'due').length;
   const hasDue = dueCount > 0;
-
-  // 下一颗：未 done/missed 中 timeOfDay 最早的（含 due）
-  const nextDue = useMemo(() => {
-    const candidates = cells.filter((c) => c.status === 'due' || c.status === 'upcoming');
-    if (candidates.length === 0) return null;
-    return [...candidates].sort((a, b) => a.minutes - b.minutes)[0]!;
-  }, [cells]);
-
-  const hoursUntilNext = useMemo(() => {
-    if (!nextDue) return null;
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-    return (nextDue.minutes - nowMin) / 60;
-  }, [nextDue, now]);
+  // 全部 active slot 都已 sprout（empty 不算）
+  const activeSlots = slotStates.filter((s) => s.totalCount > 0);
+  const allBloom = activeSlots.length > 0 && activeSlots.every((s) => s.status === 'sprout');
 
   function handleAck(ruleId: string) {
-    const cell = cells.find((c) => c.rule.ruleId === ruleId);
-    if (!cell) return;
+    const slot = slotStates.find((s) => s.rules.some((r) => r.ruleId === ruleId));
+    const rule = slot?.rules.find((r) => r.ruleId === ruleId);
+    if (!rule) return;
     ackRule(ruleId, 'taken');
-    markSupplementFedback(cell.rule.supplementId);
+    markSupplementFedback(rule.supplementId);
     appendEvent({
       eventType: 'reminder',
       personId,
-      entityRefs: [cell.rule.supplementId],
+      entityRefs: [rule.supplementId],
       tags: ['taken', 'via-pillbox-egg'],
-      metadata: {
-        ruleId,
-        ackAction: 'taken',
-        timeOfDay: cell.rule.timeOfDay,
-      },
+      metadata: { ruleId, ackAction: 'taken', timeOfDay: rule.timeOfDay },
     });
   }
 
-  // SSR safe + 无 rule = 整个浮标隐藏
   if (!hasHydrated) return null;
-  if (rules.length === 0) return null;
+  if (rules.length === 0) return null; // 没 rule 不可见
 
   return (
     <div
@@ -496,38 +532,37 @@ export function PillBoxEgg() {
       className="fixed z-40 pointer-events-none"
       style={{
         right: 'max(16px, env(safe-area-inset-right))',
-        bottom: 'max(72px, calc(env(safe-area-inset-bottom) + 72px))', // 留出 ChatInput 高度
+        bottom: 'max(72px, calc(env(safe-area-inset-bottom) + 72px))',
       }}
     >
-      {/* Popover */}
       {open && (
-        <div className="pointer-events-auto absolute bottom-full right-0 mb-3 relative">
+        <div className="pointer-events-auto absolute bottom-full right-0 mb-3">
           <PillBoxPopover
-            cells={cells}
-            nextDue={nextDue}
-            hoursUntilNext={hoursUntilNext}
+            slotStates={slotStates}
+            allBloom={allBloom}
+            supplementsById={supplementsById}
             onAck={handleAck}
             onClose={() => setOpen(false)}
           />
         </div>
       )}
 
-      {/* FAB */}
-      <div className="pointer-events-auto">
-        <PillBoxFab
-          slotStatuses={slotStatuses}
-          hasDue={hasDue}
-          dueCount={dueCount}
-          onClick={() => setOpen((v) => !v)}
-        />
-      </div>
-
-      {/* 内嵌动画 keyframes */}
-      <style jsx>{`
-        @keyframes pillcell-charge {
-          to { stroke-dashoffset: 0; }
-        }
-      `}</style>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="打开药盒"
+        className="pointer-events-auto relative transition-transform hover:scale-[1.04] active:scale-[0.98]"
+        style={{
+          filter: hasDue ? 'drop-shadow(0 4px 14px rgba(212,147,58,.4))' : 'drop-shadow(0 3px 8px rgba(0,0,0,.1))',
+        }}
+      >
+        <FabSvg slotStates={slotStates} allBloom={allBloom} />
+        {dueCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-[#C44A4A] text-white text-[10px] font-semibold w-4 h-4 grid place-items-center rounded-full pointer-events-none">
+            {dueCount}
+          </span>
+        )}
+      </button>
     </div>
   );
 }
