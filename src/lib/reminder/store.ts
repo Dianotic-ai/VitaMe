@@ -5,6 +5,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
 import type { AckAction, ReminderRule } from './types';
+import { isoToLocalDateKey, localDateKey } from '@/lib/time/localDate';
 
 interface ReminderState {
   rules: ReminderRule[];
@@ -98,7 +99,7 @@ export const useReminderStore = create<ReminderState>()(
 
       computeDueRules: (personId, atIso) => {
         const now = atIso ? new Date(atIso) : new Date();
-        const today = now.toISOString().slice(0, 10);
+        const today = localDateKey(now);
         const dow = ((now.getDay() + 6) % 7) + 1; // 周一=1
 
         return get().rules.filter((r) => {
@@ -115,7 +116,7 @@ export const useReminderStore = create<ReminderState>()(
           }
 
           // 已经在今天 ack 过 → 不再触发
-          if (r.lastAckAt && r.lastAckAt.slice(0, 10) === today) return false;
+          if (r.lastAckAt && isoToLocalDateKey(r.lastAckAt) === today) return false;
 
           // 检查时间是否到了
           const [hStr, mStr] = r.timeOfDay.split(':');

@@ -12,6 +12,7 @@
 //   - 睡前 21:00–04:00 next day（跨午夜，覆盖深夜服药）
 
 import type { ReminderRule } from './types';
+import { isoToLocalDateKey, localDateKey } from '@/lib/time/localDate';
 
 export type SlotKey = 'morning' | 'midday' | 'evening' | 'bedtime';
 
@@ -60,13 +61,13 @@ export function groupRulesBySlot(rules: ReminderRule[]): Record<SlotKey, Reminde
   return out;
 }
 
-/** 今天的 ISO 日期 (YYYY-MM-DD) — slot ack 状态判断用 */
-export function todayISODate(): string {
-  return new Date().toISOString().slice(0, 10);
+/** 今天的本地日期 (YYYY-MM-DD) — slot ack 状态判断用 */
+export function todayISODate(now = new Date()): string {
+  return localDateKey(now);
 }
 
 /** 某 rule 今天是否已 ack (taken)，从 lastAckAt 推断 */
-export function isRuleAckedToday(rule: ReminderRule): boolean {
+export function isRuleAckedToday(rule: ReminderRule, now = new Date()): boolean {
   if (!rule.lastAckAt) return false;
-  return rule.lastAckAt.slice(0, 10) === todayISODate();
+  return isoToLocalDateKey(rule.lastAckAt) === todayISODate(now);
 }
