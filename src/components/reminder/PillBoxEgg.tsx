@@ -155,46 +155,55 @@ function CellSvg({ status, sizeClass = 'w-3/4 h-3/4' }: { status: SlotStatus; si
   );
 }
 
-/** 浮标 SVG — 一颗胶囊（默认棕色，有 due 变金色 + 抖动，全完成 = 胶囊 + 上方小金花） */
+/** 浮标 SVG — 一颗胶囊带萌眼睛（诱导用户点击）
+ * - 默认 / closed / sprout / wither：棕胶囊 + 萌眼
+ * - hasDue：胶囊变 amber 金色 + 抖动
+ * - allBloom：胶囊上方长出 8 瓣金花
+ */
 function FabSvg({ slotStates, allBloom }: { slotStates: SlotState[]; allBloom: boolean }) {
   const hasDue = slotStates.some((s) => s.status === 'due');
 
   if (allBloom) {
-    // 全完成：胶囊上方长出小金花（复用 v0.4 D14 renderBloomInline）
     return (
-      <svg viewBox="0 0 60 80" width="48" height="64" style={{ overflow: 'visible' }}>
+      <svg viewBox="0 0 60 80" width="56" height="74" style={{ overflow: 'visible' }}>
         {renderBloomInline(30, 32, 9)}
-        <ellipse cx="30" cy="64" rx="22" ry="8"
-          fill={COLOR.amberSoft} stroke={COLOR.amber} strokeWidth="1.4"
-          transform="rotate(-22 30 64)"/>
-        <line x1="20" y1="64" x2="40" y2="64"
-          stroke="rgba(255,255,255,.55)" strokeWidth="0.6"
-          transform="rotate(-22 30 64)"/>
+        <g>
+          <ellipse cx="30" cy="64" rx="22" ry="8"
+            fill={COLOR.amberSoft} stroke={COLOR.amber} strokeWidth="1.4"
+            transform="rotate(-22 30 64)"/>
+          {/* 萌眼（不随胶囊旋转） */}
+          <ellipse cx="25" cy="62" rx="2.2" ry="2.6" fill="white"/>
+          <ellipse cx="35" cy="62" rx="2.2" ry="2.6" fill="white"/>
+          <circle cx="25.5" cy="62.3" r="1.2" fill={COLOR.seedDark}/>
+          <circle cx="35.5" cy="62.3" r="1.2" fill={COLOR.seedDark}/>
+          <circle cx="25.8" cy="61.9" r="0.4" fill="white"/>
+          <circle cx="35.8" cy="61.9" r="0.4" fill="white"/>
+        </g>
       </svg>
     );
   }
 
-  // 普通态：单颗胶囊
-  // 默认棕色 / due 切金色 + 抖动
   const fill = hasDue ? COLOR.amberSoft : COLOR.shellCream;
   const stroke = hasDue ? COLOR.amber : COLOR.seed;
-  const lineColor = hasDue ? 'rgba(255,255,255,.55)' : COLOR.seed;
-  const lineOpacity = hasDue ? 1 : 0.4;
 
   return (
     <svg
       viewBox="0 0 60 30"
-      width="52"
-      height="26"
+      width="64"
+      height="32"
       style={hasDue ? { animation: 'pillbox-lid-pop 1.6s ease-in-out infinite', transformOrigin: 'center', overflow: 'visible' } : { overflow: 'visible' }}
     >
       <ellipse cx="30" cy="15" rx="22" ry="8"
         fill={fill} stroke={stroke} strokeWidth="1.4"
         transform="rotate(-22 30 15)"/>
-      <line x1="20" y1="15" x2="40" y2="15"
-        stroke={lineColor} strokeWidth="0.6"
-        transform="rotate(-22 30 15)"
-        opacity={lineOpacity}/>
+      {/* 萌眼睛 — 永远正向，不随胶囊旋转，诱导点击 */}
+      <ellipse cx="25" cy="13" rx="2.2" ry="2.6" fill="white"/>
+      <ellipse cx="35" cy="13" rx="2.2" ry="2.6" fill="white"/>
+      <circle cx="25.5" cy="13.3" r="1.2" fill={COLOR.seedDark}/>
+      <circle cx="35.5" cy="13.3" r="1.2" fill={COLOR.seedDark}/>
+      {/* 高光 */}
+      <circle cx="25.8" cy="12.9" r="0.4" fill="white"/>
+      <circle cx="35.8" cy="12.9" r="0.4" fill="white"/>
     </svg>
   );
 }
@@ -479,14 +488,13 @@ export function PillBoxEgg() {
   return (
     <div
       ref={containerRef}
-      className="fixed z-40 pointer-events-none"
+      className="fixed z-40 pointer-events-none left-1/2 -translate-x-1/2"
       style={{
-        right: 'max(16px, env(safe-area-inset-right))',
         bottom: 'max(72px, calc(env(safe-area-inset-bottom) + 72px))',
       }}
     >
       {open && (
-        <div className="pointer-events-auto absolute bottom-full right-0 mb-3">
+        <div className="pointer-events-auto absolute bottom-full left-1/2 -translate-x-1/2 mb-3">
           <PillBoxPopover
             slotStates={slotStates}
             allBloom={allBloom}
@@ -503,7 +511,7 @@ export function PillBoxEgg() {
         aria-label="打开药盒"
         className="pointer-events-auto relative transition-transform hover:scale-[1.04] active:scale-[0.98]"
         style={{
-          filter: hasDue ? 'drop-shadow(0 4px 14px rgba(212,147,58,.4))' : 'drop-shadow(0 3px 8px rgba(0,0,0,.1))',
+          filter: hasDue ? 'drop-shadow(0 4px 14px rgba(212,147,58,.4))' : 'drop-shadow(0 3px 8px rgba(0,0,0,.12))',
         }}
       >
         <FabSvg slotStates={slotStates} allBloom={allBloom} />
