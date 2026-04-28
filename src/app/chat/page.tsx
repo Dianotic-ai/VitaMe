@@ -22,6 +22,7 @@ import { PromptInspector } from '@/components/chat/PromptInspector';
 import { FeedbackPrompt, type FeedbackResult } from '@/components/feedback/FeedbackPrompt';
 import { computeTrigger, markPromptShown, type FeedbackTrigger } from '@/lib/feedback/triggerRule';
 import { PillBoxStrip } from '@/components/brand/PillBox';
+import { PillBoxEgg } from '@/components/reminder/PillBoxEgg';
 import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
 import { PlusLineIcon, DotsLineIcon } from '@/components/brand/Icons';
 
@@ -381,6 +382,9 @@ function ChatBody() {
           onSkip={handleFeedbackSkip}
         />
       )}
+
+      {/* v0.4 D18 浮标小药盒 — 仅 chat 页挂载，无 rule 时自动隐藏 */}
+      <PillBoxEgg />
     </div>
   );
 }
