@@ -18,6 +18,7 @@ import { useEventStore } from '@/lib/memory/eventStore';
 import { SLOTS, bucketSlot, isRuleAckedToday } from '@/lib/reminder/slot';
 import type { SlotKey, SlotMeta } from '@/lib/reminder/slot';
 import type { ReminderRule } from '@/lib/reminder/types';
+import { renderBloomInline } from '@/components/brand/SeedSproutStage';
 
 // ============================================================
 //  状态计算
@@ -85,8 +86,6 @@ const COLOR = {
   soil: '#8B6B4A',
   witherTan: '#9C8A55',
   grayCap: '#B8B0A0',
-  petalCream: '#F5D9C4',
-  petalPink: '#E8B8A0',
   warning: '#C44A4A',
   forest: '#2D5A3D',
 };
@@ -159,27 +158,15 @@ function CellSvg({ status, sizeClass = 'w-3/4 h-3/4' }: { status: SlotStatus; si
 /** 浮标 SVG — 横排 4 格，每格按 status 渲染（小尺寸版本） */
 function FabSvg({ slotStates, allBloom }: { slotStates: SlotState[]; allBloom: boolean }) {
   if (allBloom) {
+    // 复用顶部 PillBoxStrip 同款 — v0.4 D14 renderBloomInline（8 瓣琥珀金花 + 棕心 + 鼠尾绿叶）
     return (
-      <svg viewBox="0 0 200 70" width="160" height="56" style={{ overflow: 'visible' }}>
-        <rect x="3" y="34" width="194" height="34" rx="6" stroke={COLOR.seed} strokeWidth="1.2" fill={COLOR.shellCream}/>
-        <ellipse cx="30" cy="58" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
-        <ellipse cx="78" cy="58" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
-        <ellipse cx="126" cy="58" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
-        <ellipse cx="174" cy="58" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
-        <path d="M 100 54 Q 102 36 100 16" stroke={COLOR.leaf} strokeWidth="1.4" fill="none" strokeLinecap="round"/>
-        <path d="M 100 36 C 90 32 82 26 80 20 C 90 24 100 30 100 36 Z" fill={COLOR.leaf} opacity="0.85"/>
-        <path d="M 100 46 C 110 42 118 36 120 30 C 110 34 100 40 100 46 Z" fill={COLOR.leafLight} opacity="0.85"/>
-        <g transform="translate(100 16)">
-          {[0, 45, 90, 135, 180, 225, 270, 315].map((d, i) => (
-            <ellipse key={d} cx="0" cy="-9" rx="5" ry="11"
-              fill={i % 2 === 0 ? COLOR.petalCream : COLOR.petalPink}
-              opacity={i % 2 === 0 ? 0.9 : 0.78}
-              transform={d === 0 ? undefined : `rotate(${d})`}
-            />
-          ))}
-          <circle cx="0" cy="0" r="4" fill={COLOR.amber}/>
-          <circle cx="0" cy="0" r="2.2" fill={COLOR.seedDark}/>
-        </g>
+      <svg viewBox="0 0 200 80" width="160" height="64" style={{ overflow: 'visible' }}>
+        <rect x="3" y="44" width="194" height="34" rx="6" stroke={COLOR.seed} strokeWidth="1.2" fill={COLOR.shellCream}/>
+        <ellipse cx="30" cy="68" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
+        <ellipse cx="78" cy="68" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
+        <ellipse cx="126" cy="68" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
+        <ellipse cx="174" cy="68" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
+        {renderBloomInline(100, 35, 11)}
       </svg>
     );
   }
