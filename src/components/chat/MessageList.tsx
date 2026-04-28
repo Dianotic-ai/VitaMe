@@ -5,7 +5,7 @@
 import { useEffect, useRef } from 'react';
 import type { UIMessage } from 'ai';
 import { MessageBubble } from './MessageBubble';
-import { QuickReplies, parseChoices } from './QuickReplies';
+import { QuickReplies, parseChoiceGroups } from './QuickReplies';
 
 interface MessageListProps {
   messages: UIMessage[];
@@ -22,20 +22,20 @@ function extractText(m: UIMessage): string {
 
 export function MessageList({ messages, isStreaming, onQuickReply }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastIdx = messages.length - 1;
+  const lastMsg = messages[lastIdx];
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, messages[messages.length - 1]]);
+  }, [messages.length, lastMsg]);
 
   // 仅对"最后一条助手消息 + 已流完"做选项解析
-  const lastIdx = messages.length - 1;
-  const lastMsg = messages[lastIdx];
   const showQuickReplies =
     !isStreaming &&
     !!lastMsg &&
     lastMsg.role === 'assistant' &&
     !!onQuickReply;
-  const lastChoices = showQuickReplies ? parseChoices(extractText(lastMsg)) : null;
+  const lastGroups = showQuickReplies ? parseChoiceGroups(extractText(lastMsg)) : [];
 
   return (
     <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 bg-bg-warm-2">
@@ -66,10 +66,10 @@ export function MessageList({ messages, isStreaming, onQuickReply }: MessageList
         );
       })}
 
-      {/* 助手最后一条带选项 → 渲染可点击行 */}
-      {lastChoices && onQuickReply && (
+      {/* 助手最后一条带选项 → 渲染可点击行（key=lastMsg.id 保证消息切换时 wizard state 重置） */}
+      {lastGroups.length > 0 && onQuickReply && lastMsg && (
         <div className="px-1">
-          <QuickReplies choices={lastChoices} onPick={onQuickReply} />
+          <QuickReplies key={lastMsg.id} groups={lastGroups} onPick={onQuickReply} />
         </div>
       )}
 
