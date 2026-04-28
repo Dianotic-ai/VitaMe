@@ -155,83 +155,46 @@ function CellSvg({ status, sizeClass = 'w-3/4 h-3/4' }: { status: SlotStatus; si
   );
 }
 
-/** 浮标 SVG — 横排 4 格，每格按 status 渲染（小尺寸版本） */
+/** 浮标 SVG — 一颗胶囊（默认棕色，有 due 变金色 + 抖动，全完成 = 胶囊 + 上方小金花） */
 function FabSvg({ slotStates, allBloom }: { slotStates: SlotState[]; allBloom: boolean }) {
+  const hasDue = slotStates.some((s) => s.status === 'due');
+
   if (allBloom) {
-    // 复用顶部 PillBoxStrip 同款 — v0.4 D14 renderBloomInline（8 瓣琥珀金花 + 棕心 + 鼠尾绿叶）
+    // 全完成：胶囊上方长出小金花（复用 v0.4 D14 renderBloomInline）
     return (
-      <svg viewBox="0 0 200 80" width="160" height="64" style={{ overflow: 'visible' }}>
-        <rect x="3" y="44" width="194" height="34" rx="6" stroke={COLOR.seed} strokeWidth="1.2" fill={COLOR.shellCream}/>
-        <ellipse cx="30" cy="68" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
-        <ellipse cx="78" cy="68" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
-        <ellipse cx="126" cy="68" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
-        <ellipse cx="174" cy="68" rx="14" ry="4" fill={COLOR.soil} opacity="0.45"/>
-        {renderBloomInline(100, 35, 11)}
+      <svg viewBox="0 0 60 80" width="48" height="64" style={{ overflow: 'visible' }}>
+        {renderBloomInline(30, 32, 9)}
+        <ellipse cx="30" cy="64" rx="22" ry="8"
+          fill={COLOR.amberSoft} stroke={COLOR.amber} strokeWidth="1.4"
+          transform="rotate(-22 30 64)"/>
+        <line x1="20" y1="64" x2="40" y2="64"
+          stroke="rgba(255,255,255,.55)" strokeWidth="0.6"
+          transform="rotate(-22 30 64)"/>
       </svg>
     );
   }
 
-  // 普通 4 格视图
-  const slotXs = [8, 56, 104, 152];
-  return (
-    <svg viewBox="0 0 200 60" width="140" height="42">
-      <rect x="3" y="14" width="194" height="40" rx="6" stroke={COLOR.seed} strokeWidth="1.2" fill={COLOR.shellCream}/>
-      {slotStates.map((slot, i) => {
-        const x = slotXs[i]!;
-        const lidX = x;
-        const lidY = 9;
-        const cy = 36;
-        const status = slot.status;
+  // 普通态：单颗胶囊
+  // 默认棕色 / due 切金色 + 抖动
+  const fill = hasDue ? COLOR.amberSoft : COLOR.shellCream;
+  const stroke = hasDue ? COLOR.amber : COLOR.seed;
+  const lineColor = hasDue ? 'rgba(255,255,255,.55)' : COLOR.seed;
+  const lineOpacity = hasDue ? 1 : 0.4;
 
-        if (status === 'empty') {
-          return (
-            <g key={slot.meta.key} opacity="0.35">
-              <rect x={lidX} y={lidY} width="44" height="12" rx="5" stroke={COLOR.grayCap} strokeWidth="1" fill={COLOR.shellCream}/>
-            </g>
-          );
-        }
-        if (status === 'closed') {
-          return (
-            <g key={slot.meta.key}>
-              <rect x={lidX} y={lidY} width="44" height="12" rx="5" stroke={COLOR.seed} strokeWidth="1.1" fill={COLOR.shellCream}/>
-              <path d={`M ${x + 22} ${lidY + 7} a 2.5 2.5 0 1 1 -1 -2 a 1.7 1.7 0 1 0 1 2 z`} fill={COLOR.seed} opacity="0.55"/>
-            </g>
-          );
-        }
-        if (status === 'due') {
-          return (
-            <g key={slot.meta.key}>
-              <g style={{ transformOrigin: `${x + 44}px ${lidY + 12}px`, animation: 'pillbox-lid-pop 1.6s ease-in-out infinite' }}>
-                <rect x={lidX} y={lidY} width="44" height="12" rx="5" stroke={COLOR.amber} strokeWidth="1.2" fill={COLOR.shellCream}/>
-              </g>
-              <g transform={`rotate(-15 ${x + 22} ${cy})`}>
-                <rect x={x + 10} y={cy - 4} width="24" height="8" rx="4" stroke={COLOR.amber} strokeWidth="1.1" fill={COLOR.amberSoft}/>
-              </g>
-            </g>
-          );
-        }
-        if (status === 'sprout') {
-          return (
-            <g key={slot.meta.key}>
-              <ellipse cx={x + 22} cy={cy + 6} rx="14" ry="3" fill={COLOR.soil} opacity="0.35"/>
-              <path d={`M ${x + 22} ${cy + 4} Q ${x + 21} ${cy - 4} ${x + 22} ${cy - 12}`} stroke={COLOR.leaf} strokeWidth="1.1" fill="none" strokeLinecap="round"/>
-              <path d={`M ${x + 22} ${cy - 8} C ${x + 17} ${cy - 10} ${x + 14} ${cy - 14} ${x + 15} ${cy - 18} C ${x + 19} ${cy - 16} ${x + 22} ${cy - 12} ${x + 22} ${cy - 8} Z`} fill={COLOR.leaf} opacity="0.85"/>
-              <path d={`M ${x + 22} ${cy - 8} C ${x + 27} ${cy - 10} ${x + 30} ${cy - 14} ${x + 29} ${cy - 18} C ${x + 25} ${cy - 16} ${x + 22} ${cy - 12} ${x + 22} ${cy - 8} Z`} fill={COLOR.leafLight} opacity="0.85"/>
-            </g>
-          );
-        }
-        // wither
-        return (
-          <g key={slot.meta.key} opacity="0.85">
-            <ellipse cx={x + 22} cy={cy + 6} rx="14" ry="3" fill={COLOR.witherTan} opacity="0.3"/>
-            <path d={`M ${x + 14} ${cy + 4} Q ${x + 17} ${cy - 2} ${x + 20} ${cy - 6}`} stroke={COLOR.witherTan} strokeWidth="1" fill="none" opacity="0.7"/>
-            <path d={`M ${x + 20} ${cy - 6} C ${x + 15} ${cy - 6} ${x + 12} ${cy - 9} ${x + 14} ${cy - 12}`} stroke={COLOR.witherTan} strokeWidth="0.9" fill="none" opacity="0.65"/>
-            <g transform={`rotate(15 ${x + 32} ${cy + 4})`} opacity="0.6">
-              <rect x={x + 24} y={cy} width="16" height="6" rx="3" stroke={COLOR.amber} strokeWidth="0.9" fill={COLOR.amberSoft}/>
-            </g>
-          </g>
-        );
-      })}
+  return (
+    <svg
+      viewBox="0 0 60 30"
+      width="52"
+      height="26"
+      style={hasDue ? { animation: 'pillbox-lid-pop 1.6s ease-in-out infinite', transformOrigin: 'center', overflow: 'visible' } : { overflow: 'visible' }}
+    >
+      <ellipse cx="30" cy="15" rx="22" ry="8"
+        fill={fill} stroke={stroke} strokeWidth="1.4"
+        transform="rotate(-22 30 15)"/>
+      <line x1="20" y1="15" x2="40" y2="15"
+        stroke={lineColor} strokeWidth="0.6"
+        transform="rotate(-22 30 15)"
+        opacity={lineOpacity}/>
     </svg>
   );
 }
