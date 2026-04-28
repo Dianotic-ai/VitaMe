@@ -98,11 +98,17 @@ export async function POST(req: Request) {
     });
   }
 
+  // —— Phase timing 起点（[chat-timing] tag，用于 Vercel logs grep 真实瓶颈分布）
+  const tStart = Date.now();
+
   // 1. RAG 检索
+  const tRetrieveStart = Date.now();
   const retrieved = retrieveFacts(latestQuery, profile);
+  const retrieveMs = Date.now() - tRetrieveStart;
 
   // 2. 构造 system prompt
   const system = buildSystemPrompt({ retrieved, profile });
+  const systemChars = system.length;
 
   // 3. provider + 模型
   let provider: ReturnType<typeof createChatProvider>;
@@ -120,6 +126,7 @@ export async function POST(req: Request) {
 
   // 4. **流前** input audit preflight（可同步阻塞 — 失败拒请求）
   // 这是合规 audit 唯一能"拦截"的窗口（流后无法撤回 token，见文件头注释）
+  const tAuditStart = Date.now();
   try {
     await writeChatAudit({
       event: 'chat_input',
@@ -136,6 +143,7 @@ export async function POST(req: Request) {
     // 严格模式应拒绝；WAIC demo 期暂记录后继续，避免 audit infra 故障导致 chat 全挂
     console.error('[chat] input audit write failed (continuing):', auditErr);
   }
+  const auditMs = Date.now() - tAuditStart;
 
   // 5. 用户输入禁词早查（命中也只 audit + 替换给 LLM 的 user 文本，避免污染回答；
   //    不拒请求 — 用户经常无意提到"诊断"等词描述自己情况）
@@ -158,6 +166,7 @@ export async function POST(req: Request) {
   const modelMessages = await convertToModelMessages(trimmed);
 
   // 7. 流式生成
+  let firstTokenMs = -1;
   const result = streamText({
     model: provider(getChatModelId()),
     system,
@@ -165,7 +174,26 @@ export async function POST(req: Request) {
     tools: chatTools,
     // 客户端 tool 调用回流后允许 LLM 再生成一段确认文字（吃药提醒已设置 ✓）
     stopWhen: stepCountIs(2),
+    onChunk({ chunk }) {
+      if (firstTokenMs < 0 && chunk.type === 'text-delta') {
+        firstTokenMs = Date.now() - tStart;
+      }
+    },
     onFinish: async ({ text }) => {
+      // [chat-timing] 一行 JSON，方便线上 grep + parse
+      console.log(JSON.stringify({
+        tag: 'chat-timing',
+        sessionId: sessionId.slice(0, 8),
+        retrieveMs,
+        auditMs,
+        firstTokenMs,
+        totalMs: Date.now() - tStart,
+        outputChars: text.length,
+        systemChars,
+        msgCount: modelMessages.length,
+        criticalHits: retrieved.criticalHits,
+      }));
+
       // 输出禁词后置扫描（完整 ZH+EN 词表 + 屈折 regex）
       const scan = scanBannedWords(text);
       const outputHash = await shortHash(text);

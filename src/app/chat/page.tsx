@@ -64,7 +64,7 @@ function ChatBody() {
       if (trigger) setFeedbackTrigger(trigger);
     }, 1500);
     return () => clearTimeout(t);
-  }, [activePerson.id]);
+  }, [activePerson]);
 
   function handleFeedbackSubmit(result: FeedbackResult) {
     markSupplementFedback(result.supplementId);
@@ -147,12 +147,17 @@ function ChatBody() {
 
     processedExtractRef.current.add(lastMsg.id); // 标记已处理（fetch 失败也不重试）
     const ctrl = new AbortController();
-    fetch('/api/extract', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: profile.sessionId, userMsg: userText, assistantMsg: assistantText }),
-      signal: ctrl.signal,
-    })
+    // Perf #2：延迟 7s 再触发 extract，给"用户秒追问"留通道（同 minimax key/模型）
+    // 用户在窗口内追问 → effect re-run → cleanup 取消 timer，本轮 extract 直接放弃
+    // 代价：少更新一轮 profile（很轻）；收益：不抢主 chat 通道
+    const EXTRACT_DELAY_MS = 7_000;
+    const timer = setTimeout(() => {
+      fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: profile.sessionId, userMsg: userText, assistantMsg: assistantText }),
+        signal: ctrl.signal,
+      })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { delta?: import('@/lib/profile/types').ProfileDelta } | null) => {
         // 北极星 §5：每轮对话都写一个 verify event 到 active person 的时间轴
@@ -191,8 +196,12 @@ function ChatBody() {
         }
       })
       .catch(() => undefined);
+    }, EXTRACT_DELAY_MS);
 
-    return () => ctrl.abort();
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, lastMsg?.id, activePerson.id]);
 
