@@ -459,20 +459,19 @@ export default function HomePage() {
           margin: 34px 0 74px;
           position: relative;
           padding: 0;
-          /* 容器高度 = 原图自然高度的 4/9（连续两次 ×2/3）：
-             原图 1672×941，目标高 941×4/9 ≈ 418，
-             aspect-ratio = 1672/418 = 4/1，
-             图用 object-fit: cover 居中裁顶底 */
-          aspect-ratio: 4 / 1;
+          /* aspect 与 features 卡片区对齐：
+             features-rendered.png 2172×724 = 3:1，
+             CTA 容器同样设 3:1，视觉两块画面长宽比一致 */
+          aspect-ratio: 3 / 1;
           overflow: hidden;
-          border-radius: var(--radius);
+          border-radius: 28px;
         }
         .vitame-landing .cta-bg {
           position: absolute;
           inset: 0;
           width: 100%;
           height: 100%;
-          /* fill = 图整张拉伸适配 4:1 容器，不裁剪任何内容；
+          /* fill = 图整张拉伸适配 3:1 容器，不裁剪任何内容；
              水彩风对轻微比例失真不敏感，能保留全部画面元素 */
           object-fit: fill;
           opacity: .72;
