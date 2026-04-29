@@ -471,9 +471,10 @@ export default function HomePage() {
           inset: 0;
           width: 100%;
           height: 100%;
-          /* fill = 图整张拉伸适配 3:1 容器，不裁剪任何内容；
-             水彩风对轻微比例失真不敏感，能保留全部画面元素 */
-          object-fit: fill;
+          /* 图本身已经 padding 成 2823×941 (3:1)，
+             cover 不会再拉伸变形 — 太阳/植物等圆形元素保持原比例 */
+          object-fit: cover;
+          object-position: center;
           opacity: .72;
           mix-blend-mode: multiply;
           /* 上下边缘 14% 区段淡入透明，让米色 wash 边
