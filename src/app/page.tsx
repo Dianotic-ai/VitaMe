@@ -459,15 +459,20 @@ export default function HomePage() {
           margin: 34px 0 74px;
           position: relative;
           padding: 0;
-          /* 容器高度由 cta-bg 图本身的纵横比决定（width 100% + height auto），
-             图横向铺满 100% 不再有左右白边 */
+          /* 容器高度 = 原图自然高度的 2/3：原图 1672×941，
+             aspect-ratio 改成 1672/(941*2/3) ≈ 1672/627，
+             图用 object-fit: cover 居中裁顶底 */
+          aspect-ratio: 1672 / 627;
+          overflow: hidden;
+          border-radius: var(--radius);
         }
         .vitame-landing .cta-bg {
-          /* 不用 absolute，让图自身 sizing 撑开 .cta 容器 */
-          position: relative;
-          display: block;
+          position: absolute;
+          inset: 0;
           width: 100%;
-          height: auto;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
           opacity: .72;
           mix-blend-mode: multiply;
         }
