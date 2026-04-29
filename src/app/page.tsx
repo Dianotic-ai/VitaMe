@@ -351,27 +351,9 @@ export default function HomePage() {
           width: 100%;
           height: 100%;
           object-fit: contain;
-          mix-blend-mode: multiply;
+          /* hero-seed.png 已用 ffmpeg colorkey=0xf7f1e7:0.10:0.05 处理为透明背景，
+             与页面米色 bg 无缝。不再需要 mix-blend-mode 或 mask 兜底。 */
           filter: saturate(.94) contrast(.98);
-          opacity: .96;
-          /* 超柔渐变 mask — 中心从未达 100% 不透明，边缘大范围羽化，
-             把 PNG 自带的米色底框逐步融化掉，无硬边 */
-          -webkit-mask-image: radial-gradient(
-            ellipse 92% 88% at 50% 50%,
-            rgba(0, 0, 0, .96) 0%,
-            rgba(0, 0, 0, .85) 35%,
-            rgba(0, 0, 0, .55) 60%,
-            rgba(0, 0, 0, .2) 82%,
-            transparent 100%
-          );
-          mask-image: radial-gradient(
-            ellipse 92% 88% at 50% 50%,
-            rgba(0, 0, 0, .96) 0%,
-            rgba(0, 0, 0, .85) 35%,
-            rgba(0, 0, 0, .55) 60%,
-            rgba(0, 0, 0, .2) 82%,
-            transparent 100%
-          );
         }
 
         .vitame-landing .section { padding: 28px 0; }
