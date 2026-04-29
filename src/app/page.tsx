@@ -457,9 +457,8 @@ export default function HomePage() {
           margin: 34px 0 74px;
           position: relative;
           padding: 0;
-          /* aspect 与 features 卡片区对齐：
-             features-rendered.png 2172×724 = 3:1，
-             CTA 容器同样设 3:1，视觉两块画面长宽比一致 */
+          /* aspect 3:1 跟 features 卡片对齐；图本身白色 wash 已 ffmpeg 替换成米色，
+             跟容器 .glass 底色无缝融合，容器放大不再露出"白色空格" */
           aspect-ratio: 3 / 1;
           overflow: hidden;
           border-radius: 28px;
