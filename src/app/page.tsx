@@ -131,8 +131,11 @@ export default function HomePage() {
         <section id="cta" className="section">
           <div className="container">
             <div className="glass cta">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="cta-bg" src="/landing/cta-landscape.png" alt="水彩自然景观"/>
+              <picture>
+                <source media="(max-width: 640px)" srcSet="/landing/cta-landscape-mobile.png" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="cta-bg" src="/landing/cta-landscape.png" alt="水彩自然景观"/>
+              </picture>
               <div className="cta-center">
                 <h2 className="serif">每个人的身体，<br/>都藏着自己的答案。</h2>
                 <p>从一个问题开始，给自己多一份确定。</p>
@@ -471,17 +474,10 @@ export default function HomePage() {
           inset: 0;
           width: 100%;
           height: 100%;
-          /* 原图 1672×941 (1.78:1)，3:1 容器 cover 模式：
-             水平 100% 铺满（消除左右空白），上下各裁 ~11%，
-             太阳保持圆形（cover 等比放大不变形） */
+          /* 图本身水彩 wash 边米色 = 容器 .glass 米色，直接 cover 显示视觉融合；
+             不再 opacity/multiply（旧值会让 wash 区色差被放大成"空白横条"） */
           object-fit: cover;
           object-position: center;
-          opacity: .72;
-          mix-blend-mode: multiply;
-          /* 上下边缘 14% 区段淡入透明，让米色 wash 边
-             与页面 bg 平滑融合，消除分界线 */
-          -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
-          mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
         }
         .vitame-landing .cta-center {
           /* 文字浮在图上方居中 */
@@ -538,10 +534,8 @@ export default function HomePage() {
           .vitame-landing .btn { padding: 11px 20px; }
           .vitame-landing .features-render-wrap { overflow-x: auto; border-radius: 22px; }
           .vitame-landing .features-render-img { min-width: 980px; border-radius: 22px; }
-          /* CTA 移动端：保留文字 absolute overlay 风格不分离。
-             aspect 3:1 → 1.5:1 让容器纵向更高容纳文字。
-             底图已 padded 3:1，cover + center 后裁掉左右米色 padding，
-             主体山水居中显示，太阳/花/河流均完整保留不变形 */
+          /* mobile 用专属 1.5:1 padded 图（picture srcset 切），
+             aspect 1.5:1 让容器纵向更高容纳文字 overlay */
           .vitame-landing .cta {
             aspect-ratio: 1.5 / 1;
             border-radius: 22px;
