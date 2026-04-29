@@ -15,6 +15,8 @@ export const metadata: Metadata = {
   title: 'VitaMe — 你的保健品顾问 + 服用伴侣',
   description: '你的保健品顾问 + 服用伴侣 — 选对、吃对，越吃越懂你。',
   icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png',
     apple: '/brand/vitame-mark-180.png',
   },
 };

@@ -21,7 +21,7 @@ export default function HomePage() {
       <header>
         <div className="container nav">
           <Link href="/" className="brand-link" aria-label="VitaMe 首页">
-            <VitaMeLogo size={28} variant="horizontal" />
+            <VitaMeLogo size={56} variant="horizontal" />
           </Link>
           <nav className="links">
             <a href="#features">产品功能</a>
@@ -471,8 +471,9 @@ export default function HomePage() {
           inset: 0;
           width: 100%;
           height: 100%;
-          /* 图本身已经 padding 成 2823×941 (3:1)，
-             cover 不会再拉伸变形 — 太阳/植物等圆形元素保持原比例 */
+          /* 原图 1672×941 (1.78:1)，3:1 容器 cover 模式：
+             水平 100% 铺满（消除左右空白），上下各裁 ~11%，
+             太阳保持圆形（cover 等比放大不变形） */
           object-fit: cover;
           object-position: center;
           opacity: .72;
