@@ -307,7 +307,7 @@ function ChatBody() {
       <DemoBanner />
       <header className="bg-surface border-b border-border-subtle px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-1.5">
         <Link href="/chat" className="shrink-0">
-          <VitaMeLogo size={22} />
+          <VitaMeLogo size={44} />
         </Link>
         <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
           <PersonSwitcher />
