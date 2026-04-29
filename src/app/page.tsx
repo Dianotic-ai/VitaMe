@@ -9,6 +9,7 @@
 
 import Link from 'next/link';
 import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
+import { SeedSproutStage } from '@/components/brand/SeedSproutStage';
 
 export const metadata = {
   title: 'VitaMe｜补剂安全翻译 Agent',
@@ -65,22 +66,22 @@ export default function HomePage() {
         <section id="process" className="section">
           <div className="container glass process">
             <article className="step active">
-              <div className="ico">◒</div>
+              <div className="ico"><SeedSproutStage stage="seed" size={72} /></div>
               <h3 className="serif">种子</h3>
               <p>提出问题<br/>播下一个值得探索的念头</p>
             </article>
             <article className="step">
-              <div className="ico">♧</div>
+              <div className="ico"><SeedSproutStage stage="sprout" size={72} /></div>
               <h3 className="serif">发芽</h3>
               <p>多维分析<br/>理解成分与潜在影响</p>
             </article>
             <article className="step">
-              <div className="ico">✿</div>
+              <div className="ico"><SeedSproutStage stage="bloom" size={72} /></div>
               <h3 className="serif">开花</h3>
               <p>整合证据<br/>看见更完整的答案</p>
             </article>
             <article className="step">
-              <div className="ico">☘</div>
+              <div className="ico"><SeedSproutStage stage="fruit" size={72} /></div>
               <h3 className="serif">结果</h3>
               <p>形成建议<br/>陪你做出安心选择</p>
             </article>
@@ -394,15 +395,9 @@ export default function HomePage() {
           background: var(--green);
         }
         .vitame-landing .step .ico {
-          width: 76px; height: 76px;
-          border-radius: 50%;
-          border: 1px solid rgba(140, 103, 66, .28);
           display: grid;
           place-items: center;
           margin: 0 auto 12px;
-          background: rgba(255, 251, 244, .7);
-          font-size: 28px;
-          color: var(--green);
         }
         .vitame-landing .step h3 { font-size: 26px; margin: 0 0 3px; }
         .vitame-landing .step p { margin: 0; color: var(--muted); font-size: 14px; }
