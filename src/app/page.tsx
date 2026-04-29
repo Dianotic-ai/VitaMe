@@ -472,8 +472,9 @@ export default function HomePage() {
           inset: 0;
           width: 100%;
           height: 100%;
-          object-fit: cover;
-          object-position: center;
+          /* fill = 图整张拉伸适配 4:1 容器，不裁剪任何内容；
+             水彩风对轻微比例失真不敏感，能保留全部画面元素 */
+          object-fit: fill;
           opacity: .72;
           mix-blend-mode: multiply;
         }
