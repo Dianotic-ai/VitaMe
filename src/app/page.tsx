@@ -537,33 +537,26 @@ export default function HomePage() {
           .vitame-landing .btn { padding: 11px 20px; }
           .vitame-landing .features-render-wrap { overflow-x: auto; border-radius: 22px; }
           .vitame-landing .features-render-img { min-width: 980px; border-radius: 22px; }
-          /* CTA 移动端：底图作为顶部 banner 保持 3:1 比例完整显示
-             （太阳保持圆形不被裁），文字独立堆在下方 */
+          /* CTA 移动端：保留文字 absolute overlay 风格不分离。
+             aspect 3:1 → 1.5:1 让容器纵向更高容纳文字。
+             底图已 padded 3:1，cover + center 后裁掉左右米色 padding，
+             主体山水居中显示，太阳/花/河流均完整保留不变形 */
           .vitame-landing .cta {
-            aspect-ratio: auto;
+            aspect-ratio: 1.5 / 1;
             border-radius: 22px;
-            display: flex;
-            flex-direction: column;
           }
           .vitame-landing .cta-bg {
-            position: relative;
-            inset: auto;
-            width: 100%;
-            height: auto;
-            aspect-ratio: 3 / 1;
             object-fit: cover;
             object-position: center;
-            flex: none;
           }
           .vitame-landing .cta-center {
-            position: static;
-            transform: none;
-            padding: 24px 18px 32px;
-            max-width: 100%;
-            background: none;
+            max-width: 92%;
+            padding: 14px 16px;
           }
-          .vitame-landing .cta h2 { font-size: 26px; line-height: 1.25; }
-          .vitame-landing .cta p { font-size: 15px; }
+          .vitame-landing .cta h2 { font-size: 24px; line-height: 1.25; }
+          .vitame-landing .cta p { font-size: 14px; margin-bottom: 14px; }
+          .vitame-landing .cta .btn { padding: 10px 22px; font-size: 14px; }
+          .vitame-landing .cta .tiny { font-size: 11px; margin-top: 8px; }
         }
       ` }} />
     </div>
