@@ -8,6 +8,7 @@
 // 资源：public/landing/ 下 7 张 PNG（hero-seed / cta-landscape / features-rendered + 4 个 feature 单图）
 
 import Link from 'next/link';
+import { VitaMeLogo } from '@/components/brand/VitaMeLogo';
 
 export const metadata = {
   title: 'VitaMe｜补剂安全翻译 Agent',
@@ -19,15 +20,8 @@ export default function HomePage() {
     <div className="vitame-landing">
       <header>
         <div className="container nav">
-          <Link className="brand" href="/">
-            <span className="logo">
-              <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                <path d="M16 26V10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                <path d="M16 15C10.5 15 8 11.3 8 7.5c4.9 0 7.6 2.5 8 7.5Z" stroke="currentColor" strokeWidth="1.8"/>
-                <path d="M16 19c5.5 0 8-3.7 8-7.5-4.9 0-7.6 2.5-8 7.5Z" stroke="currentColor" strokeWidth="1.8"/>
-              </svg>
-            </span>
-            <span className="serif">VitaMe</span>
+          <Link href="/" className="brand-link" aria-label="VitaMe 首页">
+            <VitaMeLogo size={28} />
           </Link>
           <nav className="links">
             <a href="#features">产品功能</a>
@@ -359,9 +353,8 @@ export default function HomePage() {
           object-fit: contain;
           mix-blend-mode: multiply;
           filter: saturate(.94) contrast(.98);
-          opacity: .98;
-          -webkit-mask-image: radial-gradient(ellipse at 55% 54%, #000 64%, rgba(0, 0, 0, .55) 79%, transparent 98%);
-          mask-image: radial-gradient(ellipse at 55% 54%, #000 64%, rgba(0, 0, 0, .55) 79%, transparent 98%);
+          opacity: .96;
+          /* 去除 mask 硬边，让 PNG alpha + mix-blend-mode 自然融入米色背景 */
         }
 
         .vitame-landing .section { padding: 28px 0; }
@@ -465,7 +458,8 @@ export default function HomePage() {
 
         .vitame-landing .cta {
           margin: 34px 0 74px;
-          min-height: 260px;
+          /* 提高 min-height，让 contain 后图完整可见不被裁顶 */
+          min-height: 380px;
           display: grid;
           grid-template-columns: 1fr 1.15fr 1fr;
           align-items: center;
@@ -476,11 +470,11 @@ export default function HomePage() {
           inset: 0;
           width: 100%;
           height: 100%;
-          object-fit: cover;
-          opacity: .72;
+          /* contain：保持图片完整不裁切 */
+          object-fit: contain;
+          object-position: center;
+          opacity: .68;
           mix-blend-mode: multiply;
-          -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, .35) 30%, rgba(0, 0, 0, .22) 50%, rgba(0, 0, 0, .35) 70%, #000 100%);
-          mask-image: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, .35) 30%, rgba(0, 0, 0, .22) 50%, rgba(0, 0, 0, .35) 70%, #000 100%);
         }
         .vitame-landing .cta-center {
           grid-column: 2;
