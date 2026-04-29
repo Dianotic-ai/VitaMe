@@ -459,10 +459,11 @@ export default function HomePage() {
           margin: 34px 0 74px;
           position: relative;
           padding: 0;
-          /* 容器高度 = 原图自然高度的 2/3：原图 1672×941，
-             aspect-ratio 改成 1672/(941*2/3) ≈ 1672/627，
+          /* 容器高度 = 原图自然高度的 4/9（连续两次 ×2/3）：
+             原图 1672×941，目标高 941×4/9 ≈ 418，
+             aspect-ratio = 1672/418 = 4/1，
              图用 object-fit: cover 居中裁顶底 */
-          aspect-ratio: 1672 / 627;
+          aspect-ratio: 4 / 1;
           overflow: hidden;
           border-radius: var(--radius);
         }
