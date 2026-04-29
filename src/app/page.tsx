@@ -65,7 +65,7 @@ export default function HomePage() {
 
         <section id="process" className="section">
           <div className="container glass process">
-            <article className="step active">
+            <article className="step">
               <div className="ico"><SeedSproutStage stage="seed" size={72} /></div>
               <h3 className="serif">种子</h3>
               <p>提出问题<br/>播下一个值得探索的念头</p>
@@ -387,13 +387,6 @@ export default function HomePage() {
           min-height: 214px;
         }
         .vitame-landing .step + .step { border-left: 1px solid var(--line); }
-        .vitame-landing .step.active::after {
-          content: "";
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 4px;
-          background: var(--green);
-        }
         .vitame-landing .step .ico {
           display: grid;
           place-items: center;
