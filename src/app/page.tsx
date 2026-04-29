@@ -21,7 +21,7 @@ export default function HomePage() {
       <header>
         <div className="container nav">
           <Link href="/" className="brand-link" aria-label="VitaMe 首页">
-            <VitaMeLogo size={28} />
+            <VitaMeLogo size={28} variant="horizontal" />
           </Link>
           <nav className="links">
             <a href="#features">产品功能</a>
@@ -536,6 +536,21 @@ export default function HomePage() {
           .vitame-landing .btn { padding: 11px 20px; }
           .vitame-landing .features-render-wrap { overflow-x: auto; border-radius: 22px; }
           .vitame-landing .features-render-img { min-width: 980px; border-radius: 22px; }
+          /* CTA 移动端自适应：去 aspect-ratio，让容器跟随内容自然撑开；
+             底图 absolute fill 跟随容器高度；文字框改静态布局，
+             内边距用 padding 而非 absolute 居中，避免内容溢出被裁 */
+          .vitame-landing .cta {
+            aspect-ratio: auto;
+            border-radius: 22px;
+          }
+          .vitame-landing .cta-center {
+            position: static;
+            transform: none;
+            padding: 36px 18px;
+            max-width: 100%;
+          }
+          .vitame-landing .cta h2 { font-size: 28px; line-height: 1.25; }
+          .vitame-landing .cta p { font-size: 15px; }
         }
       ` }} />
     </div>
