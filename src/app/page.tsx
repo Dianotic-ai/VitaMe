@@ -476,6 +476,10 @@ export default function HomePage() {
           object-fit: fill;
           opacity: .72;
           mix-blend-mode: multiply;
+          /* 上下边缘 14% 区段淡入透明，让米色 wash 边
+             与页面 bg 平滑融合，消除分界线 */
+          -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
+          mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
         }
         .vitame-landing .cta-center {
           /* 文字浮在图上方居中 */
