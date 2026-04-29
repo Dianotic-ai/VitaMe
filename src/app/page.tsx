@@ -354,7 +354,24 @@ export default function HomePage() {
           mix-blend-mode: multiply;
           filter: saturate(.94) contrast(.98);
           opacity: .96;
-          /* 去除 mask 硬边，让 PNG alpha + mix-blend-mode 自然融入米色背景 */
+          /* 超柔渐变 mask — 中心从未达 100% 不透明，边缘大范围羽化，
+             把 PNG 自带的米色底框逐步融化掉，无硬边 */
+          -webkit-mask-image: radial-gradient(
+            ellipse 92% 88% at 50% 50%,
+            rgba(0, 0, 0, .96) 0%,
+            rgba(0, 0, 0, .85) 35%,
+            rgba(0, 0, 0, .55) 60%,
+            rgba(0, 0, 0, .2) 82%,
+            transparent 100%
+          );
+          mask-image: radial-gradient(
+            ellipse 92% 88% at 50% 50%,
+            rgba(0, 0, 0, .96) 0%,
+            rgba(0, 0, 0, .85) 35%,
+            rgba(0, 0, 0, .55) 60%,
+            rgba(0, 0, 0, .2) 82%,
+            transparent 100%
+          );
         }
 
         .vitame-landing .section { padding: 28px 0; }
@@ -458,30 +475,33 @@ export default function HomePage() {
 
         .vitame-landing .cta {
           margin: 34px 0 74px;
-          /* 提高 min-height，让 contain 后图完整可见不被裁顶 */
-          min-height: 380px;
-          display: grid;
-          grid-template-columns: 1fr 1.15fr 1fr;
-          align-items: center;
-          padding: 18px 28px;
+          position: relative;
+          padding: 0;
+          /* 容器高度由 cta-bg 图本身的纵横比决定（width 100% + height auto），
+             图横向铺满 100% 不再有左右白边 */
         }
         .vitame-landing .cta-bg {
-          position: absolute;
-          inset: 0;
+          /* 不用 absolute，让图自身 sizing 撑开 .cta 容器 */
+          position: relative;
+          display: block;
           width: 100%;
-          height: 100%;
-          /* contain：保持图片完整不裁切 */
-          object-fit: contain;
-          object-position: center;
-          opacity: .68;
+          height: auto;
+          opacity: .72;
           mix-blend-mode: multiply;
         }
         .vitame-landing .cta-center {
-          grid-column: 2;
-          text-align: center;
+          /* 文字浮在图上方居中 */
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
           z-index: 2;
-          background: radial-gradient(circle, rgba(255, 250, 242, .78), rgba(255, 250, 242, .38) 58%, transparent 75%);
+          text-align: center;
+          background: radial-gradient(circle, rgba(255, 250, 242, .82), rgba(255, 250, 242, .42) 58%, transparent 75%);
           padding: 16px;
+          max-width: 60%;
+          margin: 0 auto;
         }
         .vitame-landing .cta h2 {
           font-size: clamp(32px, 3.8vw, 50px);
@@ -511,8 +531,7 @@ export default function HomePage() {
             border-left: 0;
             border-top: 1px solid var(--line);
           }
-          .vitame-landing .cta { grid-template-columns: 1fr; }
-          .vitame-landing .cta-center { grid-column: 1; }
+          .vitame-landing .cta-center { max-width: 90%; }
           .vitame-landing .links { display: none; }
         }
         @media (max-width: 640px) {
