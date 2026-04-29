@@ -14,6 +14,13 @@ const notoSerifSC = Noto_Serif_SC({
 export const metadata: Metadata = {
   title: 'VitaMe — 你的保健品顾问 + 服用伴侣',
   description: '你的保健品顾问 + 服用伴侣 — 选对、吃对，越吃越懂你。',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.svg',
+    apple: '/brand/vitame-mark-180.png',
+  },
 };
 
 export default function RootLayout({
